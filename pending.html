@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Pending - BE PEACE</title>
+  
+  <!-- Meta Description -->
+  <meta name="description" content="Your payment is being processed at BE PEACE. Please wait for confirmation.">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Payment Pending - BE PEACE">
+  <meta property="og:description" content="Your payment is under processing. You will receive a confirmation email shortly.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://bepeace.in/pending.html">
+  <meta property="og:image" content="https://bepeace.in/images/doctor.jpg">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Payment Pending - BE PEACE">
+  <meta name="twitter:description" content="Your payment is being processed. Confirmation will be sent soon.">
+  <meta name="twitter:image" content="https://bepeace.in/images/doctor.jpg">
+
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 0; }
+    .pending-message {
+      text-align: center;
+      padding: 60px 20px;
+      color: #f0ad4e;
+    }
+    .pending-message h2 {
+      font-size: 28px;
+      margin-bottom: 15px;
+    }
+    .pending-message p {
+      font-size: 18px;
+      color: #333;
+    }
+    .details {
+      margin-top: 25px;
+      font-size: 18px;
+      color: #444;
+      text-align: left;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+      background: #f9f9f9;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .details p { margin: 8px 0; }
+    .back-btn {
+      display: inline-block;
+      margin: 20px 10px 0;
+      padding: 12px 22px;
+      background: #f0ad4e;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 5px;
+      font-size: 16px;
+      transition: all 0.3s ease;
+    }
+    .back-btn:hover { opacity: 0.9; transform: translateY(-2px); }
+    .alt-btn {
+      background: #0077cc;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="logo-container">
+      <div class="earth"></div>
+      <h1 class="peach-text">BE PEACE</h1>
+    </div>
+  </header>
+
+  <!-- Navigation -->
+  <nav class="main-nav">
+    <a href="index.html#about">About</a>
+    <a href="index.html#services">Services</a>
+    <a href="index.html#modules">Modules</a>
+    <a href="index.html#contact">Contact</a>
+  </nav>
+
+  <!-- Pending Message -->
+  <section class="pending-message">
+    <h2>⏳ Payment Pending</h2>
+    <p>Please wait while we confirm your payment.<br>
+    You will be redirected once it is verified.</p>
+
+    <div class="details">
+      <p id="name"></p>
+      <p id="email"></p>
+      <p id="orderId"></p>
+      <p id="amount"></p>
+    </div>
+
+    <!-- Countdown -->
+    <p class="redirect-note">🔄 Checking payment status in <span id="countdown">20</span> seconds...</p>
+
+    <a href="index.html" class="back-btn alt-btn">🏠 Back to Homepage</a>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-logo">
+      <div class="earth slow"></div>
+      <h1 class="peach-text">BE PEACE</h1>
+    </div>
+    <p>© 2025 BE PEACE. All rights reserved.</p>
+  </footer>
+
+  <!-- ✅ Use shared script -->
+  <script src="payment-status.js"></script>
+
+  <!-- Countdown script -->
+  <script>
+    let seconds = 20;
+    const countdownEl = document.getElementById("countdown");
+    const timer = setInterval(() => {
+      seconds--;
+      if (countdownEl) countdownEl.textContent = seconds;
+      if (seconds <= 0) {
+        clearInterval(timer);
+        document.querySelector(".redirect-note").textContent = "Still checking... please wait.";
+      }
+    }, 1000);
+  </script>
+</body>
+</html>

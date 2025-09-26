@@ -1,0 +1,1820 @@
+/*Enable smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* General Reset */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #fdfdfd;
+  color: #333;
+  line-height: 1.6;
+  text-align: center;
+}
+
+h1, h2 {
+  margin: 0.5em 0;
+}
+
+/* BE PEACE branding (Dark Pink + Glow) */
+.peach-text {
+  color: #c71585;        /* dark pink (medium violet-red) */
+  font-weight: bold;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+
+  /* Subtle animation */
+  animation: fadeIn 2s ease forwards, breathe 6s ease-in-out infinite;
+
+  /* Warm shadow for natural depth */
+  text-shadow: 2px 2px 6px rgba(102, 51, 0, 0.4);
+
+  /* Smooth hover transition */
+  transition: color 0.3s ease, text-shadow 0.3s ease, transform 0.3s ease;
+}
+
+/* Hover effect */
+.peach-text:hover {
+  color: #e67333;   /* lighter warm peach */
+  text-shadow: 2px 2px 8px rgba(153, 76, 0, 0.6); /* warmer glowing shadow */
+  transform: scale(1.05); /* slight zoom */
+  cursor: pointer;
+}
+
+/* Header BE PEACE */
+header h1.peach-text {
+  font-size: 2.5rem;   /* increased by ~25% */
+}
+
+/* Footer BE PEACE */
+footer h1.peach-text {
+  font-size: 2.25rem;  /* increased by ~25% */
+}
+
+/* Header */
+header {
+  background: linear-gradient(90deg, #87cefa, #add8e6); /* light blue */
+  padding: 20px 30px;
+  text-align: center;
+}
+
+/* Header Logo Container */
+.logo-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5cm;   /* extra space between Earth and BE PEACE */
+}
+
+header h1 {
+  font-size: 2rem;
+  margin: 0;
+}
+
+nav {
+  margin-top: 8px;
+}
+
+nav a {
+  color: #003366;
+  margin: 0 14px;
+  text-decoration: none;
+  font-size: 1rem;
+}
+
+nav a:hover {
+  color: #005f99;
+}
+
+/* Hero */
+#hero {
+  padding: 60px 20px;
+}
+
+#hero h2 {
+  font-size: 2.2rem;
+}
+
+/* Hero Button */
+#hero button {
+  background: #ff6600;   /* default orange */
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  border-radius: 5px;
+  margin-top: 20px;
+
+  /* Pulsating by default */
+  animation: pulse 2s infinite;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
+}
+
+/* Hover effect → stop pulse + turn green */
+#hero button:hover {
+  background: #28a745;   /* green */
+  transform: scale(1.08);
+  box-shadow: 0px 6px 15px rgba(0,0,0,0.25);
+  animation: none;       /* stop pulsing */
+}
+
+/* Active (click) effect → bounce */
+#hero button:active {
+  transform: scale(0.9);
+  background: #218838;   /* darker green when pressed */
+  animation: bounceBack 0.4s ease forwards;
+}
+
+/* Bounce-back animation */
+@keyframes bounceBack {
+  0%   { transform: scale(0.9); }
+  50%  { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+/* Pulse animation */
+@keyframes pulse {
+  0%   { transform: scale(1);   box-shadow: 0 0 0 rgba(255,102,0, 0.4); }
+  50%  { transform: scale(1.08); box-shadow: 0 0 15px rgba(255,102,0, 0.6); }
+  100% { transform: scale(1);   box-shadow: 0 0 0 rgba(255,102,0, 0.4); }
+}
+
+
+/* Sections */
+section {
+  padding: 50px 20px;
+}
+
+/* Services */
+#services ul {
+  list-style: none;
+  padding: 0;
+}
+
+#services li {
+  margin: 10px 0;
+  font-size: 1.1rem;
+}
+
+/* Modules */
+.modules-container {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.module-card {
+  background: #ffe0b2;
+  padding: 20px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #333;
+  font-weight: bold;
+  width: 200px;
+  transition: all 0.3s ease;
+}
+
+.module-card:hover {
+  transform: translateY(-6px) scale(1.05);
+  box-shadow: 0px 6px 15px rgba(0,0,0,0.25);
+  background: #fff3b0; /* light yellow */
+}
+
+/* Animation */
+@keyframes digitalPopup {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Close Button */
+#closeBtn, #closeSuccess {
+  position: absolute;
+  top: 12px; right: 16px;
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #444;
+  cursor: pointer;
+  transition: 0.2s;
+}
+#closeBtn:hover, #closeSuccess:hover {
+  color: #ff6600;
+  transform: scale(1.2);
+}
+
+/* Popup Heading */
+.popup-content h2 {
+  margin-bottom: 1.5rem;
+  font-size: 1.6rem;
+  color: #003366;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Input Fields */
+.popup-content input,
+.popup-content textarea {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  font-size: 1rem;
+  outline: none;
+  transition: 0.3s;
+}
+.popup-content input:focus,
+.popup-content textarea:focus {
+  border-color: #00bfff;
+  box-shadow: 0 0 10px rgba(0,191,255,0.4);
+}
+
+/* Submit Button */
+.popup-content button {
+  width: 100%;
+  padding: 14px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #00bfff, #1e90ff);
+  color: white;
+  box-shadow: 0 6px 15px rgba(0,191,255,0.3);
+  transition: 0.3s;
+}
+.popup-content button:hover {
+  background: linear-gradient(135deg, #1e90ff, #0077b6);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,191,255,0.5);
+}
+
+
+/* Success Popup */
+#successMessage .popup-content {
+  background: linear-gradient(135deg, #e6ffe6, #f0fff0);
+  border: 2px solid rgba(0, 200, 0, 0.4);
+  border-radius: 18px;
+  width: 380px;
+  max-width: 95%;
+  padding: 2rem;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.25), 0 0 25px rgba(0,200,0,0.3);
+  animation: successPopup 0.6s ease;
+  text-align: center;
+  position: relative;
+}
+
+/* Success Popup Animation */
+@keyframes successPopup {
+  0%   { transform: scale(0.7); opacity: 0; }
+  70%  { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+/* Green Check Animation */
+#successMessage h2::before {
+  content: "✅";
+  display: block;
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  animation: popIn 0.5s ease;
+}
+
+/* Pop-in effect for the check */
+@keyframes popIn {
+  0%   { transform: scale(0); opacity: 0; }
+  60%  { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+/* Success Title */
+#successMessage h2 {
+  margin: 0 0 1rem;
+  font-size: 1.8rem;
+  color: #228B22;   /* forest green */
+  text-shadow: 1px 1px 6px rgba(0, 128, 0, 0.3);
+}
+
+/* Success Text */
+#successMessage p {
+  font-size: 1rem;
+  color: #2e8b57;
+  margin: 0;
+}
+
+
+/* Footer */
+footer {
+  background: linear-gradient(90deg, #87cefa, #add8e6); /* light blue */
+  padding: 20px 30px;
+  margin-top: 20px;
+}
+
+/* Footer Logo Container */
+.footer-logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5cm;   /* same spacing */
+  margin-bottom: 6px;
+}
+
+footer h1 {
+  font-size: 1.8rem;
+  margin: 0;
+}
+
+footer p {
+  font-size: 0.85rem;
+  color: #003366;
+  margin: 0;
+}
+
+/* 🌍 Realistic Earth (slower, clockwise spin) */
+.earth {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: url('https://www.solarsystemscope.com/textures/download/2k_earth_daymap.jpg') no-repeat center center / cover;
+  animation: spin 24s linear infinite;  /* slower (50% reduced speed) */
+  box-shadow: 
+    inset -12px -12px 24px rgba(0,0,0,0.6),   /* night shading */
+    inset 8px 8px 12px rgba(255,255,255,0.3), /* sunlight highlight */
+    0 0 14px rgba(30,144,255,0.7),            /* blue glow */
+    0 0 28px rgba(30,144,255,0.4);            /* soft outer glow */
+}
+
+/* Hover interaction */
+.earth:hover {
+  animation-play-state: paused;   /* pause spin */
+  transform: scale(1.15);         /* zoom in */
+  cursor: pointer;
+}
+
+/* Spin the globe clockwise */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Separate Navigation Section */
+.main-nav {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  padding: 15px 0;
+  background: #f9f9f9;   /* light background */
+  border-bottom: 1px solid #ddd;
+}
+
+.main-nav a {
+  color: #003366;         /* navy */
+  text-decoration: none;  /* no underline */
+  font-size: 1rem;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.main-nav a:hover {
+  color: #c71585;         /* dark pink hover */
+}
+
+/* ===== About Section Styling ===== */
+#about {
+  padding: 70px 20px;
+  background: #f9f9f9; /* light background */
+}
+
+.about-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+  max-width: 1100px;
+  margin: auto;
+  flex-wrap: wrap;
+}
+
+/* Doctor Image */
+.about-image img {
+  border-radius: 15px;
+  box-shadow: 0px 6px 18px rgba(0,0,0,0.2);
+  width: 100%;
+  max-width: 350px;
+  transition: transform 0.4s ease;
+}
+
+.about-image img:hover {
+  transform: scale(1.05); /* zoom effect */
+}
+
+/* About Text */
+.about-text {
+  flex: 1;
+  text-align: left;
+  animation: fadeInUp 1.2s ease-in-out;
+}
+
+.about-text h2 {
+  font-size: 2rem;
+  margin-bottom: 20px;
+  color: #222;
+}
+
+/* Gradient Highlight Text */
+.about-text .highlight {
+  font-weight: bold;
+  background: linear-gradient(90deg, #ff9966, #ff5e62);
+  color: transparent;
+  background-clip: text;   /* modern browsers handle this */
+}
+
+.about-text p {
+  font-size: 1.1rem;
+  margin-bottom: 15px;
+  color: #444;
+  line-height: 1.7;
+}
+
+/* Fade-in animation */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .about-container {
+    flex-direction: column;
+    text-align: center;
+  }
+  .about-text {
+    text-align: center;
+  }
+}
+
+/* Services Section */
+#services {
+  background: #f9f9f9;
+  padding: 60px 20px;
+}
+
+#services h2 {
+  font-size: 2rem;
+  color: #c71585; /* dark pink */
+  margin-bottom: 40px;
+  text-transform: uppercase;
+}
+
+.services-container {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 25px;
+}
+
+.service-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 25px;
+  width: 250px;
+  text-align: center;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.service-card:hover {
+  transform: translateY(-8px) scale(1.05);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+.service-card .icon {
+  font-size: 2.5rem;
+  margin-bottom: 15px;
+}
+
+.service-card h3 {
+  font-size: 1.3rem;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.service-card p {
+  font-size: 1rem;
+  color: #555;
+}
+
+/* Services Section */
+#services {
+  background: #f9f9f9;
+  padding: 60px 20px;
+}
+
+#services h2 {
+  font-size: 2rem;
+  color: #c71585; /* dark pink */
+  margin-bottom: 40px;
+  text-transform: uppercase;
+}
+
+/* Container */
+.services-container {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 25px;
+}
+
+/* Service Card fixed */
+.service-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 25px;
+  width: 250px;
+  text-align: center;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease; 
+
+  /*Fix underline + make whole card clickable */
+  text-decoration: none;
+  color: inherit;
+  display: block;
+
+  /* Animation */
+  opacity: 0;
+  transform: translateY(40px);
+  animation: fadeUp 1s ease forwards;
+}
+
+/* Animate cards one by one */
+.service-card:nth-child(1) { animation-delay: 0.2s; }
+.service-card:nth-child(2) { animation-delay: 0.4s; }
+.service-card:nth-child(3) { animation-delay: 0.6s; }
+.service-card:nth-child(4) { animation-delay: 0.8s; }
+
+/* Hover Effect */
+.service-card:hover {
+  transform: translateY(-8px) scale(1.05);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+/* Icon */
+.service-card .icon {
+  font-size: 2.5rem;
+  margin-bottom: 15px;
+}
+
+/* Title */
+.service-card h3 {
+  font-size: 1.3rem;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+/* Description */
+.service-card p {
+  font-size: 1rem;
+  color: #555;
+}
+
+/* Keyframes */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== Smooth Scroll for all anchor links ===== */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ===== Highlight effect when scrolling to Modules ===== */
+#modules:target {
+  animation: highlightGlow 1.5s ease;
+}
+
+/* Glow animation */
+@keyframes highlightGlow {
+  0%   { box-shadow: 0 0 0px rgba(255, 215, 0, 0.0); }
+  50%  { box-shadow: 0 0 25px rgba(255, 215, 0, 0.8); background-color: #fffbe6; }
+  100% { box-shadow: 0 0 0px rgba(255, 215, 0, 0.0); background-color: transparent; }
+}
+/* Container */
+.modules-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 25px;
+  margin-top: 30px;
+}
+
+/* Base Card */
+.module-card {
+  flex: 1 1 250px;
+  max-width: 280px;
+  padding: 25px 20px;
+  border-radius: 15px;
+  text-align: center;
+  text-decoration: none;
+  color: #fff;
+  font-weight: 500;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+  transition: transform 0.3s, box-shadow 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Icon Styling */
+.module-card .icon {
+  font-size: 2.5rem;
+  margin-bottom: 15px;
+  display: block;
+}
+
+/* Hover Effect */
+.module-card:hover {
+  transform: translateY(-8px) scale(1.03);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+/* Different Colors per Module */
+.module-card.newborn { background: linear-gradient(135deg, #ff9a9e, #fad0c4); }
+.module-card.nutrition { background: linear-gradient(135deg, #a8e063, #56ab2f); }
+.module-card.sleep { background: linear-gradient(135deg, #8e9eab, #eef2f3); color: #333; }
+.module-card.vaccination { background: linear-gradient(135deg, #43cea2, #185a9d); }
+
+/* Fade + Slide Animation */
+@keyframes fadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Apply animation to cards */
+.module-card {
+  opacity: 0;                 /* start invisible */
+  animation: fadeUp 0.8s ease forwards;
+}
+
+/* Stagger effect - each card delayed */
+.module-card:nth-child(1) { animation-delay: 0.2s; }
+.module-card:nth-child(2) { animation-delay: 0.4s; }
+.module-card:nth-child(3) { animation-delay: 0.6s; }
+.module-card:nth-child(4) { animation-delay: 0.8s; }
+
+/* Hover Glow Effect */
+.module-card:hover {
+  transform: translateY(-8px) scale(1.05);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.25), 
+              0 0 20px rgba(255, 255, 255, 0.5);
+  border: 2px solid rgba(255, 255, 255, 0.7);
+}
+
+/* Smooth transition for glow */
+.module-card {
+  transition: transform 0.3s ease, 
+              box-shadow 0.4s ease, 
+              border 0.3s ease;
+}
+
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 10px rgba(255,255,255,0.4); }
+  50% { box-shadow: 0 0 25px rgba(255,255,255,0.8); }
+  100% { box-shadow: 0 0 10px rgba(255,255,255,0.4); }
+}
+
+.module-card:hover {
+  animation: pulseGlow 1.5s infinite, fadeUp 0.8s ease forwards;
+}
+
+/* Click (active) effect */
+.module-card:active {
+  transform: scale(0.97) translateY(2px);  /* shrink slightly + push down */
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2) inset; /* inner shadow for pressed look */
+}
+
+/* Ripple container */
+.module-card {
+  position: relative;
+  overflow: hidden; /* keeps ripple inside */
+  cursor: pointer;
+}
+
+/* Ripple element */
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  transform: scale(0);
+  animation: rippleEffect 0.6s linear;
+  background-color: rgba(255, 255, 255, 0.7);
+  pointer-events: none; /* ignore clicks */
+}
+
+/* Ripple animation */
+@keyframes rippleEffect {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* Header */
+header {
+  background: #a2e4f3;
+  padding: 20px;
+  text-align: center;
+}
+
+.header-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Inline Earth for header */
+.inline-earth {
+  display: inline-block;
+  vertical-align: middle;
+  width: 40px;
+  height: 40px;
+  margin-right: 10px;
+  background: url('../earth.png') no-repeat center/cover;
+  border-radius: 50%;
+  animation: spin 12s linear infinite;
+  box-shadow: 0 0 8px #00b4d8, 0 0 15px #1e90ff;
+}
+
+/* Branding */
+.brand-title,
+.footer-center h2 {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #d63384;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Footer */
+footer {
+  background: #a2e4f3;
+  padding: 25px 15px;
+  text-align: center;
+  margin-top: 40px;
+}
+
+.footer-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Inline Earth for footer */
+.footer-earth {
+  display: inline-block;
+  vertical-align: middle;
+  width: 30px;  /* smaller */
+  height: 30px;
+  margin-right: 8px;
+  background: url('../earth.png') no-repeat center/cover;
+  border-radius: 50%;
+  animation: spin 12s linear infinite;
+  box-shadow: 0 0 6px #00b4d8, 0 0 12px #1e90ff;
+}
+
+.footer-center p {
+  margin: 3px 0 0;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+/* Back links */
+.footer-links {
+  margin-top: 12px;
+}
+.footer-links a {
+  color: #004085;
+  text-decoration: none;
+  margin: 0 10px;
+  font-size: 0.9rem;
+  transition: color 0.3s ease;
+}
+.footer-links a:hover {
+  color: #d63384;
+  text-decoration: underline;
+}
+
+/* Spin Animation */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+/* Pure CSS Earth Ball */
+.inline-earth,
+.footer-earth {
+  display: inline-block;
+  vertical-align: middle;
+  border-radius: 50%;
+  animation: spin 12s linear infinite;
+  background: radial-gradient(circle at 30% 30%, #00b4d8 40%, #0077b6 70%);
+  box-shadow: inset -5px -5px 10px rgba(0,0,0,0.3),
+              0 0 8px #00b4d8, 0 0 15px #1e90ff;
+}
+
+/* Header Earth */
+.inline-earth {
+  width: 40px;   /* bigger for header */
+  height: 40px;
+  margin-right: 10px;
+}
+
+/* Footer Earth */
+.footer-earth {
+  width: 30px;   /* smaller for footer */
+  height: 30px;
+  margin-right: 8px;
+}
+
+/* Spin Animation */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 🌍 Rotating Earth with Glow */
+.earth-icon {
+  width: 40px;   /* header Earth */
+  height: 40px;
+  vertical-align: middle;
+  margin-right: 10px;
+  animation: spin 12s linear infinite;
+  filter: drop-shadow(0 0 8px #00b4d8) drop-shadow(0 0 16px #1e90ff);
+}
+
+.earth-icon.small {
+  width: 30px;   /* footer Earth */
+  height: 30px;
+  margin-right: 8px;
+  animation: spin 12s linear infinite;
+  filter: drop-shadow(0 0 6px #00b4d8) drop-shadow(0 0 12px #1e90ff);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+/* ===== Branding Text (BE PEACE) ===== */
+.brand-text {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: magenta;       /* 🌸 Magenta color */
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 0 0 8px rgba(255, 0, 255, 0.6);  /* soft neon glow */
+}
+
+/* Back to Modules Button Styling */
+.back-btn {
+  display: inline-block;
+  background: linear-gradient(135deg, #00b4d8, #0077b6);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none; /* removes underline */
+  padding: 10px 20px;
+  border-radius: 25px;
+  box-shadow: 0 4px 10px rgba(0, 119, 182, 0.3);
+  transition: all 0.3s ease;
+}
+
+/* Hover effect */
+.back-btn:hover {
+  background: linear-gradient(135deg, #0077b6, #0096c7);
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 6px 15px rgba(0, 119, 182, 0.5);
+  cursor: pointer;
+}
+/* ===============================
+   Back Button Styling
+   =============================== */
+.back-btn {
+  display: inline-block;
+  margin-top: 20px;
+  padding: 10px 18px;
+  background: #ff5a5f;     /* pink-red */
+  color: #fff;
+  font-size: 1rem;
+  font-weight: bold;
+  border-radius: 8px;
+  text-decoration: none;   /* remove underline */
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.back-btn:hover {
+  background: #e60073;   /* deeper magenta */
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* ===============================
+   Back Button Styling (No Breathing)
+   =============================== */
+.back-btn {
+  display: inline-block;
+  margin-top: 20px;
+  padding: 10px 18px;
+  background: #ff5a5f;     /* pink-red */
+  color: #fff;
+  font-size: 1rem;
+  font-weight: bold;
+  border-radius: 8px;
+  text-decoration: none;   /* remove underline */
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.back-btn:hover {
+  background: #e60073;   /* deeper magenta */
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* ===============================
+   Responsive Layout for Services
+   =============================== */
+
+/* On small screens (phones) → 1 card per row */
+@media (max-width: 600px) {
+  .services-container {
+    flex-direction: column;
+    align-items: center;
+  }
+  .service-card {
+    width: 90%; /* card takes most of screen width */
+  }
+}
+
+/* On tablets → 2 cards per row */
+@media (min-width: 601px) and (max-width: 900px) {
+  .services-container {
+    justify-content: center;
+  }
+  .service-card {
+    width: 45%; /* 2 cards fit in one row */
+  }
+}
+
+/* On desktops → 4 cards per row */
+@media (min-width: 901px) {
+  .services-container {
+    justify-content: center;
+  }
+  .service-card {
+    width: 250px; /* fixed neat size */
+  }
+}
+
+/* 🌟 Make Service Cards More Alive */
+.service-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 25px;
+  width: 250px;
+  min-height: 260px; /* equal height */
+  text-align: center;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border 0.3s ease;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden; /* needed for ripple */
+  cursor: pointer;
+}
+
+/* Hover Glow + Lift */
+.service-card:hover {
+  transform: translateY(-8px) scale(1.05);
+  box-shadow: 0 12px 25px rgba(0,0,0,0.25),
+              0 0 20px rgba(199, 21, 133, 0.5); /* pink glow */
+  border: 2px solid rgba(199, 21, 133, 0.4); /* magenta border */
+}
+
+/* Icon bounce */
+.service-card .icon {
+  font-size: 2.5rem;
+  margin-bottom: 15px;
+  transition: transform 0.3s ease;
+}
+.service-card:hover .icon {
+  transform: scale(1.2) rotate(10deg);
+}
+
+/* Ripple effect */
+.service-card::after {
+  content: "";
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 0; height: 0;
+  background: rgba(199, 21, 133, 0.4);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: width 0.6s ease, height 0.6s ease, opacity 0.6s ease;
+}
+.service-card:active::after {
+  width: 300px;
+  height: 300px;
+  opacity: 0;
+}
+
+/* ✨ Fade-in + Slide-up animation for Service Cards */
+.service-card {
+  opacity: 0; /* start invisible */
+  transform: translateY(30px);
+  animation: fadeUp 0.8s ease forwards;
+}
+
+/* Staggered animation for each card */
+.service-card:nth-child(1) { animation-delay: 0.2s; }
+.service-card:nth-child(2) { animation-delay: 0.4s; }
+.service-card:nth-child(3) { animation-delay: 0.6s; }
+.service-card:nth-child(4) { animation-delay: 0.8s; }
+
+/* Keyframes */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 🌟 Alive Hero Button (Book a Consultation) */
+.btn {
+  display: inline-block;
+  background: linear-gradient(135deg, #ff6600, #ff4500);
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: bold;
+  padding: 14px 28px;
+  border-radius: 30px;
+  text-decoration: none;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden; /* for ripple */
+  cursor: pointer;
+}
+
+/* Hover → Glow + Lift */
+.btn:hover {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 12px 25px rgba(0,0,0,0.25),
+              0 0 20px rgba(255, 102, 0, 0.6);
+  background: linear-gradient(135deg, #ff7f50, #ff6347);
+}
+
+/* Active (click) ripple effect */
+.btn::after {
+  content: "";
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 0; height: 0;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: width 0.6s ease, height 0.6s ease, opacity 0.6s ease;
+}
+.btn:active::after {
+  width: 300px;
+  height: 300px;
+  opacity: 0;
+}
+
+/* 🌟 Alive Hero Button (Book a Consultation) with Pulse */
+.btn {
+  display: inline-block;
+  background: linear-gradient(135deg, #ff6600, #ff4500);
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: bold;
+  padding: 14px 28px;
+  border-radius: 30px;
+  text-decoration: none;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden; /* for ripple */
+  cursor: pointer;
+
+  /* Idle pulsing */
+  animation: pulseGlow 2s infinite;
+}
+
+/* Hover → Glow + Lift (pulse stops) */
+.btn:hover {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 12px 25px rgba(0,0,0,0.25),
+              0 0 25px rgba(255, 102, 0, 0.7);
+  background: linear-gradient(135deg, #ff7f50, #ff6347);
+  animation: none; /* stop pulsing when hovered */
+}
+
+/* Active (click) ripple effect */
+.btn::after {
+  content: "";
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 0; height: 0;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: width 0.6s ease, height 0.6s ease, opacity 0.6s ease;
+}
+.btn:active::after {
+  width: 300px;
+  height: 300px;
+  opacity: 0;
+}
+
+/* 🌊 Pulse Glow Animation */
+@keyframes pulseGlow {
+  0%   { transform: scale(1); box-shadow: 0 0 0 rgba(255,102,0,0.4); }
+  50%  { transform: scale(1.05); box-shadow: 0 0 20px rgba(255,102,0,0.6); }
+  100% { transform: scale(1); box-shadow: 0 0 0 rgba(255,102,0,0.4); }
+}
+
+/* 🌿 Button turns Green when clicked */
+.btn:active {
+  background: linear-gradient(135deg, #28a745, #218838); /* green shades */
+  transform: scale(0.95); /* pressed effect */
+  box-shadow: 0 6px 15px rgba(40, 167, 69, 0.4);
+}
+
+/* 🌿 Click effect → turns green briefly */
+.btn:active {
+  animation: clickGreen 0.6s ease forwards;
+}
+
+/* Keyframes for Green Click Feedback */
+@keyframes clickGreen {
+  0% {
+    background: linear-gradient(135deg, #28a745, #218838); /* green */
+    transform: scale(0.95); /* press */
+    box-shadow: 0 6px 15px rgba(40, 167, 69, 0.4);
+  }
+  50% {
+    background: linear-gradient(135deg, #28a745, #218838);
+    transform: scale(1.05); /* bounce back */
+  }
+  100% {
+    background: linear-gradient(135deg, #ff6600, #ff4500); /* back to orange */
+    transform: scale(1); /* normal */
+  }
+}
+
+/* 🌿 Button Click → Turns Green + Shows Checkmark */
+.btn:active {
+  animation: clickGreen 0.6s ease forwards;
+}
+
+/* Add checkmark on click */
+.btn:active::before {
+  content: "✅";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.2rem;
+  animation: fadeOutCheck 0.6s ease forwards;
+}
+
+/* Keyframes for Green Click Feedback */
+@keyframes clickGreen {
+  0% {
+    background: linear-gradient(135deg, #28a745, #218838); /* green */
+    transform: scale(0.95);
+    box-shadow: 0 6px 15px rgba(40, 167, 69, 0.4);
+  }
+  50% {
+    background: linear-gradient(135deg, #28a745, #218838);
+    transform: scale(1.05);
+  }
+  100% {
+    background: linear-gradient(135deg, #ff6600, #ff4500); /* back to orange */
+    transform: scale(1);
+  }
+}
+
+/* Checkmark fades out */
+@keyframes fadeOutCheck {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+}
+
+/* Floating WhatsApp Button */
+.whatsapp-float {
+  position: fixed;
+  right: 20px;       /* distance from right edge */
+  top: 50%;          /* center vertically */
+  transform: translateY(-50%);
+  z-index: 1000;
+}
+
+.whatsapp-icon {
+  width: 60px;       /* button size */
+  height: 60px;
+  border-radius: 50%;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.whatsapp-icon:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.4);
+}
+
+/* WhatsApp Number - No Underline */
+.whatsapp-link {
+  color: #25D366;        /* WhatsApp green */
+  text-decoration: none; /* remove underline */
+  font-weight: bold;
+}
+
+.whatsapp-link:hover {
+  color: #128C7E;        /* darker green on hover */
+  text-decoration: none; /* no underline on hover */
+}
+
+/* Contact Section - WhatsApp Number */
+#contact a {
+  text-decoration: none;   /* remove underline */
+  color: #25D366;          /* WhatsApp green */
+  font-weight: bold;
+}
+
+#contact a:hover {
+  color: #128C7E;          /* darker green on hover */
+  text-decoration: none;   /* stay underline-free */
+}
+
+/* Floating WhatsApp Button */
+.whatsapp-float {
+  position: fixed;
+  right: 20px;
+  top: 50%;                /* center-right */
+  transform: translateY(-50%);
+  z-index: 999;
+}
+
+.whatsapp-icon {
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease;
+}
+
+.whatsapp-icon:hover {
+  transform: scale(1.1);
+}
+
+#whatsapp-link {
+  text-decoration: none;
+  color: #0077b6;
+  font-weight: 500;
+}
+
+#whatsapp-link:hover {
+  color: #c71585;
+}
+
+/* WhatsApp Contact Link */
+.whatsapp-link {
+  text-decoration: none;   /* removes underline */
+  color: #25D366;          /* WhatsApp green */
+  font-weight: bold;
+}
+
+.whatsapp-link:hover {
+  color: #128C7E;          /* darker green on hover */
+}
+
+.about-image img {
+  width: 100%;
+  max-width: 250px;     /* limits max size */
+  height: auto;         /* keeps aspect ratio */
+  aspect-ratio: 1 / 1;  /* makes it square before circle */
+  border-radius: 50%;   /* circle */
+  object-fit: cover;    /* crops photo nicely */
+  border: 4px solid #fff; /* neat white border */
+  box-shadow: 0px 6px 18px rgba(0, 0, 0, 0.3); /* soft shadow */
+  display: block;
+  margin: 0 auto; /* centers image */
+}
+
+/* For screens up to 768px (tablets & mobiles) */
+@media (max-width: 768px) {
+  .about-container {
+    display: flex;
+    flex-direction: column;   /* stack image + text vertically */
+    align-items: center;      /* center horizontally */
+    text-align: center;       /* center text */
+  }
+
+  .about-text {
+    margin-top: 15px;  /* space between photo and text */
+  }
+}
+
+/* For screens up to 768px (tablets & mobiles) */
+@media (max-width: 768px) {
+  .about-container {
+    display: flex;
+    flex-direction: column;   /* stack image + text vertically */
+    align-items: center;      /* center horizontally */
+    text-align: center;       /* center text */
+  }
+
+  .about-text {
+    margin-top: 15px;  /* space between photo and text */
+  }
+}
+
+/* Doctor Photo Styling */
+.about-image img {
+  width: 100%;
+  max-width: 250px;     
+  height: auto;         
+  aspect-ratio: 1 / 1;  
+  border-radius: 50%;   
+  object-fit: cover;    
+  border: 4px solid #fff; 
+  box-shadow: 0px 6px 18px rgba(0, 0, 0, 0.3), 
+              0 0 15px rgba(199, 21, 133, 0.4); /* soft magenta glow */
+  display: block;
+  margin: 0 auto;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Hover effect */
+.about-image img:hover {
+  transform: scale(1.05);
+  box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.4), 
+              0 0 25px rgba(199, 21, 133, 0.6);
+}
+
+/* ===== Testimonials Slider ===== */
+#testimonials {
+  background: #f9f9f9;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+#testimonials h2 {
+  font-size: 2rem;
+  color: #c71585;
+  margin-bottom: 30px;
+  text-transform: uppercase;
+}
+
+/* Slider container */
+.testimonial-slider {
+  display: flex;
+  overflow: hidden;
+  position: relative;
+  max-width: 100%;
+}
+
+/* Cards */
+.testimonial-card {
+  min-width: 100%; /* one card fills full width */
+  box-sizing: border-box;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+  text-align: left;
+  transition: transform 0.5s ease;
+}
+
+.testimonial-card p {
+  font-size: 1.1rem;
+  font-style: italic;
+  margin-bottom: 15px;
+  color: #444;
+}
+
+.testimonial-card h4 {
+  font-size: 1rem;
+  color: #003366;
+  text-align: right;
+}
+
+/* 🌟 Testimonial Navigation */
+.testimonial-nav {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.testimonial-nav button {
+  background: #00b4d8;
+  border: none;
+  color: white;
+  font-size: 18px;
+  margin: 0 5px;
+  padding: 8px 14px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.testimonial-nav button:hover {
+  background: #0077b6;
+}
+
+/* 🌟 Testimonial Container */
+.testimonial-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 700px;
+  margin: 20px auto;
+  position: relative;
+  padding: 0 10px;
+}
+
+#testimonial {
+  flex: 1;
+  text-align: center;
+  padding: 0 40px;
+}
+
+#testimonial-text,
+#testimonial-author {
+  opacity: 0;
+  transition: opacity 0.8s ease-in-out;
+}
+
+#testimonial-text.show,
+#testimonial-author.show {
+  opacity: 1;
+}
+
+/* 🌟 Arrows */
+.testimonial-container button {
+  background: #00b4d8;
+  border: none;
+  color: white;
+  font-size: 28px;
+  font-weight: bold;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+}
+
+.testimonial-container button:hover {
+  background: #0077b6;
+  transform: scale(1.1);
+}
+
+/* 🌟 Dots */
+.testimonial-dots {
+  text-align: center;
+  margin-top: 15px;
+}
+
+.testimonial-dots .dot {
+  position: relative;
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin: 0 6px;
+  background: #ccc;
+  border-radius: 50%;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.testimonial-dots .dot::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 0%;
+  background: #00b4d8;
+  border-radius: 50%;
+}
+
+.testimonial-dots .dot.filling::after {
+  animation: fillDot 3s linear forwards;
+}
+
+@keyframes fillDot {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+/* 📱 Mobile-friendly */
+@media (max-width: 600px) {
+  .testimonial-container {
+    flex-direction: column;
+  }
+
+  #testimonial {
+    padding: 20px 10px;
+  }
+
+  .testimonial-container button {
+    margin: 10px 0;
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
+  }
+}
+
+/* Accessibility focus */
+.testimonial-container button:focus,
+.testimonial-dots .dot:focus {
+  outline: 2px solid #0077b6;
+  outline-offset: 3px;
+}
+
+/* 🌟 Testimonial Card Style */
+#testimonial {
+  flex: 1;
+  text-align: center;
+  padding: 30px 40px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: transform 0.3s ease;
+}
+
+#testimonial:hover {
+  transform: translateY(-4px);
+}
+
+#testimonial-text {
+  font-size: 1.1rem;
+  font-style: italic;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+#testimonial-author {
+  font-weight: bold;
+  color: #0077b6;
+  margin-top: 8px;
+}
+
+/* Floating WhatsApp Button */
+.whatsapp-float {
+  position: fixed;
+  width: 60px;
+  height: 60px;
+  bottom: 20px;
+  right: 20px;
+  background-color: #25d366;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  transition: transform 0.3s ease;
+}
+
+.whatsapp-float:hover {
+  transform: scale(1.1);
+}
+
+.whatsapp-icon {
+  width: 35px;
+  height: 35px;
+}
+
+/* ===== Sticky Navigation ===== */
+.main-nav {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: #fff;
+  border-bottom: 1px solid #ddd;
+}
+
+.nav-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: bold;
+  color: #00897B;
+}
+
+.nav-links {
+  display: flex;
+  gap: 20px;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: #333;
+  font-weight: 600;
+  transition: color 0.3s;
+}
+
+.nav-links a:hover {
+  color: #00897B;
+}
+
+/* ===== Hamburger Menu ===== */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 28px;
+  height: 22px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 1100;
+}
+
+.hamburger span {
+  display: block;
+  height: 3px;
+  width: 100%;
+  background: #333;
+  border-radius: 2px;
+  transition: all 0.3s ease-in-out;
+}
+
+/* Animate Hamburger → X */
+.hamburger.active span:nth-child(1) {
+  transform: rotate(45deg) translate(5px, 5px);
+}
+.hamburger.active span:nth-child(2) {
+  opacity: 0;
+}
+.hamburger.active span:nth-child(3) {
+  transform: rotate(-45deg) translate(6px, -6px);
+}
+
+/* ===== Mobile Styles ===== */
+@media (max-width: 768px) {
+  .hamburger {
+    display: flex;
+  }
+
+  .nav-links {
+    flex-direction: column;
+    background: #fff;
+    position: fixed;
+    top: 0;
+    right: 0;  
+    width: 260px;
+    height: 100vh;
+    padding: 20px;
+
+    /* Modern floating look */
+    border-top-left-radius: 18px;
+    border-bottom-left-radius: 18px;
+    box-shadow: -4px 0 12px rgba(0,0,0,0.2);
+
+    /* hide off-screen */
+    transform: translateX(100%);
+    transition: transform 0.35s ease-in-out;
+    z-index: 1000;
+  }
+
+  .nav-links.active {
+    transform: translateX(0);
+    animation: drawerBounce 0.5s ease; /* ✨ bounce on open */
+  }
+
+  /* Bounce effect for drawer */
+  @keyframes drawerBounce {
+    0%   { transform: translateX(100%); }
+    80%  { transform: translateX(-10px); }
+    100% { transform: translateX(0); }
+  }
+
+  /* Drawer links */
+  .nav-links a {
+    padding: 12px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 16px;
+
+    opacity: 0;
+    transform: translateY(20px);  /* start lower */
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+
+  /* Slide-up + fade for links */
+  .nav-links.active a {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Stagger animation */
+  .nav-links.active a:nth-child(1) { transition-delay: 0.1s; }
+  .nav-links.active a:nth-child(2) { transition-delay: 0.2s; }
+  .nav-links.active a:nth-child(3) { transition-delay: 0.3s; }
+  .nav-links.active a:nth-child(4) { transition-delay: 0.4s; }
+  .nav-links.active a:nth-child(5) { transition-delay: 0.5s; }
+  .nav-links.active a:nth-child(6) { transition-delay: 0.6s; }
+  .nav-links.active a:nth-child(7) { transition-delay: 0.7s; }
+  .nav-links.active a:nth-child(8) { transition-delay: 0.8s; }
+}
+
+/* ===== Overlay ===== */
+#overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.4); /*soft black */
+  backdrop-filter: blur(4px);     /* premium blur effect */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease-in-out;
+  z-index: 900; /* below drawer, above content */
+}
+#overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* ===== Back-to-Top Button ===== */
+#back-to-top {
+  position: fixed;
+  bottom: -60px; /* start hidden off-screen */
+  right: 25px;
+  background: #00897B;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 45px;
+  height: 45px;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  opacity: 0;
+  transition: bottom 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
+}
+
+#back-to-top.show {
+  bottom: 25px;  /* slide up into view */
+  opacity: 1;
+}
+
+#back-to-top:hover {
+  background: #005f4b;
+  transform: scale(1.1);
+}
+
+

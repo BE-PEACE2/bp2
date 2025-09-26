@@ -1,0 +1,6 @@
+# Redirect www → root domain (bepeace.in)
+https://www.bepeace.in/*   https://bepeace.in/:splat   301!
+
+# Redirect HTTP → HTTPS (both root + www)
+http://bepeace.in/*        https://bepeace.in/:splat   301!
+http://www.bepeace.in/*    https://bepeace.in/:splat   301!

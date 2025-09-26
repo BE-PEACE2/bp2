@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Failed - BE PEACE</title>
+
+  <meta name="description" content="Your payment was cancelled at BE PEACE. Please try booking again.">
+  <meta property="og:title" content="Payment Failed - BE PEACE">
+  <meta property="og:description" content="Your payment was not completed. You can try booking again with Dr. Mahesh Yadav.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://bepeace.in/cancel.html">
+  <meta property="og:image" content="https://bepeace.in/images/doctor.jpg">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Payment Failed - BE PEACE">
+  <meta name="twitter:description" content="Your payment was cancelled. Please try again.">
+  <meta name="twitter:image" content="https://bepeace.in/images/doctor.jpg">
+
+  <link rel="stylesheet" href="style.css">
+  <script src="https://sdk.cashfree.com/js/v2/cashfree.js"></script>
+
+  <style>
+    body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 0; }
+    .cancel-message { text-align: center; padding: 60px 20px; color: #d9534f; }
+    .cancel-message h2 { font-size: 28px; margin-bottom: 15px; }
+    .cancel-message p { font-size: 18px; color: #333; }
+    .details {
+      margin-top: 25px; font-size: 18px; color: #444; text-align: left;
+      max-width: 500px; margin-left: auto; margin-right: auto;
+      background: #f9f9f9; padding: 20px; border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .details p { margin: 8px 0; }
+    .back-btn {
+      display: inline-block; margin: 20px 10px 0; padding: 12px 22px;
+      background: #d9534f; color: #fff; text-decoration: none; border-radius: 5px;
+      font-size: 16px; transition: all 0.3s ease;
+    }
+    .back-btn:hover { opacity: 0.9; transform: translateY(-2px); }
+    .alt-btn { background: #0077cc; }
+    .retry-btn { background: #28a745; }
+    .redirect-note { margin-top: 15px; font-size: 14px; color: #777; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="logo-container">
+      <div class="earth"></div>
+      <h1 class="peach-text">BE PEACE</h1>
+    </div>
+  </header>
+
+  <nav class="main-nav">
+    <a href="index.html#about">About</a>
+    <a href="index.html#services">Services</a>
+    <a href="index.html#modules">Modules</a>
+    <a href="index.html#contact">Contact</a>
+  </nav>
+
+  <!-- Cancel Message -->
+  <section class="cancel-message">
+    <h2>❌ Payment Failed / Cancelled</h2>
+    <p>We couldn’t complete your payment. Don’t worry — no money has been deducted. You can try again below.</p>
+
+    <div class="details">
+      <p id="name"></p>
+      <p id="email"></p>
+      <p id="orderId"></p>
+      <p id="amount"></p>
+    </div>
+
+    <button id="retryBtn" class="back-btn retry-btn">🔄 Retry Payment</button>
+    <a href="booking.html" class="back-btn">📅 Book Again</a>
+    <a href="index.html" class="back-btn alt-btn">🏠 Back to Homepage</a>
+
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-logo">
+      <div class="earth slow"></div>
+      <h1 class="peach-text">BE PEACE</h1>
+    </div>
+    <p>© 2025 BE PEACE. All rights reserved.</p>
+  </footer>
+
+    <!-- ✅ Use shared script -->
+  <script src="payment-status.js"></script>
+</body>
+</html>

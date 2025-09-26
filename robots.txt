@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Block unnecessary files
+Disallow: /partials/
+Disallow: /style.css
+Disallow: /script.js
+
+# Sitemap
+Sitemap: https://bepeace.in/sitemap.xml

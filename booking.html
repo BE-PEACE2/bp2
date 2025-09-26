@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book Consultation - BE PEACE</title>
+
+  <!-- SEO -->
+  <meta name="description" content="Book an online pediatric or general health consultation with BE PEACE. Simple, fast, and trusted video consultations.">
+  <meta property="og:title" content="Book a Consultation – BE PEACE">
+  <meta property="og:description" content="Schedule your online health consultation with BE PEACE today. Trusted by families worldwide.">
+  <meta property="og:url" content="https://bepeace.in/booking.html">
+  <meta property="og:image" content="https://bepeace.in/images/doctor.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Cashfree SDK -->
+  <script src="https://sdk.cashfree.com/js/v2/cashfree.js"></script>
+
+  <style>
+    body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 0; }
+    h2 { text-align: center; color: #c71585; margin: 25px 0; }
+    form {
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      max-width: 650px;
+      margin: auto;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    label { font-weight: bold; display: block; margin: 10px 0 5px; }
+    input, select, textarea {
+      width: 100%; padding: 12px; margin-bottom: 15px;
+      border-radius: 5px; border: 1px solid #ccc;
+      font-size: 1rem; height: 44px; box-sizing: border-box;
+    }
+    textarea { height: auto; min-height: 100px; }
+    input:focus, select:focus, textarea:focus {
+      border-color: #00bfff;
+      box-shadow: 0 0 8px rgba(0,191,255,0.5);
+      outline: none;
+    }
+    .fee { font-size: 18px; color: #0077cc; font-weight: bold; }
+    .calendly-inline-widget {
+      margin-top: 20px; min-width: 320px; height: 630px; border: none;
+    }
+    button {
+      background: #c71585; color: white; padding: 12px;
+      border: none; border-radius: 5px;
+      font-size: 16px; cursor: pointer; width: 100%;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+    button:hover:enabled {
+      background: #28a745;
+      box-shadow: 0 6px 15px rgba(40,167,69,0.6);
+      transform: translateY(-2px);
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .back-btn {
+      display: block; text-align: center; margin-top: 12px;
+      color: #0077cc; text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="logo-container">
+      <div class="earth"></div>
+      <h1 class="peach-text">BE PEACE</h1>
+    </div>
+  </header>
+
+  <h2>📝 Book Your Consultation</h2>
+
+  <form id="bookingForm">
+    <label for="country">Select Your Country:</label>
+    <select id="country" required>
+      <option value="">-- Choose Country --</option>
+      <option value="IN">India 🇮🇳</option>
+      <option value="INTL">International 🌍</option>
+    </select>
+
+    <p class="fee" id="feeDisplay">Consultation Fee: --</p>
+
+    <label>Name:</label>
+    <input type="text" id="name" required>
+
+    <label>Age:</label>
+    <input type="number" id="age" required>
+
+    <label>Sex:</label>
+    <select id="sex" required>
+      <option value="">Select Sex</option>
+      <option value="Male">Male ♂</option>
+      <option value="Female">Female ♀</option>
+      <option value="Other">Other ⚧</option>
+    </select>
+
+    <label>Email:</label>
+    <input type="email" id="email" required>
+
+    <label>Health Concern:</label>
+    <textarea id="concern" rows="4" required></textarea>
+
+    <!-- Calendly Widget (real link) -->
+    <div class="calendly-inline-widget"
+      data-url="https://calendly.com/bepeace-info/bepeace-global"
+      style="min-width:320px;height:630px;">
+    </div>
+
+    <!-- Payment button (locked until slot booked) -->
+    <button type="button" id="payBtn" disabled>Proceed to Payment</button>
+    <a href="index.html" class="back-btn">⬅ Back to Homepage</a>
+  </form>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-logo">
+      <div class="earth slow"></div>
+      <h1 class="peach-text">BE PEACE</h1>
+    </div>
+    <p>© 2025 BE PEACE. All rights reserved.</p>
+  </footer>
+
+  <!-- Calendly Script -->
+  <script src="https://assets.calendly.com/assets/external/widget.js"></script>
+
+  <!-- Unlock payment after slot booking -->
+  <script>
+    window.addEventListener("message", function(e) {
+      if (e.data.event && e.data.event === "calendly.event_scheduled") {
+        alert("✅ Slot booked! Now you can proceed to payment.");
+        document.getElementById("payBtn").disabled = false;
+      }
+    });
+  </script>
+
+  <!-- Payment Script -->
+  <script>
+  const countrySelect = document.getElementById("country");
+  const feeDisplay = document.getElementById("feeDisplay");
+  let amount = 0;
+  let currency = "INR";
+
+  countrySelect.addEventListener("change", function () {
+    if (this.value === "IN") {
+      amount = 600; currency = "INR";
+      feeDisplay.textContent = "Consultation Fee: ₹600 INR";
+    } else if (this.value === "INTL") {
+      amount = 40; currency = "USD";
+      feeDisplay.textContent = "Consultation Fee: $40 USD";
+    } else {
+      amount = 0; feeDisplay.textContent = "Consultation Fee: --";
+    }
+  });
+
+  document.getElementById("payBtn").addEventListener("click", function () {
+    const country = document.getElementById("country").value;
+    const name = document.getElementById("name").value;
+    const email = document.getElementById("email").value;
+    const phone = document.getElementById("age").value; // ⚠️ Replace with real phone input later
+
+    if (!country || !name || !email || amount === 0) {
+      alert("⚠️ Please fill in all required details.");
+      return;
+    }
+
+    // ✅ Call Vercel backend (not Netlify)
+    fetch("/api/create-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        amount: amount,
+        currency: currency,
+        customer_name: name,
+        customer_email: email,
+        customer_phone: phone || "9999999999" // placeholder if phone missing
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.payment_link) {
+        // ✅ Redirect to Cashfree hosted checkout
+        window.location.href = data.payment_link;
+      } else {
+        alert("❌ Error creating payment session.");
+        console.error("Cashfree create-order response:", data);
+      }
+    })
+    .catch(err => {
+      console.error("Payment error:", err);
+      alert("Server error. Please try again later.");
+    });
+  });
+</script>
+</body>
+</html>

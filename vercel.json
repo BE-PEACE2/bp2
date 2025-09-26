@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    { "source": "/success", "destination": "/success.html" },
+    { "source": "/cancel", "destination": "/cancel.html" },
+    { "source": "/pending", "destination": "/pending.html" },
+    { "source": "/refund", "destination": "/refund.html" },
+    { "source": "/booking", "destination": "/booking.html" },
+    { "source": "/contact", "destination": "/contact.html" },
+    { "source": "/privacy", "destination": "/privacy.html" },
+    { "source": "/terms", "destination": "/terms.html" }
+  ]
+}
