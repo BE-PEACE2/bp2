@@ -1,4 +1,5 @@
-import fetch from "node-fetch";
+const fetch = (...args) =>
+  import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -34,7 +35,7 @@ export default async function handler(req, res) {
         "x-client-id": clientId,
         "x-client-secret": clientSecret,
         "x-api-version": "2022-01-01",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         order_id: orderId,
@@ -44,22 +45,27 @@ export default async function handler(req, res) {
           customer_id: customerId,
           customer_name,
           customer_email,
-          customer_phone
+          customer_phone,
         },
         order_meta: {
-  return_url: `https://bepeace.in/success?order_id={order_id}&name=${encodeURIComponent(customer_name)}&email=${encodeURIComponent(customer_email)}&amount=${amount}&currency=${currency}`,
-  cancel_url: `https://bepeace.in/cancel?order_id={order_id}&name=${encodeURIComponent(customer_name)}&email=${encodeURIComponent(customer_email)}&amount=${amount}&currency=${currency}`,
-  pending_url: `https://bepeace.in/pending?order_id={order_id}&name=${encodeURIComponent(customer_name)}&email=${encodeURIComponent(customer_email)}&amount=${amount}&currency=${currency}`,
-  notify_url: `https://bepeace.in/api/payment-webhook`
-}
-      })
+          return_url: `https://bepeace.in/success?order_id=${orderId}&name=${encodeURIComponent(
+            customer_name
+          )}&email=${encodeURIComponent(customer_email)}&amount=${amount}&currency=${currency}`,
+          cancel_url: `https://bepeace.in/cancel?order_id=${orderId}&name=${encodeURIComponent(
+            customer_name
+          )}&email=${encodeURIComponent(customer_email)}&amount=${amount}&currency=${currency}`,
+          pending_url: `https://bepeace.in/pending?order_id=${orderId}&name=${encodeURIComponent(
+            customer_name
+          )}&email=${encodeURIComponent(customer_email)}&amount=${amount}&currency=${currency}`,
+          notify_url: `https://bepeace.in/api/payment-webhook`,
+        },
+      }),
     });
 
     const data = await response.json();
     console.log("Cashfree create-order response:", data);
 
     return res.status(response.status).json(data);
-
   } catch (err) {
     console.error("Cashfree create-order error:", err);
     return res.status(500).json({ error: err.message });
