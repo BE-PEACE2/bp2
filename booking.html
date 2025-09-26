@@ -15,7 +15,7 @@
 
   <link rel="stylesheet" href="style.css">
 
-  <!-- Cashfree SDK -->
+  <!-- Cashfree SDK (not needed for redirect but safe to keep) -->
   <script src="https://sdk.cashfree.com/js/v2/cashfree.js"></script>
 
   <style>
@@ -108,13 +108,13 @@
     <label>Health Concern:</label>
     <textarea id="concern" rows="4" required></textarea>
 
-    <!-- Calendly Widget (real link) -->
+    <!-- Calendly Widget -->
     <div class="calendly-inline-widget"
       data-url="https://calendly.com/bepeace-info/bepeace-global"
       style="min-width:320px;height:630px;">
     </div>
 
-    <!-- Payment button (locked until slot booked) -->
+    <!-- Payment button -->
     <button type="button" id="payBtn" disabled>Proceed to Payment</button>
     <a href="index.html" class="back-btn">⬅ Back to Homepage</a>
   </form>
@@ -164,14 +164,14 @@
     const country = document.getElementById("country").value;
     const name = document.getElementById("name").value;
     const email = document.getElementById("email").value;
-    const phone = document.getElementById("age").value; // ⚠️ replace with phone field later
+    const phone = document.getElementById("age").value; // ⚠️ replace with phone later
 
     if (!country || !name || !email || amount === 0) {
       alert("⚠️ Please fill in all required details.");
       return;
     }
 
-    // ✅ Call Vercel backend
+    // ✅ Call backend API
     fetch("/api/create-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -187,26 +187,9 @@
     .then(data => {
       console.log("Cashfree create-order response:", data);
 
-      if (data.order_token) {
-        const cashfree = new Cashfree({ mode: "production" });
-
-        cashfree.checkout({
-          paymentSessionId: data.order_token,
-          redirectTarget: "_modal",  // 🔑 stays on site
-          onSuccess: function () {
-            // ✅ Redirect after success
-            window.location.href =
-              `/success.html?order_id=${data.order_id}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&amount=${amount}&currency=${currency}`;
-          },
-          onFailure: function () {
-            // ❌ Redirect after failure
-            window.location.href =
-              `/cancel.html?order_id=${data.order_id}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&amount=${amount}&currency=${currency}`;
-          },
-          onClose: function () {
-            console.log("🔒 Payment popup closed");
-          }
-        });
+      if (data.payment_link) {
+        // ✅ Redirect user to Cashfree checkout page
+        window.location.href = data.payment_link;
       } else {
         alert("❌ Error creating payment session.");
         console.error("Cashfree response:", data);
