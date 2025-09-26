@@ -164,14 +164,14 @@
     const country = document.getElementById("country").value;
     const name = document.getElementById("name").value;
     const email = document.getElementById("email").value;
-    const phone = document.getElementById("age").value; // ⚠️ Replace with real phone input later
+    const phone = document.getElementById("age").value; // ⚠️ replace with phone field later
 
     if (!country || !name || !email || amount === 0) {
       alert("⚠️ Please fill in all required details.");
       return;
     }
 
-    // ✅ Call Vercel backend (not Netlify)
+    // ✅ Call Vercel backend
     fetch("/api/create-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -180,17 +180,36 @@
         currency: currency,
         customer_name: name,
         customer_email: email,
-        customer_phone: phone || "9999999999" // placeholder if phone missing
+        customer_phone: phone || "9999999999"
       })
     })
     .then(res => res.json())
     .then(data => {
-      if (data.payment_link) {
-        // ✅ Redirect to Cashfree hosted checkout
-        window.location.href = data.payment_link;
+      console.log("Cashfree create-order response:", data);
+
+      if (data.order_token) {
+        const cashfree = new Cashfree({ mode: "production" });
+
+        cashfree.checkout({
+          paymentSessionId: data.order_token,
+          redirectTarget: "_modal",  // 🔑 stays on site
+          onSuccess: function () {
+            // ✅ Redirect after success
+            window.location.href =
+              `/success.html?order_id=${data.order_id}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&amount=${amount}&currency=${currency}`;
+          },
+          onFailure: function () {
+            // ❌ Redirect after failure
+            window.location.href =
+              `/cancel.html?order_id=${data.order_id}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&amount=${amount}&currency=${currency}`;
+          },
+          onClose: function () {
+            console.log("🔒 Payment popup closed");
+          }
+        });
       } else {
         alert("❌ Error creating payment session.");
-        console.error("Cashfree create-order response:", data);
+        console.error("Cashfree response:", data);
       }
     })
     .catch(err => {
