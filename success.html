@@ -24,6 +24,7 @@
     .success-message { text-align: center; padding: 60px 20px; color: #28a745; }
     .success-message h2 { font-size: 28px; margin-bottom: 15px; }
     .success-message p { font-size: 18px; color: #333; }
+    .highlight { font-size: 20px; font-weight: bold; color: #0077cc; margin-top: 10px; }
     .details {
       margin-top: 25px; font-size: 18px; color: #444; text-align: left;
       max-width: 500px; margin-left: auto; margin-right: auto;
@@ -38,6 +39,7 @@
     }
     .back-btn:hover { opacity: 0.9; transform: translateY(-2px); }
     .alt-btn { background: #0077cc; }
+    .download-btn { background: #6f42c1; }
     .redirect-note { margin-top: 15px; font-size: 14px; color: #777; }
   </style>
 </head>
@@ -62,19 +64,22 @@
     <h2>✅ Payment Successful!</h2>
     <p>Thank you for booking your consultation. You will receive a confirmation email shortly.</p>
 
-   <div class="details">
+    <p class="highlight">📌 Booking Reference: <span id="orderId"></span></p>
+
+    <div class="details" id="receipt">
       <p id="name"></p>
       <p id="email"></p>
       <p id="phone"></p>
       <p id="age"></p>
       <p id="sex"></p>
-      <p id="orderId"></p>
       <p id="amount"></p>
     </div>
 
     <a href="index.html" class="back-btn">🏠 Back to Homepage</a>
     <a href="booking.html" class="back-btn alt-btn">📅 Book Another Consultation</a>
+    <button id="downloadBtn" class="back-btn download-btn">📄 Download Receipt</button>
 
+    <p class="redirect-note">⏳ Redirecting to homepage in <span id="countdown">15</span> seconds...</p>
   </section>
 
   <!-- Footer -->
@@ -86,7 +91,77 @@
     <p>© 2025 BE PEACE. All rights reserved.</p>
   </footer>
 
-  <!-- ✅ Use shared script -->
+  <!-- ✅ Shared script -->
   <script src="payment-status.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <script>
+    // Auto redirect after 15 seconds
+    let seconds = 15;
+    const countdownEl = document.getElementById("countdown");
+    const timer = setInterval(() => {
+      seconds--;
+      if (countdownEl) countdownEl.textContent = seconds;
+      if (seconds <= 0) {
+        clearInterval(timer);
+        window.location.href = "index.html";
+      }
+    }, 1000);
+
+    // ✅ Download Receipt as PDF with Logo + Table
+    document.getElementById("downloadBtn").addEventListener("click", () => {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      // Add BE PEACE logo (replace with earth logo base64 later if needed)
+      const logoUrl = "https://bepeace.in/images/doctor.jpg";
+      const img = new Image();
+      img.crossOrigin = "Anonymous";
+      img.src = logoUrl;
+
+      img.onload = function () {
+        doc.addImage(img, "JPEG", 160, 10, 40, 25); // x, y, w, h
+
+        // Title
+        doc.setFontSize(18);
+        doc.text("BE PEACE - Consultation Receipt", 20, 20);
+
+        // Collect booking details
+        const name = document.getElementById("name").textContent || "";
+        const email = document.getElementById("email").textContent || "";
+        const phone = document.getElementById("phone").textContent || "";
+        const age = document.getElementById("age").textContent || "";
+        const sex = document.getElementById("sex").textContent || "";
+        const amount = document.getElementById("amount").textContent || "";
+        const orderId = document.getElementById("orderId").textContent || "";
+
+        // Build table
+        doc.autoTable({
+          startY: 40,
+          head: [["Field", "Details"]],
+          body: [
+            ["Booking Reference", orderId],
+            ["Name", name],
+            ["Email", email],
+            ["Phone", phone],
+            ["Age", age],
+            ["Sex", sex],
+            ["Amount Paid", amount],
+          ],
+          theme: "grid",
+          styles: { fontSize: 12, cellPadding: 5 },
+          headStyles: { fillColor: [40, 167, 69] }
+        });
+
+        // Footer timestamp
+        const date = new Date().toLocaleString();
+        doc.setFontSize(10);
+        doc.text("Generated on: " + date, 20, doc.internal.pageSize.height - 10);
+
+        // Save PDF
+        doc.save("BEPEACE_Receipt.pdf");
+      };
+    });
+  </script>
 </body>
 </html>

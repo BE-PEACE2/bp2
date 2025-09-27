@@ -15,8 +15,8 @@
 
   <link rel="stylesheet" href="style.css">
 
-  <!-- Cashfree SDK -->
-  <script src="https://sdk.cashfree.com/js/v2/cashfree.js"></script>
+  <!-- Cashfree v3 SDK (LIVE only) -->
+  <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
 
   <style>
     body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 0; }
@@ -218,7 +218,7 @@
     validateForm();
   });
 
-  // ✅ Payment trigger
+  // ✅ Payment trigger with Cashfree v3 Checkout
   payBtn.addEventListener("click", function () {
     if (!validateForm()) return;
 
@@ -242,9 +242,12 @@
     })
     .then(res => res.json())
     .then(data => {
-      if (data.payment_link) {
-        const redirectUrl = `${data.payment_link}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}&age=${encodeURIComponent(age)}&sex=${encodeURIComponent(sex)}&amount=${amount}&currency=${currency}`;
-        window.location.href = redirectUrl;
+      if (data.payment_session_id) {
+        const cashfree = new Cashfree({ mode: "production" }); // ✅ LIVE only
+        cashfree.checkout({
+          paymentSessionId: data.payment_session_id,
+          redirectTarget: "_self"
+        });
       } else {
         alert("❌ Error creating payment session.");
       }

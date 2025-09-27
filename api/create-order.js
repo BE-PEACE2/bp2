@@ -36,13 +36,11 @@ export default async function handler(req, res) {
     const orderId = "ORDER_" + Date.now();
     const customerId = "CUST_" + Date.now();
 
-    // ✅ Fix phone formatting
+    // ✅ Fix phone formatting (add +91 if only 10 digits)
     let formattedPhone = customer_phone.trim();
     if (/^\d{10}$/.test(formattedPhone)) {
-      // If only 10 digits given, assume Indian number
       formattedPhone = "+91" + formattedPhone;
     }
-    // Otherwise keep it as user entered (should start with + for intl)
 
     // 🔗 Create order on Cashfree
     const response = await fetch(baseURL, {
@@ -61,13 +59,13 @@ export default async function handler(req, res) {
           customer_id: customerId,
           customer_name,
           customer_email,
-          customer_phone: formattedPhone, // ✅ FIXED here
+          customer_phone: formattedPhone,
         },
         order_meta: {
           return_url: `https://bepeace.in/pending.html?order_id=${orderId}&name=${encodeURIComponent(
             customer_name
           )}&email=${encodeURIComponent(customer_email)}&phone=${encodeURIComponent(
-            formattedPhone // ✅ FIXED here
+            formattedPhone
           )}&age=${encodeURIComponent(customer_age)}&sex=${encodeURIComponent(
             customer_sex
           )}&amount=${amount}&currency=${currency}`,
@@ -79,7 +77,15 @@ export default async function handler(req, res) {
     const data = await response.json();
     console.log("✅ Cashfree create-order response:", data);
 
-    return res.status(response.status).json(data);
+    // ✅ Return only what frontend needs
+    if (data.payment_session_id) {
+      return res.status(200).json({
+        payment_session_id: data.payment_session_id,
+        order_id: orderId,
+      });
+    } else {
+      return res.status(400).json({ error: "Failed to create order", details: data });
+    }
   } catch (err) {
     console.error("❌ Cashfree create-order error:", err);
     return res.status(500).json({ error: err.message });

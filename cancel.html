@@ -89,46 +89,48 @@
   <!-- ✅ Use shared script -->
   <script src="payment-status.js"></script>
   <script>
-    // Retry payment with same order details
-    document.getElementById("retryBtn").addEventListener("click", () => {
-      const params = new URLSearchParams(window.location.search);
-      const orderId = params.get("order_id");
-      const name = params.get("name");
-      const email = params.get("email");
-      const phone = params.get("phone");
-      const age = params.get("age");
-      const sex = params.get("sex");
-      const amount = params.get("amount");
-      const currency = params.get("currency");
+  document.getElementById("retryBtn").addEventListener("click", () => {
+    const params = new URLSearchParams(window.location.search);
+    const name = params.get("name");
+    const email = params.get("email");
+    const phone = params.get("phone");
+    const age = params.get("age");
+    const sex = params.get("sex");
+    const amount = params.get("amount");
+    const currency = params.get("currency");
 
-      if (!orderId) {
-        alert("⚠️ Cannot retry payment. Please book again.");
-        return;
+    if (!amount || !currency) {
+      alert("⚠️ Cannot retry payment. Please book again.");
+      return;
+    }
+
+    // ✅ Call backend to create new order + payment session
+    fetch("/api/create-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        amount, currency,
+        customer_name: name,
+        customer_email: email,
+        customer_phone: phone,
+        customer_age: age,
+        customer_sex: sex
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.payment_session_id) {
+        const cashfree = new Cashfree({ mode: "production" }); // ✅ LIVE mode
+        cashfree.checkout({
+          paymentSessionId: data.payment_session_id,
+          redirectTarget: "_self"
+        });
+      } else {
+        alert("❌ Could not retry payment. Please book again.");
       }
-
-      // ✅ Call backend to create new payment link
-      fetch("/api/create-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount, currency,
-          customer_name: name,
-          customer_email: email,
-          customer_phone: phone,
-          customer_age: age,
-          customer_sex: sex
-        })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.payment_link) {
-          window.location.href = data.payment_link;
-        } else {
-          alert("❌ Could not retry payment. Please book again.");
-        }
-      })
-      .catch(() => alert("Server error. Please try again later."));
-    });
-  </script>
+    })
+    .catch(() => alert("Server error. Please try again later."));
+  });
+</script>
 </body>
 </html>
