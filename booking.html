@@ -31,7 +31,7 @@
     }
     label { font-weight: bold; display: block; margin: 10px 0 5px; }
     input, select, textarea {
-      width: 100%; padding: 12px; margin-bottom: 5px;
+      width: 100%; padding: 12px; margin-bottom: 15px;
       border-radius: 5px; border: 1px solid #ccc;
       font-size: 1rem; height: 44px; box-sizing: border-box;
     }
@@ -42,7 +42,6 @@
       outline: none;
     }
     .fee { font-size: 18px; color: #0077cc; font-weight: bold; margin: 10px 0; }
-    .error { color: red; font-size: 0.9rem; display: none; margin-bottom: 10px; }
     .success { color: green; font-size: 0.95rem; display: none; margin: 10px 0; font-weight: bold; }
     .calendly-inline-widget {
       margin-top: 20px; min-width: 320px; height: 630px; border: none;
@@ -90,11 +89,9 @@
 
     <label>Name:</label>
     <input type="text" id="name" required>
-    <span id="nameError" class="error">⚠️ Name is required</span>
 
     <label>Age:</label>
     <input type="text" id="age" required placeholder="e.g., 1 day, 2 months, 5 years">
-    <span id="ageError" class="error">⚠️ Age is required</span>
 
     <label>Sex:</label>
     <select id="sex" required>
@@ -103,19 +100,15 @@
       <option value="Female">Female ♀</option>
       <option value="Other">Other ⚧</option>
     </select>
-    <span id="sexError" class="error">⚠️ Sex is required</span>
 
     <label>Phone Number:</label>
     <input type="tel" id="phone" required placeholder="+919876543210">
-    <span id="phoneError" class="error">⚠️ Valid phone number is required</span>
 
     <label>Email:</label>
     <input type="email" id="email" required>
-    <span id="emailError" class="error">⚠️ Valid email is required</span>
 
     <label>Health Concern:</label>
     <textarea id="concern" rows="4" required></textarea>
-    <span id="concernError" class="error">⚠️ Health concern is required</span>
 
     <!-- ✅ Success message -->
     <p id="successMsg" class="success">✅ All good! You can now proceed to payment.</p>
@@ -145,131 +138,119 @@
 
   <!-- Logic -->
   <script>
-    const payBtn = document.getElementById("payBtn");
-    const phoneInput = document.getElementById("phone");
-    const emailInput = document.getElementById("email");
-    const countrySelect = document.getElementById("country");
-    const feeDisplay = document.getElementById("feeDisplay");
-    const successMsg = document.getElementById("successMsg");
+  const payBtn = document.getElementById("payBtn");
+  const countrySelect = document.getElementById("country");
+  const feeDisplay = document.getElementById("feeDisplay");
+  const successMsg = document.getElementById("successMsg");
+  const phoneInput = document.getElementById("phone");
 
-    let slotBooked = false;
-    let amount = 0, currency = "INR";
+  let slotBooked = false;
+  let amount = 0, currency = "INR";
 
-    // Slot unlock
-    window.addEventListener("message", function(e) {
-      if (e.data.event && e.data.event === "calendly.event_scheduled") {
-        slotBooked = true;
-        validateForm();
-      }
-    });
-
-    // Auto format Indian phone
-    phoneInput.addEventListener("input", () => {
-      let val = phoneInput.value.replace(/\D/g, "");
-      if (countrySelect.value === "IN") {
-        if (val.length > 10) val = val.slice(0, 10);
-        phoneInput.value = "+91" + val;
-      }
+  // Slot unlock
+  window.addEventListener("message", function(e) {
+    if (e.data.event && e.data.event === "calendly.event_scheduled") {
+      slotBooked = true;
       validateForm();
-    });
-
-    // Validation helpers
-    function isValidEmail(email) {
-      return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email);
     }
-    function isValidPhone(phone, country) {
-      if (country === "IN") return /^\\+91\\d{10}$/.test(phone);
-      if (country === "INTL") return /^\\+\\d{7,15}$/.test(phone);
-      return false;
+  });
+
+  // ✅ Phone auto prefix only once
+  phoneInput.addEventListener("input", () => {
+    let val = phoneInput.value.replace(/\D/g, ""); // keep only numbers
+    if (countrySelect.value === "IN") {
+      if (!val.startsWith("91")) {
+        val = "91" + val; // add prefix only if missing
+      }
+      if (val.length > 12) val = val.slice(0, 12); // +91 + 10 digits
+      phoneInput.value = "+" + val;
+    } else {
+      if (val.length > 15) val = val.slice(0, 15);
+      phoneInput.value = "+" + val;
+    }
+    validateForm();
+  });
+
+  // ✅ Validation (simplified, no red errors)
+  function validateForm() {
+    const name = document.getElementById("name").value.trim();
+    const age = document.getElementById("age").value.trim();
+    const sex = document.getElementById("sex").value;
+    const phone = phoneInput.value.trim();
+    const email = document.getElementById("email").value.trim();
+    const concern = document.getElementById("concern").value.trim();
+    const country = countrySelect.value;
+
+    let valid = true;
+    if (!name || !age || !sex || !phone || !email || !concern || !country) {
+      valid = false;
     }
 
-    // Form validation
-    function validateForm() {
-      const name = document.getElementById("name").value.trim();
-      const age = document.getElementById("age").value.trim();
-      const sex = document.getElementById("sex").value;
-      const phone = phoneInput.value.trim();
-      const email = emailInput.value.trim();
-      const concern = document.getElementById("concern").value.trim();
-      const country = countrySelect.value;
-
-      let valid = true;
-      document.querySelectorAll(".error").forEach(e => e.style.display = "none");
+    if (slotBooked && valid) {
+      payBtn.disabled = false;
+      payBtn.classList.add("active");
+      successMsg.style.display = "block";
+    } else {
+      payBtn.disabled = true;
+      payBtn.classList.remove("active");
       successMsg.style.display = "none";
-
-      if (!name) { document.getElementById("nameError").style.display = "block"; valid = false; }
-      if (!age) { document.getElementById("ageError").style.display = "block"; valid = false; }
-      if (!sex) { document.getElementById("sexError").style.display = "block"; valid = false; }
-      if (!email || !isValidEmail(email)) { document.getElementById("emailError").style.display = "block"; valid = false; }
-      if (!phone || !isValidPhone(phone, country)) { document.getElementById("phoneError").style.display = "block"; valid = false; }
-      if (!concern) { document.getElementById("concernError").style.display = "block"; valid = false; }
-
-      if (slotBooked && valid) {
-        payBtn.disabled = false;
-        payBtn.classList.add("active");
-        successMsg.style.display = "block";  // ✅ show green success
-      } else {
-        payBtn.disabled = true;
-        payBtn.classList.remove("active");
-      }
-      return valid;
     }
+    return valid;
+  }
 
-    // Watch fields
-    emailInput.addEventListener("input", validateForm);
-    document.getElementById("name").addEventListener("input", validateForm);
-    document.getElementById("age").addEventListener("input", validateForm);
-    document.getElementById("sex").addEventListener("change", validateForm);
-    document.getElementById("concern").addEventListener("input", validateForm);
+  // ✅ Watch fields
+  ["name","age","sex","phone","email","concern","country"].forEach(id=>{
+    document.getElementById(id).addEventListener("input", validateForm);
+    document.getElementById(id).addEventListener("change", validateForm);
+  });
 
-    countrySelect.addEventListener("change", () => {
-      if (countrySelect.value === "IN") {
-        amount = 600; currency = "INR";
-        feeDisplay.textContent = "Consultation Fee: ₹600 INR";
-      } else if (countrySelect.value === "INTL") {
-        amount = 40; currency = "USD";
-        feeDisplay.textContent = "Consultation Fee: $40 USD";
+  // ✅ Country fee
+  countrySelect.addEventListener("change", () => {
+    if (countrySelect.value === "IN") {
+      amount = 600; currency = "INR";
+      feeDisplay.textContent = "Consultation Fee: ₹600 INR";
+    } else if (countrySelect.value === "INTL") {
+      amount = 40; currency = "USD";
+      feeDisplay.textContent = "Consultation Fee: $40 USD";
+    } else {
+      amount = 0; feeDisplay.textContent = "Consultation Fee: --";
+    }
+    validateForm();
+  });
+
+  // ✅ Payment trigger
+  payBtn.addEventListener("click", function () {
+    if (!validateForm()) return;
+
+    const name = document.getElementById("name").value;
+    const email = document.getElementById("email").value;
+    const phone = phoneInput.value;
+    const age = document.getElementById("age").value;
+    const sex = document.getElementById("sex").value;
+
+    fetch("/api/create-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        amount, currency,
+        customer_name: name,
+        customer_email: email,
+        customer_phone: phone,
+        customer_age: age,
+        customer_sex: sex
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.payment_link) {
+        const redirectUrl = `${data.payment_link}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}&age=${encodeURIComponent(age)}&sex=${encodeURIComponent(sex)}&amount=${amount}&currency=${currency}`;
+        window.location.href = redirectUrl;
       } else {
-        amount = 0; feeDisplay.textContent = "Consultation Fee: --";
+        alert("❌ Error creating payment session.");
       }
-      validateForm();
-    });
-
-    // Payment trigger
-    payBtn.addEventListener("click", function () {
-      if (!validateForm()) return;
-
-      const name = document.getElementById("name").value;
-      const email = emailInput.value;
-      const phone = phoneInput.value;
-      const age = document.getElementById("age").value;
-      const sex = document.getElementById("sex").value;
-      const country = countrySelect.value;
-
-      fetch("/api/create-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount, currency,
-          customer_name: name,
-          customer_email: email,
-          customer_phone: phone,
-          customer_age: age,
-          customer_sex: sex
-        })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.payment_link) {
-          // ✅ Pass details in redirect URL
-          const redirectUrl = `${data.payment_link}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}&age=${encodeURIComponent(age)}&sex=${encodeURIComponent(sex)}&amount=${amount}&currency=${currency}`;
-          window.location.href = redirectUrl;
-        } else {
-          alert("❌ Error creating payment session.");
-        }
-      })
-      .catch(() => alert("Server error. Please try again later."));
-    });
-  </script>
+    })
+    .catch(() => alert("Server error. Please try again later."));
+  });
+</script>
 </body>
 </html>

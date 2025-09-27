@@ -30,11 +30,19 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Cashfree API keys missing" });
     }
 
-    // ✅ Always LIVE endpoint (not sandbox)
+    // ✅ Always LIVE endpoint
     const baseURL = "https://api.cashfree.com/pg/orders";
 
     const orderId = "ORDER_" + Date.now();
     const customerId = "CUST_" + Date.now();
+
+    // ✅ Fix phone formatting
+    let formattedPhone = customer_phone.trim();
+    if (/^\d{10}$/.test(formattedPhone)) {
+      // If only 10 digits given, assume Indian number
+      formattedPhone = "+91" + formattedPhone;
+    }
+    // Otherwise keep it as user entered (should start with + for intl)
 
     // 🔗 Create order on Cashfree
     const response = await fetch(baseURL, {
@@ -53,19 +61,16 @@ export default async function handler(req, res) {
           customer_id: customerId,
           customer_name,
           customer_email,
-          customer_phone,
+          customer_phone: formattedPhone, // ✅ FIXED here
         },
         order_meta: {
-          // Always redirect user to pending page after payment attempt
           return_url: `https://bepeace.in/pending.html?order_id=${orderId}&name=${encodeURIComponent(
             customer_name
           )}&email=${encodeURIComponent(customer_email)}&phone=${encodeURIComponent(
-            customer_phone
+            formattedPhone // ✅ FIXED here
           )}&age=${encodeURIComponent(customer_age)}&sex=${encodeURIComponent(
             customer_sex
           )}&amount=${amount}&currency=${currency}`,
-
-          // Cashfree will notify backend
           notify_url: "https://bepeace.in/api/payment-webhook",
         },
       }),
