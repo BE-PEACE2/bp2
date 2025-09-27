@@ -1,4 +1,11 @@
+// api/debug-env.js
 export default function handler(req, res) {
+  // Block in production
+  if (process.env.VERCEL_ENV === "production") {
+    return res.status(404).json({ error: "Not Found" });
+  }
+
+  // Show env values only in development
   res.status(200).json({
     EMAIL_USER: process.env.EMAIL_USER || "Not Found",
     EMAIL_PASS: process.env.EMAIL_PASS ? "Set" : "Not Found",

@@ -4,6 +4,9 @@ const params = new URLSearchParams(window.location.search);
 const orderId = params.get("order_id");
 const name = params.get("name");
 const email = params.get("email");
+const phone = params.get("phone");
+const age = params.get("age");
+const sex = params.get("sex");
 const amount = params.get("amount");
 const currency = params.get("currency");
 
@@ -14,6 +17,15 @@ function fillDetails() {
   }
   if (document.getElementById("email") && email) {
     document.getElementById("email").textContent = "📧 Email: " + decodeURIComponent(email);
+  }
+  if (document.getElementById("phone") && phone) {
+    document.getElementById("phone").textContent = "📱 Phone: " + decodeURIComponent(phone);
+  }
+  if (document.getElementById("age") && age) {
+    document.getElementById("age").textContent = "🎂 Age: " + decodeURIComponent(age);
+  }
+  if (document.getElementById("sex") && sex) {
+    document.getElementById("sex").textContent = "⚧ Sex: " + decodeURIComponent(sex);
   }
   if (document.getElementById("orderId") && orderId) {
     document.getElementById("orderId").textContent = "🆔 Order ID: " + orderId;
@@ -33,10 +45,12 @@ async function checkOrderStatus() {
     console.log("🔎 Order check:", data);
 
     if (data.order_status === "PAID" && window.location.pathname.includes("pending")) {
-      window.location.href = `/success.html?order_id=${orderId}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&amount=${amount}&currency=${currency}`;
+      window.location.href =
+        `/success.html?order_id=${orderId}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}&age=${encodeURIComponent(age)}&sex=${encodeURIComponent(sex)}&amount=${amount}&currency=${currency}`;
     }
     if ((data.order_status === "FAILED" || data.order_status === "CANCELLED") && window.location.pathname.includes("pending")) {
-      window.location.href = `/cancel.html?order_id=${orderId}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&amount=${amount}&currency=${currency}`;
+      window.location.href =
+        `/cancel.html?order_id=${orderId}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}&age=${encodeURIComponent(age)}&sex=${encodeURIComponent(sex)}&amount=${amount}&currency=${currency}`;
     }
   } catch (err) {
     console.error("❌ Error checking order:", err);
