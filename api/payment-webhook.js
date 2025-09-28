@@ -1,6 +1,6 @@
 // api/payment-webhook.js
-import nodemailer from "nodemailer";
 import connectDB from "../db.js";
+import sendEmail from "../utils/send-email.js"; // ✅ import helper
 
 // helper: convert "10:30 AM" slot + date → Date object
 function parseSlotToDate(date, slot) {
@@ -62,17 +62,6 @@ export default async function handler(req, res) {
       }
     );
 
-    // ✅ Setup Zoho SMTP
-    const transporter = nodemailer.createTransport({
-      host: "smtp.zoho.in",
-      port: 465,
-      secure: true,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
-
    let subject, patientEmailHTML, adminEmailHTML;
 
     if (status === "PAID" || status === "SUCCESS") {
@@ -94,7 +83,6 @@ export default async function handler(req, res) {
           </a>
         </p>
         <p>(Link expires 1 hour after consultation time.)</p>
-        <!-- ✅ Add this note -->
         <p style="font-size:12px;color:#666;">
          This is an auto-generated email from <b>BE PEACE</b>.  
          If you did not book this consultation, please ignore this email.
@@ -117,8 +105,6 @@ export default async function handler(req, res) {
              ✅ Doctor Join Consultation
           </a>
         </p>
-
-        <!-- ✅ Add this note -->
         <p style="font-size:12px;color:#666;">
          This is an auto-generated email from <b>BE PEACE</b>.  
          Please be ready to join at the scheduled time.
@@ -154,23 +140,15 @@ export default async function handler(req, res) {
       `;
     }
 
-        // ✅ Send email to patient
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: customerEmail,
-      subject, // ✅ dynamic now
-      html: patientEmailHTML
-    });
-
-    // ✅ Send email to admin (you)
-await transporter.sendMail({
-  from: process.env.EMAIL_USER,
-  to: process.env.ADMIN_EMAIL, // 👈 set in Vercel ENV
-  subject: status === "PAID" || status === "SUCCESS"
-    ? "✅ New Booking - BE PEACE"
-    : "❌ Failed Payment - BE PEACE",
-  html: adminEmailHTML
-});
+  // ✅ Send emails using utils/send-email.js
+    await sendEmail(customerEmail, subject, patientEmailHTML);
+    await sendEmail(
+      process.env.ADMIN_EMAIL,
+      status === "PAID" || status === "SUCCESS"
+        ? "✅ New Booking - BE PEACE"
+        : "❌ Failed Payment - BE PEACE",
+      adminEmailHTML
+    );
 
     return res.status(200).json({ message: "Webhook processed, emails sent" });
 
