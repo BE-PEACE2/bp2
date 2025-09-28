@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Doctor Dashboard - BE PEACE</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    h2 { color: #c71585; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+    th { background: #f2f2f2; }
+    a.join-btn {
+      background: #28a745;
+      color: white;
+      padding: 6px 12px;
+      text-decoration: none;
+      border-radius: 5px;
+    }
+    #loginBox { max-width: 350px; margin: 100px auto; text-align: center; }
+    input { padding: 10px; width: 100%; margin: 10px 0; }
+    button { padding: 10px 20px; background: #28a745; color: #fff; border: none; cursor: pointer; }
+    #dashboard { display: none; }
+  </style>
+</head>
+<body>
+  <!-- 🔑 Login -->
+  <div id="loginBox">
+    <h2>Doctor Login</h2>
+    <input type="password" id="password" placeholder="Enter Password" />
+    <button onclick="login()">Login</button>
+    <p id="error" style="color:red; display:none;">❌ Wrong password</p>
+  </div>
+
+  <!-- 📅 Dashboard -->
+  <div id="dashboard">
+    <h2>📅 Doctor Dashboard - Confirmed Bookings</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Patient</th>
+          <th>Email</th>
+          <th>Date</th>
+          <th>Slot</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="bookingTable">
+        <tr><td colspan="5">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    const CORRECT_PASSWORD = "Pass2025"; // 🔑 Change this
+
+    function login() {
+      const input = document.getElementById("password").value;
+      if (input === CORRECT_PASSWORD) {
+        document.getElementById("loginBox").style.display = "none";
+        document.getElementById("dashboard").style.display = "block";
+        loadBookings();
+      } else {
+        document.getElementById("error").style.display = "block";
+      }
+    }
+
+    async function loadBookings() {
+      try {
+        const res = await fetch("/api/get-doctor-bookings");
+        const data = await res.json();
+        const tbody = document.getElementById("bookingTable");
+        tbody.innerHTML = "";
+
+        if (data.bookings.length === 0) {
+          tbody.innerHTML = "<tr><td colspan='5'>No confirmed bookings yet.</td></tr>";
+          return;
+        }
+
+        data.bookings.forEach(b => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${b.customer_name}</td>
+            <td>${b.customer_email}</td>
+            <td>${b.date}</td>
+            <td>${b.slot}</td>
+            <td><a href="${b.meetingLink}" target="_blank" class="join-btn">Join Consultation</a></td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (err) {
+        console.error("Error loading bookings:", err);
+      }
+    }
+  </script>
+</body>
+</html>

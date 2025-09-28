@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Consultation Room - BE PEACE</title>
+  <script src="https://meet.jit.si/external_api.js"></script>
+  <style>
+    body, html { 
+      margin: 0; 
+      height: 100%; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      font-family: Arial, sans-serif; 
+      background: #f9f9f9;
+    }
+    #jitsi-container { 
+      height: 100vh; 
+      width: 100%; 
+      display: none; 
+    }
+    .msg { 
+      font-size: 18px; 
+      text-align: center; 
+      color: #c00; 
+      margin: 20px; 
+      max-width: 500px; 
+      line-height: 1.6; 
+    }
+    .msg.success { color: green; }
+  </style>
+</head>
+<body>
+  <div id="message" class="msg">⏳ Checking your consultation link...</div>
+  <div id="jitsi-container"></div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const room = urlParams.get("room");   // order_id
+    const date = urlParams.get("date");   // YYYY-MM-DD
+    const slot = urlParams.get("slot");   // e.g. "10:30 AM"
+    const customerName = urlParams.get("name") || "Guest";
+
+    function parseSlotToDate(date, slot) {
+      const [time, meridian] = slot.split(" ");
+      let [hour, minute] = time.split(":").map(Number);
+      if (meridian === "PM" && hour !== 12) hour += 12;
+      if (meridian === "AM" && hour === 12) hour = 0;
+      return new Date(`${date}T${hour.toString().padStart(2,"0")}:${minute.toString().padStart(2,"0")}:00`);
+    }
+
+    if (!room || !date || !slot) {
+      document.getElementById("message").innerText = "❌ Invalid or expired link.";
+    } else {
+      const slotTime = parseSlotToDate(date, slot);
+      const now = new Date();
+
+      const startTime = new Date(slotTime.getTime() - 20 * 60000); // 20 min before
+      const expiryTime = new Date(slotTime.getTime() + 60 * 60000); // 1 hr after
+
+      if (now < startTime) {
+        document.getElementById("message").innerText = 
+          "⏳ You can join only 20 minutes before your consultation.";
+      } else if (now > expiryTime) {
+        document.getElementById("message").innerText = 
+          "❌ This consultation link has expired.";
+      } else {
+        document.getElementById("message").style.display = "none";
+        document.getElementById("jitsi-container").style.display = "block";
+
+        const domain = "meet.jit.si";
+        const options = {
+          roomName: "BEPEACE_" + room, // unique per order
+          width: "100%",
+          height: "100%",
+          parentNode: document.getElementById("jitsi-container"),
+          userInfo: { displayName: customerName }
+        };
+        new JitsiMeetExternalAPI(domain, options);
+      }
+    }
+  </script>
+</body>
+</html>

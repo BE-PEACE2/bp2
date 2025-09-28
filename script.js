@@ -371,3 +371,49 @@ document.querySelectorAll(".nav-links a").forEach(link => {
     overlay.classList.remove("active");
   });
 });
+
+// --- Save pending booking before payment ---
+async function savePendingBooking() {
+  const bookingData = {
+    name: document.getElementById("name").value,
+    email: document.getElementById("email").value,
+    slot: document.getElementById("slot").value,
+    status: "pending"
+  };
+
+  const response = await fetch("/api/saveBooking", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(bookingData)
+  });
+
+  const result = await response.json();
+  console.log("Booking saved:", result);
+}
+
+async function loadSlots() {
+  try {
+    const res = await fetch("/api/getSlots");
+    const data = await res.json();
+
+    const slotSelect = document.getElementById("slot");
+    slotSelect.innerHTML = ""; // clear old
+
+    if (!data.available || data.available.length === 0) {
+      slotSelect.innerHTML = `<option>No slots available</option>`;
+      slotSelect.disabled = true;
+      return;
+    }
+
+    data.available.forEach(slot => {
+      const opt = document.createElement("option");
+      opt.value = slot;
+      opt.textContent = slot;
+      slotSelect.appendChild(opt);
+    });
+  } catch (err) {
+    console.error("Failed to load slots:", err);
+  }
+}
+
+window.addEventListener("DOMContentLoaded", loadSlots);

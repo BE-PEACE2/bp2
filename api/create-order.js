@@ -1,4 +1,5 @@
 // api/create-order.js
+import connectDB from "../db.js";
 const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
@@ -16,10 +17,20 @@ export default async function handler(req, res) {
       customer_phone,
       customer_age,
       customer_sex,
+      date,
+      slot
     } = req.body;
 
     // 🔒 Validate required fields
-    if (!amount || !currency || !customer_name || !customer_email || !customer_phone) {
+    if (
+      !amount ||
+      !currency ||
+      !customer_name ||
+      !customer_email ||
+      !customer_phone ||
+      !date ||
+      !slot
+    ) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
@@ -41,6 +52,24 @@ export default async function handler(req, res) {
     if (/^\d{10}$/.test(formattedPhone)) {
       formattedPhone = "+91" + formattedPhone;
     }
+
+    // ✅ Save pending booking in MongoDB
+    const db = await connectDB();
+    const bookings = db.collection("bookings");
+    await bookings.insertOne({
+      order_id: orderId,
+      customer_name,
+      customer_email,
+      customer_phone: formattedPhone,
+      customer_age,
+      customer_sex,
+      date,
+      slot,
+      amount,
+      currency,
+      status: "pending",
+      createdAt: new Date(),
+    });
 
     // 🔗 Create order on Cashfree
     const response = await fetch(baseURL, {

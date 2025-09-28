@@ -110,14 +110,17 @@
     <label>Health Concern:</label>
     <textarea id="concern" rows="4" required></textarea>
 
+    <!-- ✅ New Date + Slot selectors -->
+    <label for="date">Choose Date:</label>
+    <input type="date" id="date" required>
+
+    <label for="slot">Choose Time Slot:</label>
+    <select id="slot" required>
+      <option value="">-- Select Slot --</option>
+    </select>
+
     <!-- ✅ Success message -->
     <p id="successMsg" class="success">✅ All good! You can now proceed to payment.</p>
-
-    <!-- Calendly Widget -->
-    <div class="calendly-inline-widget"
-      data-url="https://calendly.com/bepeace-info/bepeace-global"
-      style="min-width:320px;height:630px;">
-    </div>
 
     <!-- Payment button -->
     <button type="button" id="payBtn" disabled>Proceed to Payment</button>
@@ -133,9 +136,6 @@
     <p>© 2025 BE PEACE. All rights reserved.</p>
   </footer>
 
-  <!-- Calendly Script -->
-  <script src="https://assets.calendly.com/assets/external/widget.js"></script>
-
   <!-- Logic -->
   <script>
   const payBtn = document.getElementById("payBtn");
@@ -143,16 +143,36 @@
   const feeDisplay = document.getElementById("feeDisplay");
   const successMsg = document.getElementById("successMsg");
   const phoneInput = document.getElementById("phone");
+   const dateInput = document.getElementById("date");
+  const slotSelect = document.getElementById("slot");
 
-  let slotBooked = false;
   let amount = 0, currency = "INR";
 
-  // Slot unlock
-  window.addEventListener("message", function(e) {
-    if (e.data.event && e.data.event === "calendly.event_scheduled") {
-      slotBooked = true;
-      validateForm();
+// ✅ Load available slots when date changes
+  dateInput.addEventListener("change", async () => {
+    slotSelect.innerHTML = '<option value="">Loading...</option>';
+    const date = dateInput.value;
+    if (!date) return;
+
+    try {
+      const res = await fetch(`/api/get-slots?date=${date}`);
+      const data = await res.json();
+      slotSelect.innerHTML = "";
+
+      if (data.available.length > 0) {
+        data.available.forEach(slot => {
+          const opt = document.createElement("option");
+          opt.value = slot;
+          opt.textContent = slot;
+          slotSelect.appendChild(opt);
+        });
+      } else {
+        slotSelect.innerHTML = '<option value="">No slots available</option>';
+      }
+    } catch (err) {
+      slotSelect.innerHTML = '<option value="">Error loading slots</option>';
     }
+    validateForm();
   });
 
   // ✅ Phone auto prefix only once
@@ -171,7 +191,7 @@
     validateForm();
   });
 
-  // ✅ Validation (simplified, no red errors)
+  // ✅ Validation
   function validateForm() {
     const name = document.getElementById("name").value.trim();
     const age = document.getElementById("age").value.trim();
@@ -180,13 +200,15 @@
     const email = document.getElementById("email").value.trim();
     const concern = document.getElementById("concern").value.trim();
     const country = countrySelect.value;
+    const date = dateInput.value;
+    const slot = slotSelect.value;
 
     let valid = true;
-    if (!name || !age || !sex || !phone || !email || !concern || !country) {
+    if (!name || !age || !sex || !phone || !email || !concern || !country || !date || !slot) {
       valid = false;
     }
 
-    if (slotBooked && valid) {
+    if (valid) {
       payBtn.disabled = false;
       payBtn.classList.add("active");
       successMsg.style.display = "block";
@@ -198,8 +220,9 @@
     return valid;
   }
 
-  // ✅ Watch fields
-  ["name","age","sex","phone","email","concern","country"].forEach(id=>{
+
+ // ✅ Watch fields
+  ["name","age","sex","phone","email","concern","country","date","slot"].forEach(id=>{
     document.getElementById(id).addEventListener("input", validateForm);
     document.getElementById(id).addEventListener("change", validateForm);
   });
@@ -222,24 +245,28 @@
   payBtn.addEventListener("click", function () {
     if (!validateForm()) return;
 
-    const name = document.getElementById("name").value;
-    const email = document.getElementById("email").value;
-    const phone = phoneInput.value;
-    const age = document.getElementById("age").value;
-    const sex = document.getElementById("sex").value;
+  const name = document.getElementById("name").value;
+  const email = document.getElementById("email").value;
+  const phone = phoneInput.value;
+  const age = document.getElementById("age").value;
+  const sex = document.getElementById("sex").value;
+  const date = document.getElementById("date").value;
+  const slot = document.getElementById("slot").value;
 
-    fetch("/api/create-order", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        amount, currency,
-        customer_name: name,
-        customer_email: email,
-        customer_phone: phone,
-        customer_age: age,
-        customer_sex: sex
-      })
+     fetch("/api/create-order", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      amount, currency,
+      customer_name: name,
+      customer_email: email,
+      customer_phone: phone,
+      customer_age: age,
+      customer_sex: sex,
+      date,
+      slot
     })
+  })
     .then(res => res.json())
     .then(data => {
       if (data.payment_session_id) {
