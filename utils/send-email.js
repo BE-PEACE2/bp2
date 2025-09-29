@@ -9,23 +9,23 @@ export default async function sendEmail(to, subject, html) {
       port: 465,
       secure: true, // SSL
       auth: {
-        user: process.env.EMAIL_USER, // e.g., no-reply@bepeace.in
-        pass: process.env.EMAIL_PASS
-      }
+        user: process.env.EMAIL_USER, // e.g., info@bepeace.in
+        pass: process.env.EMAIL_PASS,
+      },
     });
 
     // ✅ Email details
     const mailOptions = {
-      from: `"BE PEACE" <${process.env.EMAIL_USER}>`, // Friendly sender name
-      replyTo: process.env.ADMIN_EMAIL, // Patient replies will go here
-      to, // Recipient(s)
+      from: `"BE PEACE" <${process.env.EMAIL_USER}>`, // Sender
+      to,                                            // Recipient(s)
+      replyTo: process.env.ADMIN_EMAIL,              // Replies go to admin
       subject,
-      html
+      html,
     };
 
     // ✅ Send email
     const info = await transporter.sendMail(mailOptions);
-    console.log("✅ Email sent:", info.messageId);
+    console.log("✅ Email sent:", info.messageId, "to:", to);
 
     return { success: true, id: info.messageId };
   } catch (err) {

@@ -19,14 +19,25 @@ export default async function handler(req, res) {
 
   try {
     const data = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
-    console.log("✅ Payment Webhook Data:", data);
+     console.log("✅ Payment Webhook Data:", JSON.stringify(data, null, 2));
 
-    const orderId = data.order_id;
-    const status = data.order_status?.toUpperCase();
-    const customerEmail = data.customer_details?.customer_email;
-    const customerName = data.customer_details?.customer_name;
-    const amount = data.order_amount;
-    const currency = data.order_currency;
+    const orderId = data.order_id || data.data?.order?.order_id;
+    const status =
+      data.order_status?.toUpperCase() ||
+      data.data?.payment?.payment_status?.toUpperCase();
+    const customerEmail =
+      data.customer_details?.customer_email ||
+      data.data?.customer_details?.customer_email;
+    const customerName =
+      data.customer_details?.customer_name ||
+      data.data?.customer_details?.customer_name;
+    const amount = data.order_amount || data.data?.order?.order_amount;
+    const currency = data.order_currency || data.data?.order?.order_currency;
+
+    if (!orderId) {
+      console.error("❌ Missing orderId in webhook data");
+      return res.status(400).json({ error: "Invalid webhook payload" });
+    }
 
     // connect DB + find booking
     const db = await connectDB();
@@ -37,15 +48,19 @@ export default async function handler(req, res) {
     let slotStart = null;
     let slotEnd = null;
 
-    if ((status === "PAID" || status === "SUCCESS") && booking?.date && booking?.slot) {
+    if (
+      (status === "PAID" || status === "SUCCESS") &&
+      booking?.date &&
+      booking?.slot
+    ) {
       // parse slot to real datetime
       slotStart = parseSlotToDate(booking.date, booking.slot);
       slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000); // +1 hr
 
-      // ✅ FIX: add query params for consult.html
+      // Meeting link for consult
       meetingLink = `https://bepeace.in/consult.html?room=${orderId}&date=${booking.date}&slot=${encodeURIComponent(
         booking.slot
-      )}&name=${encodeURIComponent(customerName)}`;
+      )}&name=${encodeURIComponent(customerName || "Patient")}`;
     }
 
     // update DB
@@ -140,18 +155,26 @@ export default async function handler(req, res) {
       `;
     }
 
-  // ✅ Send emails using utils/send-email.js
-    await sendEmail(customerEmail, subject, patientEmailHTML);
-    await sendEmail(
-      process.env.ADMIN_EMAIL,
-      status === "PAID" || status === "SUCCESS"
-        ? "✅ New Booking - BE PEACE"
-        : "❌ Failed Payment - BE PEACE",
-      adminEmailHTML
-    );
+ // ✅ Send emails safely
+    if (customerEmail) {
+      await sendEmail(customerEmail, subject, patientEmailHTML);
+    } else {
+      console.warn("⚠️ Skipped sending patient email (no email found)");
+    }
 
-    return res.status(200).json({ message: "Webhook processed, emails sent" });
+    if (process.env.ADMIN_EMAIL) {
+      await sendEmail(
+        process.env.ADMIN_EMAIL,
+        status === "PAID" || status === "SUCCESS"
+          ? "✅ New Booking - BE PEACE"
+          : "❌ Failed Payment - BE PEACE",
+        adminEmailHTML
+      );
+    } else {
+      console.warn("⚠️ Skipped sending admin email (ADMIN_EMAIL missing)");
+    }
 
+    return res.status(200).json({ message: "Webhook processed, emails attempted" });
   } catch (err) {
     console.error("❌ Webhook error:", err);
     return res.status(500).json({ error: err.message });
