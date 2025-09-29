@@ -1,4 +1,3 @@
-// db.js
 const { MongoClient } = require("mongodb");
 require("dotenv").config();
 
@@ -9,20 +8,15 @@ async function connectDB() {
   if (db) return db; // Reuse existing connection
 
   try {
-    client = new MongoClient(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-
+    client = new MongoClient(process.env.MONGODB_URI);
     await client.connect();
 
-    // ✅ Use DB_NAME from environment variables
     db = client.db(process.env.DB_NAME);
 
     console.log(`✅ MongoDB connected to database: ${process.env.DB_NAME}`);
     return db;
   } catch (err) {
-    console.error("❌ MongoDB connection error:", err);
+    console.error("❌ MongoDB connection error:", err.message);
     throw err;
   }
 }
