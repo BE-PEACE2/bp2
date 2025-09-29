@@ -1,6 +1,6 @@
-const connectDB = require("../db");
+import connectDB from "../db.js";
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Only POST allowed" });
   }
@@ -17,4 +17,4 @@ module.exports = async (req, res) => {
     console.error("Booking save error:", err);
     res.status(500).json({ success: false, error: "Database error" });
   }
-};
+}

@@ -1,6 +1,6 @@
-const connectDB = require("../db");
+import connectDB from "../db.js";
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   try {
     const db = await connectDB();
     const bookings = db.collection("bookings");
@@ -33,4 +33,4 @@ module.exports = async (req, res) => {
     console.error("Get slots error:", err);
     res.status(500).json({ error: "Failed to fetch slots" });
   }
-};
+}
