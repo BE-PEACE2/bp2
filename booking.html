@@ -203,61 +203,62 @@
   let amount = 0, currency = "INR";
 
 // ✅ Load available slots when date changes
-  dateInput.addEventListener("change", async () => {
-   slotContainer.innerHTML = "⏳ Loading slots..."; // show loading in grid
-   slotInput.value = ""; // clear hidden slot input
-    const date = dateInput.value;
-    if (!date) return;
+  // ✅ Load available slots when date changes
+dateInput.addEventListener("change", async () => {
+  slotContainer.innerHTML = "⏳ Loading slots...";
+  slotInput.value = "";
+  const date = dateInput.value;
+  if (!date) return;
 
-    try {
-      const res = await fetch(`/api/get-slots?date=${date}`);
-      const data = await res.json();
-      slotContainer.innerHTML = "";
+  try {
+    const res = await fetch(`/api/get-slots?date=${date}`);
+    const data = await res.json();
+    slotContainer.innerHTML = "";
 
-      if (data.slots && data.slots.length > 0) {
-        data.slots.forEach(slot => {
-          const btn = document.createElement("button");
-          btn.textContent = slot.time;
-          btn.type = "button";
-          btn.className = `slot-btn ${slot.status}`;
+    if (data.slots && data.slots.length > 0) {
+      const now = new Date();
 
-          if (slot.status === "AVAILABLE") {
-            btn.addEventListener("click", () => {
-              document.querySelectorAll(".slot-btn.AVAILABLE").forEach(b => b.classList.remove("selected"));
-              btn.classList.add("selected");
-              slotInput.value = slot.time;
-              validateForm();
-            });
-          } else {
+      data.slots.forEach(slot => {
+        const btn = document.createElement("button");
+        btn.textContent = slot.time;
+        btn.type = "button";
+        btn.className = `slot-btn ${slot.status}`;
+
+        // 🛑 FRONTEND safeguard for today's past slots
+        if (date === new Date().toISOString().split("T")[0] && slot.status === "AVAILABLE") {
+          const [time, meridian] = slot.time.split(" ");
+          let [hour, minute] = time.split(":").map(Number);
+          if (meridian === "PM" && hour !== 12) hour += 12;
+          if (meridian === "AM" && hour === 12) hour = 0;
+
+          const slotDateTime = new Date(`${date}T${hour.toString().padStart(2,"0")}:${minute}:00`);
+          if (slotDateTime <= now) {
+            btn.className = "slot-btn PAST"; // force gray
             btn.disabled = true;
           }
+        }
 
-          slotContainer.appendChild(btn);
-        });
-      } else {
-        slotContainer.innerHTML = "<p>No slots available</p>";
-      }
-    } catch (err) {
-      slotContainer.innerHTML = "<p>❌ Error loading slots</p>";
-    }
-    validateForm();
-  });
+        if (slot.status === "AVAILABLE" && !btn.disabled) {
+          btn.addEventListener("click", () => {
+            document.querySelectorAll(".slot-btn.AVAILABLE").forEach(b => b.classList.remove("selected"));
+            btn.classList.add("selected");
+            slotInput.value = slot.time;
+            validateForm();
+          });
+        } else {
+          btn.disabled = true;
+        }
 
-  // ✅ Phone auto prefix only once
-  phoneInput.addEventListener("input", () => {
-    let val = phoneInput.value.replace(/\D/g, ""); // keep only numbers
-    if (countrySelect.value === "IN") {
-      if (!val.startsWith("91")) {
-        val = "91" + val; // add prefix only if missing
-      }
-      if (val.length > 12) val = val.slice(0, 12); // +91 + 10 digits
-      phoneInput.value = "+" + val;
+        slotContainer.appendChild(btn);
+      });
     } else {
-      if (val.length > 15) val = val.slice(0, 15);
-      phoneInput.value = "+" + val;
+      slotContainer.innerHTML = "<p>No slots available</p>";
     }
-    validateForm();
-  });
+  } catch (err) {
+    slotContainer.innerHTML = "<p>❌ Error loading slots</p>";
+  }
+  validateForm();
+});
 
   // ✅ Validation
   function validateForm() {

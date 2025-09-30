@@ -11,7 +11,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Date is required" });
     }
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
     const now = new Date();
 
     // fetch booked slots for that date
@@ -31,37 +31,41 @@ export default async function handler(req, res) {
       allSlots.push(time);
     }
 
+    // helper to normalize dates to local midnight
+    function toLocalMidnight(d) {
+      const dt = new Date(d);
+      dt.setHours(0, 0, 0, 0);
+      return dt;
+    }
+
+    const selectedDate = toLocalMidnight(date);
+    const todayDate = toLocalMidnight(today);
+
     // classify each slot
     const slots = allSlots.map((slot) => {
       let status = "AVAILABLE";
 
-      // 🔴 Booked
+      // 🔴 Already booked
       if (bookedSlots.includes(slot)) {
         status = "BOOKED";
-      } else {
-        // convert date string into real Date object (midnight)
-        const selectedDate = new Date(date);
-        const todayDate = new Date(today);
+      } 
+      // ⏳ Date is before today
+      else if (selectedDate < todayDate) {
+        status = "PAST";
+      } 
+      // ⏳ If today, check time
+      else if (selectedDate.getTime() === todayDate.getTime()) {
+        const [time, meridian] = slot.split(" ");
+        let [hour, minute] = time.split(":").map(Number);
+        if (meridian === "PM" && hour !== 12) hour += 12;
+        if (meridian === "AM" && hour === 12) hour = 0;
 
-        // ⏳ Check past day
-        if (selectedDate < todayDate) {
+        const slotDateTime = new Date(
+          `${date}T${hour.toString().padStart(2, "0")}:${minute}:00`
+        );
+
+        if (slotDateTime <= now) {
           status = "PAST";
-        }
-
-        // ⏳ Check today’s past time
-        else if (date === today) {
-          const [time, meridian] = slot.split(" ");
-          let [hour, minute] = time.split(":").map(Number);
-          if (meridian === "PM" && hour !== 12) hour += 12;
-          if (meridian === "AM" && hour === 12) hour = 0;
-
-          const slotDateTime = new Date(
-            `${date}T${hour.toString().padStart(2, "0")}:${minute}:00`
-          );
-
-          if (slotDateTime < now) {
-            status = "PAST";
-          }
         }
       }
 
