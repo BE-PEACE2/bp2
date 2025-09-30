@@ -20,6 +20,8 @@ export default async function handler(req, res) {
       date,
     }).toArray();
 
+    const bookedSlots = confirmed.map((b) => b.slot);
+
     // generate all 1-hour slots (24h)
     const allSlots = [];
     for (let h = 0; h < 24; h++) {
@@ -29,26 +31,33 @@ export default async function handler(req, res) {
       allSlots.push(time);
     }
 
-    // remove booked + past slots
-    const bookedSlots = confirmed.map((b) => b.slot);
-    const available = allSlots.filter((slot) => {
-      if (bookedSlots.includes(slot)) return false;
+    // classify each slot
+    const slots = allSlots.map((slot) => {
+      let status = "AVAILABLE";
 
-      // ⏳ remove past times for today
-      if (date === today) {
+      if (bookedSlots.includes(slot)) {
+        status = "BOOKED";
+      } else if (date < today) {
+        status = "PAST";
+      } else if (date === today) {
+        // check if past time today
         const [time, meridian] = slot.split(" ");
         let [hour, minute] = time.split(":").map(Number);
         if (meridian === "PM" && hour !== 12) hour += 12;
         if (meridian === "AM" && hour === 12) hour = 0;
 
-        const slotDateTime = new Date(`${date}T${hour.toString().padStart(2,"0")}:${minute}:00`);
-        if (slotDateTime < now) return false;
+        const slotDateTime = new Date(
+          `${date}T${hour.toString().padStart(2, "0")}:${minute}:00`
+        );
+        if (slotDateTime < now) {
+          status = "PAST";
+        }
       }
 
-      return true;
+      return { time: slot, status }; // ✅ changed `slot` → `time`
     });
 
-    res.status(200).json({ date, available });
+    res.status(200).json({ date, slots });
   } catch (err) {
     console.error("Get slots error:", err);
     res.status(500).json({ error: "Failed to fetch slots" });

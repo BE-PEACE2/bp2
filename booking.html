@@ -65,6 +65,53 @@
       display: block; text-align: center; margin-top: 12px;
       color: #0077cc; text-decoration: none;
     }
+
+     /* ✅ Slots grid */
+    .slots-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 10px;
+      margin: 10px 0 20px;
+    }
+    .slot-btn {
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+    .slot-btn.AVAILABLE { background: #28a745; color: #fff; }
+    .slot-btn.AVAILABLE:hover { background: #218838; }
+    .slot-btn.BOOKED { background: #dc3545; color: #fff; cursor: not-allowed; opacity: 0.7; }
+    .slot-btn.PAST { background: #6c757d; color: #fff; cursor: not-allowed; opacity: 0.7; }
+    .slot-btn.selected { border: 2px solid #000; box-shadow: 0 0 6px #333; }
+
+    /* ✅ Legend styles */
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin: 10px 0 20px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .legend-item::before {
+      content: "";
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+    }
+    .legend-item.available::before { background: #28a745; }
+    .legend-item.booked::before { background: #dc3545; }
+    .legend-item.past::before { background: #6c757d; }
   </style>
 </head>
 <body>
@@ -115,9 +162,15 @@
     <input type="date" id="date" required>
 
     <label for="slot">Choose Time Slot:</label>
-    <select id="slot" required>
-      <option value="">-- Select Slot --</option>
-    </select>
+    <div id="slotContainer" class="slots-grid"></div>
+    <input type="hidden" id="slot" required> <!-- keeps selected slot -->
+
+    <!-- ✅ Legend -->
+    <div class="legend">
+      <span class="legend-item available">Available</span>
+      <span class="legend-item booked">Booked</span>
+      <span class="legend-item past">Past</span>
+    </div>
 
     <!-- ✅ Success message -->
     <p id="successMsg" class="success">✅ All good! You can now proceed to payment.</p>
@@ -145,32 +198,47 @@
   const phoneInput = document.getElementById("phone");
    const dateInput = document.getElementById("date");
   const slotSelect = document.getElementById("slot");
+  const slotContainer = document.getElementById("slotContainer");
 
   let amount = 0, currency = "INR";
 
 // ✅ Load available slots when date changes
   dateInput.addEventListener("change", async () => {
-    slotSelect.innerHTML = '<option value="">Loading...</option>';
+    slotSelect.innerHTML = "⏳ Loading slots...";
+    slotInput.value = "";
     const date = dateInput.value;
     if (!date) return;
 
     try {
       const res = await fetch(`/api/get-slots?date=${date}`);
       const data = await res.json();
-      slotSelect.innerHTML = "";
+      slotContainer.innerHTML = "";
 
-      if (data.available.length > 0) {
-        data.available.forEach(slot => {
-          const opt = document.createElement("option");
-          opt.value = slot;
-          opt.textContent = slot;
-          slotSelect.appendChild(opt);
+      if (data.slots && data.slots.length > 0) {
+        data.slots.forEach(slot => {
+          const btn = document.createElement("button");
+          btn.textContent = slot.time;
+          btn.type = "button";
+          btn.className = `slot-btn ${slot.status}`;
+
+          if (slot.status === "AVAILABLE") {
+            btn.addEventListener("click", () => {
+              document.querySelectorAll(".slot-btn.AVAILABLE").forEach(b => b.classList.remove("selected"));
+              btn.classList.add("selected");
+              slotInput.value = slot.time;
+              validateForm();
+            });
+          } else {
+            btn.disabled = true;
+          }
+
+          slotContainer.appendChild(btn);
         });
       } else {
-        slotSelect.innerHTML = '<option value="">No slots available</option>';
+        slotContainer.innerHTML = "<p>No slots available</p>";
       }
     } catch (err) {
-      slotSelect.innerHTML = '<option value="">Error loading slots</option>';
+      slotContainer.innerHTML = "<p>❌ Error loading slots</p>";
     }
     validateForm();
   });
@@ -201,7 +269,7 @@
     const concern = document.getElementById("concern").value.trim();
     const country = countrySelect.value;
     const date = dateInput.value;
-    const slot = slotSelect.value;
+    const slot = slotInput.value;
 
     let valid = true;
     if (!name || !age || !sex || !phone || !email || !concern || !country || !date || !slot) {
