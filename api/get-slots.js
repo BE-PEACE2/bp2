@@ -6,13 +6,13 @@ export default async function handler(req, res) {
     const db = await connectDB();
     const bookings = db.collection("bookings");
 
-    const { date } = req.query; // e.g., 2025-09-28
+    const { date } = req.query; // YYYY-MM-DD format
     if (!date) {
       return res.status(400).json({ error: "Date is required" });
     }
 
-    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-    const now = new Date();
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0]; // YYYY-MM-DD
 
     // fetch booked slots for that date
     const confirmed = await bookings.find({
@@ -22,7 +22,7 @@ export default async function handler(req, res) {
 
     const bookedSlots = confirmed.map((b) => b.slot);
 
-    // generate all 1-hour slots (24h)
+    // generate all 1-hour slots
     const allSlots = [];
     for (let h = 0; h < 24; h++) {
       const hour = h % 12 === 0 ? 12 : h % 12;
@@ -31,41 +31,35 @@ export default async function handler(req, res) {
       allSlots.push(time);
     }
 
-    // helper to normalize dates to local midnight
-    function toLocalMidnight(d) {
-      const dt = new Date(d);
-      dt.setHours(0, 0, 0, 0);
-      return dt;
-    }
-
-    const selectedDate = toLocalMidnight(date);
-    const todayDate = toLocalMidnight(today);
-
     // classify each slot
     const slots = allSlots.map((slot) => {
       let status = "AVAILABLE";
 
-      // 🔴 Already booked
+      // 🔴 Booked slots
       if (bookedSlots.includes(slot)) {
         status = "BOOKED";
-      } 
-      // ⏳ Date is before today
-      else if (selectedDate < todayDate) {
-        status = "PAST";
-      } 
-      // ⏳ If today, check time
-      else if (selectedDate.getTime() === todayDate.getTime()) {
-        const [time, meridian] = slot.split(" ");
-        let [hour, minute] = time.split(":").map(Number);
-        if (meridian === "PM" && hour !== 12) hour += 12;
-        if (meridian === "AM" && hour === 12) hour = 0;
+      } else {
+        const selectedDate = new Date(date);
+        const todayDate = new Date(todayStr);
 
-        const slotDateTime = new Date(
-          `${date}T${hour.toString().padStart(2, "0")}:${minute}:00`
-        );
-
-        if (slotDateTime <= now) {
+        // ⏳ Entire day is in the past
+        if (selectedDate < todayDate) {
           status = "PAST";
+        }
+
+        // ⏳ If today, check time
+        else if (date === todayStr) {
+          const [timeStr, meridian] = slot.split(" ");
+          let [hour, minute] = timeStr.split(":").map(Number);
+
+          if (meridian === "PM" && hour !== 12) hour += 12;
+          if (meridian === "AM" && hour === 12) hour = 0;
+
+          const slotDateTime = new Date(`${date}T${hour.toString().padStart(2, "0")}:${minute}:00`);
+
+          if (slotDateTime < today) {
+            status = "PAST";
+          }
         }
       }
 
