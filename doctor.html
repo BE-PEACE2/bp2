@@ -3,93 +3,194 @@
 <head>
   <meta charset="UTF-8">
   <title>Doctor Dashboard - BE PEACE</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    h2 { color: #c71585; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
-    th { background: #f2f2f2; }
-    a.join-btn {
-      background: #28a745;
-      color: white;
-      padding: 6px 12px;
-      text-decoration: none;
-      border-radius: 5px;
+    body { font-family: Arial, sans-serif; margin: 0; background: #f9f9f9; }
+    h2 { text-align: center; margin: 20px 0; color: #c71585; }
+    .dashboard {
+      max-width: 1100px;
+      margin: 20px auto;
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
-    #loginBox { max-width: 350px; margin: 100px auto; text-align: center; }
-    input { padding: 10px; width: 100%; margin: 10px 0; }
-    button { padding: 10px 20px; background: #28a745; color: #fff; border: none; cursor: pointer; }
-    #dashboard { display: none; }
+    table {
+      width: 100%; border-collapse: collapse; margin-top: 15px;
+    }
+    table th, table td {
+      border: 1px solid #ddd; padding: 10px; text-align: left;
+    }
+    table th { background: #f2f2f2; }
+    .btn {
+      display: inline-block; padding: 8px 12px;
+      border-radius: 5px; text-decoration: none;
+      color: #fff; font-size: 14px;
+    }
+    .btn-join { background: #28a745; }
+    .btn-logout { background: #c00; float: right; margin-bottom: 10px; }
+
+    /* ✅ Status labels */
+    .status { font-weight: bold; padding: 4px 8px; border-radius: 5px; }
+    .status.SUCCESS, .status.PAID { background: #d4edda; color: #155724; }
+    .status.FAILED { background: #f8d7da; color: #721c24; }
+    .status.PENDING { background: #fff3cd; color: #856404; }
+
+    .filters { margin-bottom: 15px; }
+    .filters label { margin-right: 10px; font-weight: bold; }
+    .filters select, .filters input {
+      margin-right: 20px; padding: 6px;
+    }
+
+    /* ✅ Summary panel */
+    #summaryPanel {
+      display: flex;
+      justify-content: space-between;
+      margin: 20px 0;
+      text-align: center;
+      flex-wrap: wrap;
+    }
+    #summaryPanel div {
+      flex: 1;
+      padding: 15px;
+      margin: 5px;
+      background: #f2f2f2;
+      border-radius: 8px;
+    }
+    #summaryPanel h3 { margin: 0 0 10px; color: #333; }
+    #summaryPanel p { font-size: 20px; font-weight: bold; margin: 0; color: #000; }
   </style>
 </head>
 <body>
-  <!-- 🔑 Login -->
-  <div id="loginBox">
-    <h2>Doctor Login</h2>
-    <input type="password" id="password" placeholder="Enter Password" />
-    <button onclick="login()">Login</button>
-    <p id="error" style="color:red; display:none;">❌ Wrong password</p>
+  <!-- Header -->
+  <header>
+    <div class="logo-container">
+      <div class="earth"></div>
+      <h1 class="peach-text">BE PEACE</h1>
+    </div>
+  </header>
+
+  <div class="dashboard">
+    <h2>👨‍⚕️ Doctor Dashboard</h2>
+    <button class="btn btn-logout" onclick="logout()">Logout</button>
+
+    <!-- ✅ Summary Panel -->
+    <div id="summaryPanel">
+      <div>
+        <h3>Today’s Bookings</h3>
+        <p id="todayBookings">0</p>
+      </div>
+      <div>
+        <h3>Upcoming</h3>
+        <p id="upcomingBookings">0</p>
+      </div>
+      <div>
+        <h3>Today’s Revenue</h3>
+        <p id="todayRevenue">₹0</p>
+      </div>
+      <div>
+        <h3>This Month</h3>
+        <p id="monthRevenue">₹0</p>
+      </div>
+    </div>
+
+    <!-- ✅ Filters -->
+    <div class="filters">
+      <label for="status">Status:</label>
+      <select id="status" onchange="loadBookings()">
+        <option value="ALL" selected>All</option>
+        <option value="PAID">Paid</option>
+        <option value="SUCCESS">Success</option>
+        <option value="FAILED">Failed</option>
+        <option value="PENDING">Pending</option>
+      </select>
+
+      <label for="range">Date Range:</label>
+      <select id="range" onchange="loadBookings()">
+        <option value="TODAY">Today</option>
+        <option value="7DAYS">Next 7 Days</option>
+        <option value="30DAYS">Next 30 Days</option>
+        <option value="ALL" selected>All Future</option>
+      </select>
+
+      <label for="search">🔍 Search:</label>
+      <input type="text" id="search" placeholder="Patient name or email" oninput="loadBookings()">
+    </div>
+
+    <div id="bookingContainer">
+      <p>⏳ Loading bookings...</p>
+    </div>
   </div>
 
-  <!-- 📅 Dashboard -->
-  <div id="dashboard">
-    <h2>📅 Doctor Dashboard - Confirmed Bookings</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Patient</th>
-          <th>Email</th>
-          <th>Date</th>
-          <th>Slot</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody id="bookingTable">
-        <tr><td colspan="5">Loading...</td></tr>
-      </tbody>
-    </table>
-  </div>
+  <!-- Footer -->
+  <footer>
+    <div class="footer-logo">
+      <div class="earth slow"></div>
+      <h1 class="peach-text">BE PEACE</h1>
+    </div>
+    <p>© 2025 BE PEACE. All rights reserved.</p>
+  </footer>
 
   <script>
-    const CORRECT_PASSWORD = "Pass2025"; // 🔑 Change this
-
-    function login() {
-      const input = document.getElementById("password").value;
-      if (input === CORRECT_PASSWORD) {
-        document.getElementById("loginBox").style.display = "none";
-        document.getElementById("dashboard").style.display = "block";
-        loadBookings();
-      } else {
-        document.getElementById("error").style.display = "block";
-      }
+    const token = localStorage.getItem("doctorToken");
+    if (!token) {
+      window.location.href = "login.html";
     }
 
     async function loadBookings() {
-      try {
-        const res = await fetch("/api/get-doctor-bookings");
-        const data = await res.json();
-        const tbody = document.getElementById("bookingTable");
-        tbody.innerHTML = "";
+      const status = document.getElementById("status").value;
+      const range = document.getElementById("range").value;
+      const search = document.getElementById("search").value.trim();
 
-        if (data.bookings.length === 0) {
-          tbody.innerHTML = "<tr><td colspan='5'>No confirmed bookings yet.</td></tr>";
+      try {
+        const res = await fetch(`/api/get-doctor-bookings?status=${status}&range=${range}&search=${encodeURIComponent(search)}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+
+        // ✅ Update summary panel directly from API
+        if (data.summary) {
+          document.getElementById("todayBookings").innerText = data.summary.todayBookings;
+          document.getElementById("upcomingBookings").innerText = data.summary.upcoming;
+          document.getElementById("todayRevenue").innerText = "₹" + data.summary.todayRevenue;
+          document.getElementById("monthRevenue").innerText = "₹" + data.summary.monthRevenue;
+        }
+
+        const container = document.getElementById("bookingContainer");
+        if (!data.bookings || data.bookings.length === 0) {
+          container.innerHTML = "<p>✅ No bookings found.</p>";
           return;
         }
 
+        let html = "<table><tr><th>Date</th><th>Time</th><th>Patient</th><th>Contact</th><th>Status</th><th>Join</th></tr>";
         data.bookings.forEach(b => {
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td>${b.customer_name}</td>
-            <td>${b.customer_email}</td>
-            <td>${b.date}</td>
-            <td>${b.slot}</td>
-            <td><a href="${b.meetingLink}" target="_blank" class="join-btn">Join Consultation</a></td>
+          html += `
+            <tr>
+              <td>${b.date}</td>
+              <td>${b.slot}</td>
+              <td>${b.name || "-"}</td>
+              <td>${b.email || ""}<br>${b.phone || ""}</td>
+              <td><span class="status ${b.status}">${b.status}</span></td>
+              <td>${b.meetingLink ? `<a class="btn btn-join" href="${b.meetingLink}" target="_blank">Join</a>` : "-"}</td>
+            </tr>
           `;
-          tbody.appendChild(row);
         });
+        html += "</table>";
+        container.innerHTML = html;
+
       } catch (err) {
-        console.error("Error loading bookings:", err);
+        console.error("❌ Error loading bookings:", err);
+        document.getElementById("bookingContainer").innerHTML = "<p>❌ Failed to load bookings.</p>";
       }
+    }
+
+    loadBookings();
+
+    function logout() {
+      localStorage.removeItem("doctorToken");
+      window.location.href = "login.html";
     }
   </script>
 </body>
