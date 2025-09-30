@@ -35,26 +35,37 @@ export default async function handler(req, res) {
     const slots = allSlots.map((slot) => {
       let status = "AVAILABLE";
 
+      // 🔴 Booked
       if (bookedSlots.includes(slot)) {
         status = "BOOKED";
-      } else if (date < today) {
-        status = "PAST";
-      } else if (date === today) {
-        // check if past time today
-        const [time, meridian] = slot.split(" ");
-        let [hour, minute] = time.split(":").map(Number);
-        if (meridian === "PM" && hour !== 12) hour += 12;
-        if (meridian === "AM" && hour === 12) hour = 0;
+      } else {
+        // convert date string into real Date object (midnight)
+        const selectedDate = new Date(date);
+        const todayDate = new Date(today);
 
-        const slotDateTime = new Date(
-          `${date}T${hour.toString().padStart(2, "0")}:${minute}:00`
-        );
-        if (slotDateTime < now) {
+        // ⏳ Check past day
+        if (selectedDate < todayDate) {
           status = "PAST";
+        }
+
+        // ⏳ Check today’s past time
+        else if (date === today) {
+          const [time, meridian] = slot.split(" ");
+          let [hour, minute] = time.split(":").map(Number);
+          if (meridian === "PM" && hour !== 12) hour += 12;
+          if (meridian === "AM" && hour === 12) hour = 0;
+
+          const slotDateTime = new Date(
+            `${date}T${hour.toString().padStart(2, "0")}:${minute}:00`
+          );
+
+          if (slotDateTime < now) {
+            status = "PAST";
+          }
         }
       }
 
-      return { time: slot, status }; // ✅ changed `slot` → `time`
+      return { time: slot, status };
     });
 
     res.status(200).json({ date, slots });
