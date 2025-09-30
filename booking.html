@@ -197,15 +197,15 @@
   const successMsg = document.getElementById("successMsg");
   const phoneInput = document.getElementById("phone");
    const dateInput = document.getElementById("date");
-  const slotSelect = document.getElementById("slot");
+  const slotInput = document.getElementById("slot");
   const slotContainer = document.getElementById("slotContainer");
 
   let amount = 0, currency = "INR";
 
 // ✅ Load available slots when date changes
   dateInput.addEventListener("change", async () => {
-    slotSelect.innerHTML = "⏳ Loading slots...";
-    slotInput.value = "";
+   slotContainer.innerHTML = "⏳ Loading slots..."; // show loading in grid
+   slotInput.value = ""; // clear hidden slot input
     const date = dateInput.value;
     if (!date) return;
 
