@@ -61,6 +61,9 @@
     }
     #summaryPanel h3 { margin: 0 0 10px; color: #333; }
     #summaryPanel p { font-size: 20px; font-weight: bold; margin: 0; color: #000; }
+
+    /* ✅ Grey out past rows */
+    .past-row { background: #f8f9fa; color: #888; }
   </style>
 </head>
 <body>
@@ -113,6 +116,7 @@
         <option value="7DAYS">Next 7 Days</option>
         <option value="30DAYS">Next 30 Days</option>
         <option value="ALL" selected>All Future</option>
+        <option value="PAST">Past</option>
       </select>
 
       <label for="search">🔍 Search:</label>
@@ -164,16 +168,18 @@
           return;
         }
 
+        const todayStr = new Date().toISOString().split("T")[0];
         let html = "<table><tr><th>Date</th><th>Time</th><th>Patient</th><th>Contact</th><th>Status</th><th>Join</th></tr>";
         data.bookings.forEach(b => {
+          const isPast = b.date < todayStr;
           html += `
-            <tr>
+            <tr class="${isPast ? 'past-row' : ''}">
               <td>${b.date}</td>
               <td>${b.slot}</td>
               <td>${b.name || "-"}</td>
               <td>${b.email || ""}<br>${b.phone || ""}</td>
               <td><span class="status ${b.status}">${b.status}</span></td>
-              <td>${b.meetingLink ? `<a class="btn btn-join" href="${b.meetingLink}" target="_blank">Join</a>` : "-"}</td>
+              <td>${b.meetingLink && !isPast ? `<a class="btn btn-join" href="${b.meetingLink}" target="_blank">Join</a>` : "-"}</td>
             </tr>
           `;
         });

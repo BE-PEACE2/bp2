@@ -29,6 +29,7 @@ export default async function handler(req, res) {
 
     let startDate = todayStr;
     let endDate = null;
+    let isPast = false;
 
     if (range === "TODAY") {
       endDate = startDate;
@@ -40,6 +41,8 @@ export default async function handler(req, res) {
       const d = new Date(today);
       d.setDate(today.getDate() + 30);
       endDate = d.toISOString().split("T")[0];
+    } else if (range === "PAST") {
+      isPast = true;
     }
 
     // ✅ Build query
@@ -48,7 +51,9 @@ export default async function handler(req, res) {
       query.status = status;
     }
 
-    if (endDate) {
+    if (isPast) {
+      query.date = { $lt: todayStr }; // all past bookings
+    } else if (endDate) {
       query.date = { $gte: startDate, $lte: endDate };
     } else {
       query.date = { $gte: startDate }; // ALL future
@@ -62,12 +67,15 @@ export default async function handler(req, res) {
     }
 
     // ✅ Fetch results
-    const results = await bookings.find(query).sort({ date: 1, slot: 1 }).toArray();
+    const results = await bookings
+      .find(query)
+      .sort({ date: isPast ? -1 : 1, slot: 1 }) // past → newest first
+      .toArray();
 
-    // 🔗 Add meeting links only if PAID or SUCCESS
+    // 🔗 Add meeting links only if PAID or SUCCESS and in future
     const withLinks = results.map((b) => {
       let meetingLink = null;
-      if (["PAID", "SUCCESS"].includes(b.status)) {
+      if (!isPast && ["PAID", "SUCCESS"].includes(b.status)) {
         meetingLink = `https://bepeace.in/consult.html?room=${b.order_id}&date=${b.date}&slot=${encodeURIComponent(
           b.slot
         )}&name=${encodeURIComponent(b.customer_name || "Patient")}`;
@@ -87,33 +95,37 @@ export default async function handler(req, res) {
       };
     });
 
-    // ✅ Summary analytics
+    // ✅ Summary analytics (only for non-past)
     let todayBookings = 0,
       upcoming = 0,
       todayRevenue = 0,
       monthRevenue = 0;
 
-    withLinks.forEach((b) => {
-      if (b.date === todayStr) {
-        todayBookings++;
-        todayRevenue += Number(b.amount || 0);
-      }
-      if (b.date >= todayStr) {
-        upcoming++;
-      }
-      if (b.date.startsWith(monthStr)) {
-        monthRevenue += Number(b.amount || 0);
-      }
-    });
+    if (!isPast) {
+      withLinks.forEach((b) => {
+        if (b.date === todayStr) {
+          todayBookings++;
+          todayRevenue += Number(b.amount || 0);
+        }
+        if (b.date >= todayStr) {
+          upcoming++;
+        }
+        if (b.date.startsWith(monthStr)) {
+          monthRevenue += Number(b.amount || 0);
+        }
+      });
+    }
 
     res.status(200).json({
       bookings: withLinks,
-      summary: {
-        todayBookings,
-        upcoming,
-        todayRevenue,
-        monthRevenue,
-      },
+      summary: isPast
+        ? null
+        : {
+            todayBookings,
+            upcoming,
+            todayRevenue,
+            monthRevenue,
+          },
     });
   } catch (err) {
     console.error("❌ Doctor bookings fetch error:", err);
