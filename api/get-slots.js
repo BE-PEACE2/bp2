@@ -11,11 +11,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Date is required" });
     }
 
-    // Current date + time
     const now = new Date();
-    const todayStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
+    const todayStr = now.toISOString().split("T")[0];
 
-    // Get confirmed bookings for this date
+    // fetch already booked slots
     const confirmed = await bookings.find({
       status: { $in: ["PAID", "SUCCESS"] },
       date,
@@ -23,7 +22,7 @@ export default async function handler(req, res) {
 
     const bookedSlots = confirmed.map((b) => b.slot);
 
-    // Generate all hourly slots
+    // generate all slots (1 hour each)
     const allSlots = [];
     for (let h = 0; h < 24; h++) {
       const hour = h % 12 === 0 ? 12 : h % 12;
@@ -32,14 +31,13 @@ export default async function handler(req, res) {
       allSlots.push(time);
     }
 
-    // Classify slots
     const slots = allSlots.map((slot) => {
       let status = "AVAILABLE";
 
       if (bookedSlots.includes(slot)) {
         status = "BOOKED";
       } else {
-        // Parse slot string → datetime
+        // convert slot time to real Date
         const [timeStr, meridian] = slot.split(" ");
         let [hour, minute] = timeStr.split(":").map(Number);
         if (meridian === "PM" && hour !== 12) hour += 12;
@@ -51,13 +49,16 @@ export default async function handler(req, res) {
         const selectedDate = new Date(date);
         const todayDate = new Date(todayStr);
 
+        // ✅ Past dates
         if (selectedDate < todayDate) {
-          status = "PAST"; // whole day before today
-        } else if (
+          status = "PAST";
+        }
+        // ✅ Today’s past hours
+        else if (
           selectedDate.getTime() === todayDate.getTime() &&
-          slotDateTime < now
+          slotDateTime <= now
         ) {
-          status = "PAST"; // past time today
+          status = "PAST";
         }
       }
 
