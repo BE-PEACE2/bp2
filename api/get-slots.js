@@ -40,17 +40,20 @@ export default async function handler(req, res) {
       if (bookedSlots.includes(slot)) {
         status = "BOOKED";
       } else {
-        // convert slot time to IST
+        // convert slot time into IST Date (direct, no offset math here)
         const [timeStr, meridian] = slot.split(" ");
         let [hour, minute] = timeStr.split(":").map(Number);
         if (meridian === "PM" && hour !== 12) hour += 12;
         if (meridian === "AM" && hour === 12) hour = 0;
 
         const [yyyy, mm, dd] = date.split("-").map(Number);
-        const slotDateTime = new Date(Date.UTC(yyyy, mm - 1, dd, hour - 5, minute - 30));
+        const slotDateTime = new Date(yyyy, mm - 1, dd, hour, minute);
 
-        if (selectedDate.getTime() === todayDateIST.getTime() &&
-            slotDateTime.getTime() <= nowIST.getTime()) {
+        // ✅ Mark past slots if today
+        if (
+          selectedDate.getTime() === todayDateIST.getTime() &&
+          slotDateTime.getTime() <= nowIST.getTime()
+        ) {
           status = "PAST";
         }
       }
