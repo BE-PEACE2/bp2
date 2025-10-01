@@ -31,7 +31,15 @@ export default async function handler(req, res) {
       allSlots.push(time);
     }
 
-    let slots = allSlots.map((slot) => {
+    const selectedDate = new Date(date);
+    const todayDate = new Date(todayStr);
+
+    // ✅ If selected date is before today → no slots at all
+    if (selectedDate < todayDate) {
+      return res.status(200).json({ date, slots: [] });
+    }
+
+    const slots = allSlots.map((slot) => {
       let status = "AVAILABLE";
 
       if (bookedSlots.includes(slot)) {
@@ -46,27 +54,14 @@ export default async function handler(req, res) {
         const [yyyy, mm, dd] = date.split("-").map(Number);
         const slotDateTime = new Date(yyyy, mm - 1, dd, hour, minute, 0);
 
-        const selectedDate = new Date(date);
-        const todayDate = new Date(todayStr);
-
-        // ✅ Past dates
-        if (selectedDate < todayDate) {
-          status = "HIDE";
-        }
-        // ✅ Today’s past hours (including current hour)
-        else if (
-          selectedDate.getTime() === todayDate.getTime() &&
-          slotDateTime <= now
-        ) {
-          status = "HIDE";
+        // ✅ Grey out today's past slots
+        if (selectedDate.getTime() === todayDate.getTime() && slotDateTime <= now) {
+          status = "PAST";
         }
       }
 
       return { time: slot, status };
     });
-
-    // ✅ filter out hidden slots
-    slots = slots.filter((s) => s.status !== "HIDE");
 
     res.status(200).json({ date, slots });
   } catch (err) {
