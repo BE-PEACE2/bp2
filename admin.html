@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Doctor Availability - Admin</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 30px; }
+    form { max-width: 400px; margin: auto; padding: 20px; border: 1px solid #ccc; border-radius: 10px; }
+    label { font-weight: bold; display: block; margin: 10px 0 5px; }
+    input, textarea, button {
+      width: 100%; padding: 10px; margin-bottom: 15px;
+      border-radius: 5px; border: 1px solid #ccc;
+    }
+    button { background: #0077cc; color: #fff; cursor: pointer; }
+    button:hover { background: #005fa3; }
+    .msg { margin-top: 15px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>👨‍⚕️ Doctor Availability - Admin</h2>
+
+  <form id="unavailableForm">
+    <label for="date">Unavailable Date:</label>
+    <input type="date" id="date" required>
+
+    <label for="reason">Reason:</label>
+    <textarea id="reason" rows="3" placeholder="Optional"></textarea>
+
+    <button type="submit">Mark Unavailable</button>
+    <p id="msg" class="msg"></p>
+  </form>
+
+  <script>
+    document.getElementById("unavailableForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const date = document.getElementById("date").value;
+      const reason = document.getElementById("reason").value;
+
+      const res = await fetch("/api/set-unavailable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date, reason })
+      });
+
+      const data = await res.json();
+      document.getElementById("msg").textContent = data.message || "Error updating";
+      document.getElementById("msg").style.color = res.ok ? "green" : "red";
+    });
+  </script>
+</body>
+</html>

@@ -202,7 +202,13 @@
 
   let amount = 0, currency = "INR";
 
- // ✅ Load available slots when date changes
+// ✅ Block past dates + preselect today
+const todayISO = new Date().toISOString().split("T")[0];
+dateInput.setAttribute("min", todayISO);
+dateInput.value = todayISO;
+dateInput.dispatchEvent(new Event("change"));
+
+// ✅ Load available slots when date changes
   dateInput.addEventListener("change", async () => {
     slotContainer.innerHTML = "⏳ Loading slots...";
     slotInput.value = "";
@@ -215,30 +221,13 @@
       slotContainer.innerHTML = "";
 
       if (data.slots && data.slots.length > 0) {
-        const now = new Date();
-        const todayStr = new Date().toISOString().split("T")[0];
-
         data.slots.forEach(slot => {
           const btn = document.createElement("button");
           btn.textContent = slot.time;
           btn.type = "button";
           btn.className = `slot-btn ${slot.status}`;
 
-          // 🛑 Force all past slots today into PAST
-          if (date === todayStr) {
-            const [time, meridian] = slot.time.split(" ");
-            let [hour, minute] = time.split(":").map(Number);
-            if (meridian === "PM" && hour !== 12) hour += 12;
-            if (meridian === "AM" && hour === 12) hour = 0;
-
-            const slotDateTime = new Date(`${date}T${hour.toString().padStart(2,"0")}:${minute}:00`);
-            if (slotDateTime <= now) {
-              btn.className = "slot-btn PAST";
-              btn.disabled = true;
-            }
-          }
-
-          if (btn.classList.contains("AVAILABLE") && !btn.disabled) {
+          if (slot.status === "AVAILABLE") {
             btn.addEventListener("click", () => {
               document.querySelectorAll(".slot-btn.AVAILABLE").forEach(b => b.classList.remove("selected"));
               btn.classList.add("selected");
@@ -246,7 +235,7 @@
               validateForm();
             });
           } else {
-            btn.disabled = true;
+            btn.disabled = true; // BOOKED or PAST
           }
 
           slotContainer.appendChild(btn);
@@ -259,6 +248,7 @@
     }
     validateForm();
   });
+
   
   // ✅ Validation
   function validateForm() {

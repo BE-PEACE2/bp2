@@ -13,6 +13,13 @@ export default async function handler(req, res) {
 
     const now = new Date();
     const todayStr = now.toISOString().split("T")[0];
+    const todayDate = new Date(todayStr);
+    const selectedDate = new Date(date);
+
+    // ✅ Block past dates entirely
+    if (selectedDate < todayDate) {
+      return res.status(200).json({ date, slots: [] });
+    }
 
     // fetch already booked slots
     const confirmed = await bookings.find({
@@ -37,7 +44,7 @@ export default async function handler(req, res) {
       if (bookedSlots.includes(slot)) {
         status = "BOOKED";
       } else {
-        // convert slot time to real Date
+        // convert slot time to Date
         const [timeStr, meridian] = slot.split(" ");
         let [hour, minute] = timeStr.split(":").map(Number);
         if (meridian === "PM" && hour !== 12) hour += 12;
@@ -46,15 +53,8 @@ export default async function handler(req, res) {
         const [yyyy, mm, dd] = date.split("-").map(Number);
         const slotDateTime = new Date(yyyy, mm - 1, dd, hour, minute, 0);
 
-        const selectedDate = new Date(date);
-        const todayDate = new Date(todayStr);
-
-        // ✅ Past dates
-        if (selectedDate < todayDate) {
-          status = "PAST";
-        }
-        // ✅ Today’s past hours
-        else if (
+        // ✅ Today’s past hours → mark as PAST
+        if (
           selectedDate.getTime() === todayDate.getTime() &&
           slotDateTime <= now
         ) {
