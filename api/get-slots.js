@@ -14,6 +14,17 @@ export default async function handler(req, res) {
     const now = new Date();
     const todayStr = now.toISOString().split("T")[0];
 
+    // ✅ Normalize "now" to ignore seconds and ms
+    const nowClean = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      now.getHours(),
+      now.getMinutes(),
+      0,
+      0
+    );
+
     // fetch already booked slots
     const confirmed = await bookings.find({
       status: { $in: ["PAID", "SUCCESS"] },
@@ -52,10 +63,10 @@ export default async function handler(req, res) {
         if (meridian === "AM" && hour === 12) hour = 0;
 
         const [yyyy, mm, dd] = date.split("-").map(Number);
-        const slotDateTime = new Date(yyyy, mm - 1, dd, hour, minute, 0);
+        const slotDateTime = new Date(yyyy, mm - 1, dd, hour, minute, 0, 0);
 
         // ✅ Grey out today's past slots
-        if (selectedDate.getTime() === todayDate.getTime() && slotDateTime <= now) {
+        if (selectedDate.getTime() === todayDate.getTime() && slotDateTime <= nowClean) {
           status = "PAST";
         }
       }
