@@ -203,7 +203,6 @@
   let amount = 0, currency = "INR";
 
 // ✅ Load available slots when date changes
-  // ✅ Load available slots when date changes
 dateInput.addEventListener("change", async () => {
   slotContainer.innerHTML = "⏳ Loading slots...";
   slotInput.value = "";
@@ -217,6 +216,7 @@ dateInput.addEventListener("change", async () => {
 
     if (data.slots && data.slots.length > 0) {
       const now = new Date();
+      const todayStr = new Date().toISOString().split("T")[0];
 
       data.slots.forEach(slot => {
         const btn = document.createElement("button");
@@ -224,41 +224,40 @@ dateInput.addEventListener("change", async () => {
         btn.type = "button";
         btn.className = `slot-btn ${slot.status}`;
 
-        // 🛑 FRONTEND safeguard for today's past slots
-        if (date === new Date().toISOString().split("T")[0] && slot.status === "AVAILABLE") {
-          const [time, meridian] = slot.time.split(" ");
-          let [hour, minute] = time.split(":").map(Number);
-          if (meridian === "PM" && hour !== 12) hour += 12;
-          if (meridian === "AM" && hour === 12) hour = 0;
+       // 🛑 Force past slots (today included) to gray + disabled
+          if (date === todayStr && slot.status === "AVAILABLE") {
+            const [time, meridian] = slot.time.split(" ");
+            let [hour, minute] = time.split(":").map(Number);
+            if (meridian === "PM" && hour !== 12) hour += 12;
+            if (meridian === "AM" && hour === 12) hour = 0;
+            const slotDateTime = new Date(`${date}T${hour.toString().padStart(2,"0")}:${minute}:00`);
+            if (slotDateTime <= now) {
+              btn.className = "slot-btn PAST";
+              btn.disabled = true;
+            }
+          }
 
-          const slotDateTime = new Date(`${date}T${hour.toString().padStart(2,"0")}:${minute}:00`);
-          if (slotDateTime <= now) {
-            btn.className = "slot-btn PAST"; // force gray
+          if (btn.classList.contains("AVAILABLE")) {
+            btn.addEventListener("click", () => {
+              document.querySelectorAll(".slot-btn.AVAILABLE").forEach(b => b.classList.remove("selected"));
+              btn.classList.add("selected");
+              slotInput.value = slot.time;
+              validateForm();
+            });
+          } else {
             btn.disabled = true;
           }
-        }
 
-        if (slot.status === "AVAILABLE" && !btn.disabled) {
-          btn.addEventListener("click", () => {
-            document.querySelectorAll(".slot-btn.AVAILABLE").forEach(b => b.classList.remove("selected"));
-            btn.classList.add("selected");
-            slotInput.value = slot.time;
-            validateForm();
-          });
-        } else {
-          btn.disabled = true;
-        }
-
-        slotContainer.appendChild(btn);
-      });
-    } else {
-      slotContainer.innerHTML = "<p>No slots available</p>";
+          slotContainer.appendChild(btn);
+        });
+      } else {
+        slotContainer.innerHTML = "<p>No slots available</p>";
+      }
+    } catch (err) {
+      slotContainer.innerHTML = "<p>❌ Error loading slots</p>";
     }
-  } catch (err) {
-    slotContainer.innerHTML = "<p>❌ Error loading slots</p>";
-  }
-  validateForm();
-});
+    validateForm();
+  });
 
   // ✅ Validation
   function validateForm() {

@@ -6,15 +6,15 @@ export default async function handler(req, res) {
     const db = await connectDB();
     const bookings = db.collection("bookings");
 
-    const { date } = req.query; // YYYY-MM-DD format
+    const { date } = req.query; // YYYY-MM-DD
     if (!date) {
       return res.status(400).json({ error: "Date is required" });
     }
 
-    const today = new Date();
-    const todayStr = today.toISOString().split("T")[0]; // YYYY-MM-DD
+    const now = new Date(); // current local time
+    const todayStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
 
-    // fetch booked slots for that date
+    // fetch booked slots
     const confirmed = await bookings.find({
       status: { $in: ["PAID", "SUCCESS"] },
       date,
@@ -31,35 +31,28 @@ export default async function handler(req, res) {
       allSlots.push(time);
     }
 
-    // classify each slot
     const slots = allSlots.map((slot) => {
       let status = "AVAILABLE";
 
-      // 🔴 Booked slots
       if (bookedSlots.includes(slot)) {
         status = "BOOKED";
       } else {
+        // parse slot into real datetime
+        const [timeStr, meridian] = slot.split(" ");
+        let [hour, minute] = timeStr.split(":").map(Number);
+        if (meridian === "PM" && hour !== 12) hour += 12;
+        if (meridian === "AM" && hour === 12) hour = 0;
+
+        const [yyyy, mm, dd] = date.split("-").map(Number);
+        const slotDateTime = new Date(yyyy, mm - 1, dd, hour, minute, 0);
+
         const selectedDate = new Date(date);
         const todayDate = new Date(todayStr);
 
-        // ⏳ Entire day is in the past
         if (selectedDate < todayDate) {
           status = "PAST";
-        }
-
-        // ⏳ If today, check time
-        else if (date === todayStr) {
-          const [timeStr, meridian] = slot.split(" ");
-          let [hour, minute] = timeStr.split(":").map(Number);
-
-          if (meridian === "PM" && hour !== 12) hour += 12;
-          if (meridian === "AM" && hour === 12) hour = 0;
-
-          const slotDateTime = new Date(`${date}T${hour.toString().padStart(2, "0")}:${minute}:00`);
-
-          if (slotDateTime < today) {
-            status = "PAST";
-          }
+        } else if (selectedDate.getTime() === todayDate.getTime() && slotDateTime < now) {
+          status = "PAST";
         }
       }
 
