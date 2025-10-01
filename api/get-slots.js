@@ -66,9 +66,12 @@ export default async function handler(req, res) {
         const slotDateTime = new Date(yyyy, mm - 1, dd, hour, minute, 0, 0);
 
         // ✅ Grey out today's past slots
-        if (selectedDate.getTime() === todayDate.getTime() && slotDateTime <= nowClean) {
-          status = "PAST";
-        }
+       if (
+       selectedDate.getTime() === todayDate.getTime() &&
+        slotDateTime.getTime() <= nowClean.getTime()
+        ) {
+  status = "PAST";
+     }
       }
 
       return { time: slot, status };
