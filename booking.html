@@ -209,6 +209,15 @@
    // ✅ Declare mapping object globally
 const countryToCurrency = {};
 
+ // ✅ Helper: generate emoji flag from country code
+  function emojiFlag(code) {
+    return code
+      .toUpperCase()
+      .replace(/./g, char => 
+        String.fromCodePoint(127397 + char.charCodeAt())
+      );
+  }
+
 // ✅ Load countries & map currencies with fallback
 async function loadCountries() {
   try {
@@ -220,7 +229,7 @@ async function loadCountries() {
     countries.forEach(c => {
       const opt = document.createElement("option");
       opt.value = c.cca2;
-      opt.textContent = `${c.flag || ""} ${c.name.common}`;
+       opt.textContent = `${emojiFlag(c.cca2)} ${c.name.common}`;
       countrySelect.appendChild(opt);
 
       if (c.currencies) {
@@ -318,11 +327,13 @@ loadRates();
     // Init countries + detect user
     async function initCountries() {
       await loadCountries();
+      initSearchableDropdown(); // ✅ initialize Select2
+
       fetch("https://ipapi.co/json")
         .then(res => res.json())
         .then(data => {
           const userCountry = data.country_code || "IN";
-          countrySelect.value = userCountry;
+          $("#country").val(userCountry).trigger("change"); // ✅ works with Select2
           iti.setCountry(userCountry);
           setFee(userCountry);
         })
