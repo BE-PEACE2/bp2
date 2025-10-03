@@ -227,13 +227,25 @@ async function loadCountries() {
   } catch (err) {
     console.error("❌ Failed to load countries:", err);
 
-    // ✅ Fallback list so dropdown never stays empty
+   // ✅ Extended fallback list (15 countries)
     const fallbackCountries = [
       { code: "IN", name: "India", currency: "INR", flag: "🇮🇳" },
       { code: "US", name: "United States", currency: "USD", flag: "🇺🇸" },
       { code: "GB", name: "United Kingdom", currency: "GBP", flag: "🇬🇧" },
-      { code: "AE", name: "United Arab Emirates", currency: "AED", flag: "🇦🇪" }
+      { code: "AE", name: "United Arab Emirates", currency: "AED", flag: "🇦🇪" },
+      { code: "CA", name: "Canada", currency: "CAD", flag: "🇨🇦" },
+      { code: "AU", name: "Australia", currency: "AUD", flag: "🇦🇺" },
+      { code: "SG", name: "Singapore", currency: "SGD", flag: "🇸🇬" },
+      { code: "DE", name: "Germany", currency: "EUR", flag: "🇩🇪" },
+      { code: "FR", name: "France", currency: "EUR", flag: "🇫🇷" },
+      { code: "IT", name: "Italy", currency: "EUR", flag: "🇮🇹" },
+      { code: "ES", name: "Spain", currency: "EUR", flag: "🇪🇸" },
+      { code: "JP", name: "Japan", currency: "JPY", flag: "🇯🇵" },
+      { code: "CN", name: "China", currency: "CNY", flag: "🇨🇳" },
+      { code: "BR", name: "Brazil", currency: "BRL", flag: "🇧🇷" },
+      { code: "ZA", name: "South Africa", currency: "ZAR", flag: "🇿🇦" }
     ];
+
 
     fallbackCountries.forEach(c => {
       const opt = document.createElement("option");
