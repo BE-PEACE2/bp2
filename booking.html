@@ -22,6 +22,10 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
 
+  <!-- ✅ Select2 (searchable dropdown) -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0/css/select2.min.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0/js/select2.min.js"></script>
+
   <style>
     body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 0; }
     h2 { text-align: center; color: #c71585; margin: 25px 0; }
@@ -208,7 +212,7 @@ const countryToCurrency = {};
 // ✅ Load countries & map currencies with fallback
 async function loadCountries() {
   try {
-    const res = await fetch("https://restcountries.com/v3.1/all");
+   const res = await fetch("https://restcountries.com/v3.1/all?fields=cca2,name,currencies");
     const countries = await res.json();
 
     countries.sort((a, b) => a.name.common.localeCompare(b.name.common));
@@ -256,6 +260,19 @@ async function loadCountries() {
     });
   }
 }
+
+// ✅ Select2 init with flags
+    function initSearchableDropdown() {
+      $("#country").select2({
+        templateResult: formatOption,
+        templateSelection: formatOption,
+        width: "100%"
+      });
+      function formatOption(option) {
+        if (!option.id) return option.text;
+        return option.text;
+      }
+    }
 
     // intl-tel-input setup
     const iti = window.intlTelInput(phoneInput, {
