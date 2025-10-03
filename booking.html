@@ -327,18 +327,18 @@ loadRates();
     // Init countries + detect user
     async function initCountries() {
       await loadCountries();
-      initSearchableDropdown(); // ✅ initialize Select2
+      initSearchableDropdown(); // ✅ actually run it here
 
       fetch("https://ipapi.co/json")
         .then(res => res.json())
         .then(data => {
           const userCountry = data.country_code || "IN";
-          $("#country").val(userCountry).trigger("change"); // ✅ works with Select2
+          $("#country").val(userCountry).trigger("change"); //  ✅ Select2 compatible
           iti.setCountry(userCountry);
           setFee(userCountry);
         })
         .catch(() => {
-          countrySelect.value = "IN";
+          $("#country").val("IN").trigger("change");
           iti.setCountry("IN");
           setFee("IN");
         });
