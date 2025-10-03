@@ -129,13 +129,9 @@
 
   <h2>📝 Book Your Consultation</h2>
 
-  <form id="bookingForm">
+    <form id="bookingForm">
     <label for="country">Select Your Country:</label>
-    <select id="country" required>
-      <option value="">-- Choose Country --</option>
-      <option value="IN">India 🇮🇳</option>
-      <option value="INTL">International 🌍</option>
-    </select>
+    <select id="country" required></select>
     <p class="fee" id="feeDisplay">Consultation Fee: --</p>
 
     <label>Name:</label>
@@ -205,29 +201,63 @@
 
   let amount = 0, currency = "INR";
 
-  // ✅ Phone number with intl-tel-input
-  const phoneInput = document.querySelector("#phone");
+  // Load all countries into dropdown
+  async function loadCountries() {
+    const res = await fetch("https://restcountries.com/v3.1/all");
+    const countries = await res.json();
+    countries.sort((a,b)=> a.name.common.localeCompare(b.name.common));
+    countries.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c.cca2; // country code (IN, US, GB)
+      opt.textContent = `${c.flag || ""} ${c.name.common}`;
+      countrySelect.appendChild(opt);
+    });
+  }
+  loadCountries();
+
+ // intl-tel-input setup
   const iti = window.intlTelInput(phoneInput, {
     initialCountry: "auto",
-    geoIpLookup: function(callback) {
-      fetch("https://ipapi.co/json")
-        .then(res => res.json())
-        .then(data => callback(data.country_code))
-        .catch(() => callback("IN")); // fallback India
-    },
+    geoIpLookup: cb => fetch("https://ipapi.co/json")
+      .then(res=>res.json()).then(data=> cb(data.country_code))
+      .catch(()=> cb("IN")),
     utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
   });
 
-// ✅ Function: auto-select dropdown based on detected country
-  function autoSelectCountry(code) {
-    if (code === "IN") {
-      countrySelect.value = "IN";
-      setFee("IN");
-    } else {
-      countrySelect.value = "INTL";
-      setFee("INTL");
-    }
+  // Set fee
+async function setFee(countryCode) {
+  if (countryCode === "IN") {
+    amount = 10; currency = "INR";
+    feeDisplay.textContent = `Consultation Fee: ₹${amount} INR`;
+  } else {
+    amount = 40; currency = "USD";
+    feeDisplay.textContent = `Consultation Fee: $${amount} USD`;
+
+    // Optional: show equivalent local currency
+    try {
+      const res = await fetch(`https://api.exchangerate.host/convert?from=USD&to=${countryCode}`);
+      const data = await res.json();
+      if (data.result) {
+        feeDisplay.textContent += ` (~${data.result.toFixed(2)} ${countryCode})`;
+      }
+    } catch {}
   }
+}
+
+  // Detect user country
+  fetch("https://ipapi.co/json")
+    .then(res=>res.json())
+    .then(data=>{
+      countrySelect.value = data.country_code || "IN";
+      iti.setCountry(data.country_code || "IN");
+      setFee(data.country_code || "IN");
+    });
+
+  // When user changes country manually
+  countrySelect.addEventListener("change", () => {
+    iti.setCountry(countrySelect.value);
+    setFee(countrySelect.value);
+  });
 
 // ✅ Block past dates + preselect today
 const todayISO = new Date().toISOString().split("T")[0];
@@ -337,20 +367,6 @@ dateInput.addEventListener("change", () => loadSlots(dateInput.value));
   ["name","age","sex","phone","email","concern","country","date","slot"].forEach(id=>{
     document.getElementById(id).addEventListener("input", validateForm);
     document.getElementById(id).addEventListener("change", validateForm);
-  });
-
-  // ✅ Country fee
-  countrySelect.addEventListener("change", () => {
-    if (countrySelect.value === "IN") {
-      amount = 10; currency = "INR";
-      feeDisplay.textContent = "Consultation Fee: ₹10 INR";
-    } else if (countrySelect.value === "INTL") {
-      amount = 40; currency = "USD";
-      feeDisplay.textContent = "Consultation Fee: $40 USD";
-    } else {
-      amount = 0; feeDisplay.textContent = "Consultation Fee: --";
-    }
-    validateForm();
   });
 
   // ✅ Payment trigger with Cashfree v3 Checkout
