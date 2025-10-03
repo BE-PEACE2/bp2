@@ -278,8 +278,8 @@ async function loadCountries() {
         width: "100%"
       });
       function formatOption(option) {
-        if (!option.id) return option.text;
-        return option.text;
+    if (!option.id) return option.text;
+    return option.text; // already has "🇮🇳 India" etc from loadCountries()
       }
     }
 
