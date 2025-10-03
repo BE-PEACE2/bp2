@@ -203,26 +203,47 @@
   let amount = 0, currency = "INR";
 
    // ✅ Declare mapping object globally
-  const countryToCurrency = {};
+const countryToCurrency = {};
 
-  // Load countries & map currencies
-    async function loadCountries() {
-      const res = await fetch("https://restcountries.com/v3.1/all");
-      const countries = await res.json();
-      countries.sort((a, b) => a.name.common.localeCompare(b.name.common));
-      countries.forEach(c => {
-        const opt = document.createElement("option");
-        opt.value = c.cca2;
-        opt.textContent = `${c.flag || ""} ${c.name.common}`;
-        countrySelect.appendChild(opt);
+// ✅ Load countries & map currencies with fallback
+async function loadCountries() {
+  try {
+    const res = await fetch("https://restcountries.com/v3.1/all");
+    const countries = await res.json();
 
-       // ✅ Save default currency for each country 
-        if (c.currencies) {
-          const firstCurrency = Object.keys(c.currencies)[0];
-          if (firstCurrency) countryToCurrency[c.cca2] = firstCurrency;
-        }
-      });
-    }
+    countries.sort((a, b) => a.name.common.localeCompare(b.name.common));
+
+    countries.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c.cca2;
+      opt.textContent = `${c.flag || ""} ${c.name.common}`;
+      countrySelect.appendChild(opt);
+
+      if (c.currencies) {
+        const firstCurrency = Object.keys(c.currencies)[0];
+        if (firstCurrency) countryToCurrency[c.cca2] = firstCurrency;
+      }
+    });
+  } catch (err) {
+    console.error("❌ Failed to load countries:", err);
+
+    // ✅ Fallback list so dropdown never stays empty
+    const fallbackCountries = [
+      { code: "IN", name: "India", currency: "INR", flag: "🇮🇳" },
+      { code: "US", name: "United States", currency: "USD", flag: "🇺🇸" },
+      { code: "GB", name: "United Kingdom", currency: "GBP", flag: "🇬🇧" },
+      { code: "AE", name: "United Arab Emirates", currency: "AED", flag: "🇦🇪" }
+    ];
+
+    fallbackCountries.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c.code;
+      opt.textContent = `${c.flag} ${c.name}`;
+      countrySelect.appendChild(opt);
+      countryToCurrency[c.code] = c.currency;
+    });
+  }
+}
 
     // intl-tel-input setup
     const iti = window.intlTelInput(phoneInput, {
