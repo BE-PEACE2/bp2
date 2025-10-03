@@ -198,34 +198,58 @@
    const dateInput = document.getElementById("date");
   const slotInput = document.getElementById("slot");
   const slotContainer = document.getElementById("slotContainer");
+  const phoneInput = document.querySelector("#phone");
 
   let amount = 0, currency = "INR";
 
-  // Load all countries into dropdown
-  async function loadCountries() {
-    const res = await fetch("https://restcountries.com/v3.1/all");
-    const countries = await res.json();
-    countries.sort((a,b)=> a.name.common.localeCompare(b.name.common));
-    countries.forEach(c => {
-      const opt = document.createElement("option");
-      opt.value = c.cca2; // country code (IN, US, GB)
-      opt.textContent = `${c.flag || ""} ${c.name.common}`;
-      countrySelect.appendChild(opt);
+   // ✅ Declare mapping object globally
+  const countryToCurrency = {};
+
+  // Load countries & map currencies
+    async function loadCountries() {
+      const res = await fetch("https://restcountries.com/v3.1/all");
+      const countries = await res.json();
+      countries.sort((a, b) => a.name.common.localeCompare(b.name.common));
+      countries.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c.cca2;
+        opt.textContent = `${c.flag || ""} ${c.name.common}`;
+        countrySelect.appendChild(opt);
+
+       // ✅ Save default currency for each country 
+        if (c.currencies) {
+          const firstCurrency = Object.keys(c.currencies)[0];
+          if (firstCurrency) countryToCurrency[c.cca2] = firstCurrency;
+        }
+      });
+    }
+
+    // intl-tel-input setup
+    const iti = window.intlTelInput(phoneInput, {
+      initialCountry: "auto",
+      geoIpLookup: cb => fetch("https://ipapi.co/json")
+        .then(res => res.json()).then(data => cb(data.country_code))
+        .catch(() => cb("IN")),
+      utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
     });
+
+    // ✅ Fetch USD exchange rates once
+let exchangeRates = {};
+
+async function loadRates() {
+  try {
+    const res = await fetch("https://api.exchangerate.host/latest?base=USD");
+    const data = await res.json();
+    exchangeRates = data.rates || {};
+  } catch {
+    console.warn("Exchange rates fetch failed");
   }
-  loadCountries();
+}
 
- // intl-tel-input setup
-  const iti = window.intlTelInput(phoneInput, {
-    initialCountry: "auto",
-    geoIpLookup: cb => fetch("https://ipapi.co/json")
-      .then(res=>res.json()).then(data=> cb(data.country_code))
-      .catch(()=> cb("IN")),
-    utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
-  });
+// Call it once at start
+loadRates();
 
-  // Set fee
-async function setFee(countryCode) {
+  async function setFee(countryCode) {
   if (countryCode === "IN") {
     amount = 10; currency = "INR";
     feeDisplay.textContent = `Consultation Fee: ₹${amount} INR`;
@@ -233,31 +257,37 @@ async function setFee(countryCode) {
     amount = 40; currency = "USD";
     feeDisplay.textContent = `Consultation Fee: $${amount} USD`;
 
-    // Optional: show equivalent local currency
-    try {
-      const res = await fetch(`https://api.exchangerate.host/convert?from=USD&to=${countryCode}`);
-      const data = await res.json();
-      if (data.result) {
-        feeDisplay.textContent += ` (~${data.result.toFixed(2)} ${countryCode})`;
-      }
-    } catch {}
+    // Show approx local equivalent using cached rates
+    const localCurrency = countryToCurrency[countryCode] || "USD";
+    if (localCurrency !== "USD" && exchangeRates[localCurrency]) {
+      const converted = (amount * exchangeRates[localCurrency]).toFixed(2);
+      feeDisplay.textContent += ` (~${converted} ${localCurrency})`;
+    }
   }
-}
+} 
+    // Init countries + detect user
+    async function initCountries() {
+      await loadCountries();
+      fetch("https://ipapi.co/json")
+        .then(res => res.json())
+        .then(data => {
+          const userCountry = data.country_code || "IN";
+          countrySelect.value = userCountry;
+          iti.setCountry(userCountry);
+          setFee(userCountry);
+        })
+        .catch(() => {
+          countrySelect.value = "IN";
+          iti.setCountry("IN");
+          setFee("IN");
+        });
+    }
+    initCountries();
 
-  // Detect user country
-  fetch("https://ipapi.co/json")
-    .then(res=>res.json())
-    .then(data=>{
-      countrySelect.value = data.country_code || "IN";
-      iti.setCountry(data.country_code || "IN");
-      setFee(data.country_code || "IN");
+    countrySelect.addEventListener("change", () => {
+      iti.setCountry(countrySelect.value);
+      setFee(countrySelect.value);
     });
-
-  // When user changes country manually
-  countrySelect.addEventListener("change", () => {
-    iti.setCountry(countrySelect.value);
-    setFee(countrySelect.value);
-  });
 
 // ✅ Block past dates + preselect today
 const todayISO = new Date().toISOString().split("T")[0];
