@@ -194,72 +194,52 @@
   </footer>
 
   <!-- Logic -->
-  <script>
-  const payBtn = document.getElementById("payBtn");
-  const countrySelect = document.getElementById("country");
-  const feeDisplay = document.getElementById("feeDisplay");
-  const successMsg = document.getElementById("successMsg");
-   const dateInput = document.getElementById("date");
-  const slotInput = document.getElementById("slot");
-  const slotContainer = document.getElementById("slotContainer");
-  const phoneInput = document.querySelector("#phone");
+<script>
+const payBtn = document.getElementById("payBtn");
+const countrySelect = document.getElementById("country");
+const feeDisplay = document.getElementById("feeDisplay");
+const successMsg = document.getElementById("successMsg");
+const dateInput = document.getElementById("date");
+const slotInput = document.getElementById("slot");
+const slotContainer = document.getElementById("slotContainer");
+const phoneInput = document.querySelector("#phone");
 
-  let amount = 0, currency = "INR";
-
-   // ✅ Declare mapping object globally
+let amount = 0, currency = "INR";
 const countryToCurrency = {};
 
- // ✅ Helper: generate emoji flag from country code
-  function emojiFlag(code) {
-    return code
-      .toUpperCase()
-      .replace(/./g, char => 
-        String.fromCodePoint(127397 + char.charCodeAt())
-      );
-  }
+function emojiFlag(code) {
+  if (!code) return "";
+  return code
+    .toUpperCase()
+    .replace(/./g, char => String.fromCodePoint(127397 + char.charCodeAt()));
+}
 
-// ✅ Load countries & map currencies with fallback
 async function loadCountries() {
   try {
-   const res = await fetch("https://restcountries.com/v3.1/all?fields=cca2,name,currencies");
+    const res = await fetch("https://restcountries.com/v3.1/all?fields=cca2,name,currencies");
     const countries = await res.json();
-
     countries.sort((a, b) => a.name.common.localeCompare(b.name.common));
 
     countries.forEach(c => {
       const opt = document.createElement("option");
       opt.value = c.cca2;
-       opt.textContent = `${emojiFlag(c.cca2)} ${c.name.common}`;
+      opt.textContent = `${emojiFlag(c.cca2)} ${c.name.common}`;
       countrySelect.appendChild(opt);
-
       if (c.currencies) {
         const firstCurrency = Object.keys(c.currencies)[0];
         if (firstCurrency) countryToCurrency[c.cca2] = firstCurrency;
       }
     });
-  } catch (err) {
-    console.error("❌ Failed to load countries:", err);
-
-   // ✅ Extended fallback list (15 countries)
+  } catch {
+    console.warn("⚠️ Using fallback country list");
     const fallbackCountries = [
       { code: "IN", name: "India", currency: "INR", flag: "🇮🇳" },
       { code: "US", name: "United States", currency: "USD", flag: "🇺🇸" },
       { code: "GB", name: "United Kingdom", currency: "GBP", flag: "🇬🇧" },
-      { code: "AE", name: "United Arab Emirates", currency: "AED", flag: "🇦🇪" },
+      { code: "AE", name: "UAE", currency: "AED", flag: "🇦🇪" },
       { code: "CA", name: "Canada", currency: "CAD", flag: "🇨🇦" },
-      { code: "AU", name: "Australia", currency: "AUD", flag: "🇦🇺" },
-      { code: "SG", name: "Singapore", currency: "SGD", flag: "🇸🇬" },
-      { code: "DE", name: "Germany", currency: "EUR", flag: "🇩🇪" },
-      { code: "FR", name: "France", currency: "EUR", flag: "🇫🇷" },
-      { code: "IT", name: "Italy", currency: "EUR", flag: "🇮🇹" },
-      { code: "ES", name: "Spain", currency: "EUR", flag: "🇪🇸" },
-      { code: "JP", name: "Japan", currency: "JPY", flag: "🇯🇵" },
-      { code: "CN", name: "China", currency: "CNY", flag: "🇨🇳" },
-      { code: "BR", name: "Brazil", currency: "BRL", flag: "🇧🇷" },
-      { code: "ZA", name: "South Africa", currency: "ZAR", flag: "🇿🇦" }
+      { code: "AU", name: "Australia", currency: "AUD", flag: "🇦🇺" }
     ];
-
-
     fallbackCountries.forEach(c => {
       const opt = document.createElement("option");
       opt.value = c.code;
@@ -270,85 +250,95 @@ async function loadCountries() {
   }
 }
 
-// ✅ Select2 init with flags
-    function initSearchableDropdown() {
-      $("#country").select2({
-        templateResult: formatOption,
-        templateSelection: formatOption,
-        width: "100%"
-      });
-      function formatOption(option) {
-    if (!option.id) return option.text;
-    return option.text; // already has "🇮🇳 India" etc from loadCountries()
-      }
+// 🌍 Detect user country with fallback
+async function detectCountry() {
+  try {
+    let country = "IN";
+    const res1 = await fetch("https://ipapi.co/json");
+    const data1 = await res1.json();
+    if (data1.country_code && data1.country_code !== "AF") {
+      country = data1.country_code;
+    } else {
+      const res2 = await fetch("https://ipinfo.io/json?token=fa9b9b2fca0c45");
+      const data2 = await res2.json();
+      if (data2.country) country = data2.country;
     }
+    return country;
+  } catch {
+    return "IN";
+  }
+}
 
-    // intl-tel-input setup
-    const iti = window.intlTelInput(phoneInput, {
-      initialCountry: "auto",
-      geoIpLookup: cb => fetch("https://ipapi.co/json")
-        .then(res => res.json()).then(data => cb(data.country_code))
-        .catch(() => cb("IN")),
-      utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
-    });
+// 🌍 Show detected country under select box
+function showDetectedCountryInfo(code) {
+  let infoBox = document.getElementById("detectedCountryInfo");
+  if (!infoBox) {
+    infoBox = document.createElement("p");
+    infoBox.id = "detectedCountryInfo";
+    infoBox.style.fontSize = "14px";
+    infoBox.style.color = "#555";
+    infoBox.style.fontWeight = "bold";
+    infoBox.style.marginTop = "-10px";
+    countrySelect.insertAdjacentElement("afterend", infoBox);
+  }
+  infoBox.textContent = `🌍 Detected: ${emojiFlag(code)} ${countrySelect.options[countrySelect.selectedIndex].text}`;
+}
 
-    // ✅ Fetch USD exchange rates once
+// 🌍 Initialize countries + detect
+async function initCountries() {
+  await loadCountries();
+  const detected = await detectCountry();
+  countrySelect.value = detected;
+  iti.setCountry(detected);
+  setFee(detected);
+  showDetectedCountryInfo(detected);
+}
+
 let exchangeRates = {};
-
 async function loadRates() {
   try {
     const res = await fetch("https://api.exchangerate.host/latest?base=USD");
     const data = await res.json();
     exchangeRates = data.rates || {};
   } catch {
-    console.warn("Exchange rates fetch failed");
+    console.warn("Exchange rate fetch failed");
   }
 }
-
-// Call it once at start
 loadRates();
 
-  async function setFee(countryCode) {
+async function setFee(countryCode) {
   if (countryCode === "IN") {
     amount = 10; currency = "INR";
     feeDisplay.textContent = `Consultation Fee: ₹${amount} INR`;
   } else {
     amount = 40; currency = "USD";
     feeDisplay.textContent = `Consultation Fee: $${amount} USD`;
-
-    // Show approx local equivalent using cached rates
     const localCurrency = countryToCurrency[countryCode] || "USD";
     if (localCurrency !== "USD" && exchangeRates[localCurrency]) {
       const converted = (amount * exchangeRates[localCurrency]).toFixed(2);
       feeDisplay.textContent += ` (~${converted} ${localCurrency})`;
     }
   }
-} 
-    // Init countries + detect user
-    async function initCountries() {
-      await loadCountries();
-      initSearchableDropdown(); // ✅ actually run it here
+}
 
-      fetch("https://ipapi.co/json")
-        .then(res => res.json())
-        .then(data => {
-          const userCountry = data.country_code || "IN";
-          $("#country").val(userCountry).trigger("change"); //  ✅ Select2 compatible
-          iti.setCountry(userCountry);
-          setFee(userCountry);
-        })
-        .catch(() => {
-          $("#country").val("IN").trigger("change");
-          iti.setCountry("IN");
-          setFee("IN");
-        });
-    }
-    initCountries();
+// 📞 intl-tel-input setup
+const iti = window.intlTelInput(phoneInput, {
+  initialCountry: "auto",
+  geoIpLookup: cb => fetch("https://ipapi.co/json")
+    .then(res => res.json())
+    .then(data => cb(data.country_code))
+    .catch(() => cb("IN")),
+  utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
+});
 
-    countrySelect.addEventListener("change", () => {
-      iti.setCountry(countrySelect.value);
-      setFee(countrySelect.value);
-    });
+countrySelect.addEventListener("change", () => {
+  const selected = countrySelect.value;
+  iti.setCountry(selected);
+  setFee(selected);
+  showDetectedCountryInfo(selected);
+});
+
+initCountries();
 
 // ✅ Block past dates + preselect today
 const todayISO = new Date().toISOString().split("T")[0];
