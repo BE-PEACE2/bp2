@@ -294,29 +294,80 @@ async function initCountries() {
   showDetectedCountryInfo(detected);
 }
 
+// ✅ Currency symbols map for better display
+const currencySymbols = {
+  INR: "₹",
+  USD: "$",
+  GBP: "£",
+  EUR: "€",
+  AED: "د.إ",
+  CAD: "CA$",
+  AUD: "A$",
+  SGD: "S$",
+  JPY: "¥",
+  CNY: "¥",
+  BRL: "R$",
+  ZAR: "R",
+};
+
 let exchangeRates = {};
+let exchangeRatesLoaded = false;
+
+// ✅ Load exchange rates (with cache for 24 hours)
 async function loadRates() {
   try {
+    const cached = localStorage.getItem("exchangeRatesData");
+    const cachedTime = localStorage.getItem("exchangeRatesTime");
+    const now = Date.now();
+
+    // Use cache if less than 24h old
+    if (cached && cachedTime && now - cachedTime < 24 * 60 * 60 * 1000) {
+      exchangeRates = JSON.parse(cached);
+      exchangeRatesLoaded = true;
+      console.log("💰 Using cached exchange rates");
+      return;
+    }
+
     const res = await fetch("https://api.exchangerate.host/latest?base=USD");
     const data = await res.json();
-    exchangeRates = data.rates || {};
-  } catch {
-    console.warn("Exchange rate fetch failed");
+
+    if (data && data.rates) {
+      exchangeRates = data.rates;
+      localStorage.setItem("exchangeRatesData", JSON.stringify(exchangeRates));
+      localStorage.setItem("exchangeRatesTime", now.toString());
+      exchangeRatesLoaded = true;
+      console.log("✅ Exchange rates loaded:", Object.keys(exchangeRates).length);
+    } else {
+      console.warn("⚠️ No exchange rate data found");
+    }
+  } catch (err) {
+    console.warn("❌ Exchange rate fetch failed:", err);
   }
 }
+
 loadRates();
 
-async function setFee(countryCode) {
+// ✅ Update consultation fee dynamically
+function setFee(countryCode) {
   if (countryCode === "IN") {
-    amount = 10; currency = "INR";
-    feeDisplay.textContent = `Consultation Fee: ₹${amount} INR`;
+    amount = 10;
+    currency = "INR";
+    const symbol = currencySymbols["INR"] || "₹";
+    feeDisplay.textContent = `Consultation Fee: ${symbol}${amount} INR`;
   } else {
-    amount = 40; currency = "USD";
-    feeDisplay.textContent = `Consultation Fee: $${amount} USD`;
+    amount = 40;
+    currency = "USD";
+    const symbol = currencySymbols["USD"] || "$";
+    feeDisplay.textContent = `Consultation Fee: ${symbol}${amount} USD`;
+
     const localCurrency = countryToCurrency[countryCode] || "USD";
     if (localCurrency !== "USD" && exchangeRates[localCurrency]) {
       const converted = (amount * exchangeRates[localCurrency]).toFixed(2);
-      feeDisplay.textContent += ` (~${converted} ${localCurrency})`;
+      const localSymbol = currencySymbols[localCurrency] || localCurrency;
+      feeDisplay.textContent += ` (~${localSymbol}${converted} ${localCurrency})`;
+    } else if (!exchangeRatesLoaded) {
+      // if rates not ready yet, retry in 2 seconds
+      setTimeout(() => setFee(countryCode), 2000);
     }
   }
 }
