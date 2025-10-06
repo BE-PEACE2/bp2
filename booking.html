@@ -405,30 +405,15 @@ countrySelect.addEventListener("change", () => {
 
 initCountries();
 
-// 🕒 Display timezone info to user
+// 🕒 Detect user's timezone (browser-based only)
 const timezoneDisplay = document.getElementById("timezoneDisplay");
-async function detectTimezone() {
-  try {
-    // Get user's real timezone (browser)
-    const browserTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-    // Try to cross-check with IP-based timezone
-    const res = await fetch("https://worldtimeapi.org/api/ip");
-    const data = await res.json();
-
-    // Prefer IP-based timezone if available and consistent
-    const detectedTZ = data.timezone || browserTZ;
-    const offsetHours = -new Date().getTimezoneOffset() / 60;
-    timezoneDisplay.textContent = `⏰ Your timezone: ${detectedTZ} (UTC ${offsetHours >= 0 ? "+" : ""}${offsetHours})`;
-    return detectedTZ;
-  } catch (err) {
-    const fallbackTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const offsetHours = -new Date().getTimezoneOffset() / 60;
-    timezoneDisplay.textContent = `⏰ Your timezone: ${fallbackTZ} (UTC ${offsetHours >= 0 ? "+" : ""}${offsetHours})`;
-    return fallbackTZ;
-  }
+function detectTimezone() {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const offsetHours = -new Date().getTimezoneOffset() / 60;
+  timezoneDisplay.textContent = `⏰ Your timezone: ${tz} (UTC ${offsetHours >= 0 ? "+" : ""}${offsetHours})`;
+  console.log("✅ Browser timezone detected:", tz);
+  return tz;
 }
-
 detectTimezone();
 
 // ✅ Block past dates + preselect today
