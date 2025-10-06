@@ -68,7 +68,7 @@ export default async function handler(req, res) {
       };
     });
 
-    res.status(200).json({ date, timezone: "Asia/Kolkata", slots });
+    res.status(200).json({ date, slots, timezone: "IST" });
   } catch (err) {
     console.error("Get slots error:", err);
     res.status(500).json({ error: "Failed to fetch slots" });
