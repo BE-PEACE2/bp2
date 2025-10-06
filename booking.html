@@ -210,6 +210,8 @@ const phoneInput = document.querySelector("#phone");
 
 let amount = 0, currency = "INR";
 const countryToCurrency = {};
+let userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+let userOffset = -new Date().getTimezoneOffset() / 60;
 
 function emojiFlag(code) {
   if (!code) return "";
