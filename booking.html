@@ -407,7 +407,28 @@ initCountries();
 
 // 🕒 Display timezone info to user
 const timezoneDisplay = document.getElementById("timezoneDisplay");
-timezoneDisplay.textContent = "⏰ Your timezone: " + Intl.DateTimeFormat().resolvedOptions().timeZone;
+async function detectTimezone() {
+  try {
+    // Get user's real timezone (browser)
+    const browserTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    // Try to cross-check with IP-based timezone
+    const res = await fetch("https://worldtimeapi.org/api/ip");
+    const data = await res.json();
+
+    // Prefer IP-based timezone if available and consistent
+    const detectedTZ = data.timezone || browserTZ;
+    timezoneDisplay.textContent = `⏰ Your timezone: ${detectedTZ}`;
+    return detectedTZ;
+  } catch (err) {
+    const fallback = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const offset = new Date().getTimezoneOffset() / -60;
+    timezoneDisplay.textContent = `⏰ Your timezone: ${detectedTZ} (UTC ${offset >= 0 ? "+" : ""}${offset})`;
+    return fallback;
+  }
+}
+
+detectTimezone();
 
 // ✅ Block past dates + preselect today
 const todayISO = new Date().toISOString().split("T")[0];
@@ -422,6 +443,7 @@ dateInput.value = todayISO;
     if (meridian === "AM" && hour === 12) hour = 0;
 
     const [yyyy, mm, dd] = date.split("-");
+    const localDateTime = new Date(yyyy, mm - 1, dd, hour, minute);
 
     // Create IST date in UTC (by subtracting 5h30m offset)
   const utcMillis = Date.UTC(yyyy, mm - 1, dd, hour - 5, minute - 30);
@@ -433,6 +455,30 @@ dateInput.value = todayISO;
     minute: "2-digit",
     hour12: true,
   });
+}
+
+// ✅ Convert Local (User’s) Time → IST (for backend consistency)
+function convertToIST(localDate, localTimeStr) {
+  const [timeStr, meridian] = localTimeStr.split(" ");
+  let [hour, minute] = timeStr.split(":").map(Number);
+  if (meridian === "PM" && hour !== 12) hour += 12;
+  if (meridian === "AM" && hour === 12) hour = 0;
+
+  const [yyyy, mm, dd] = localDate.split("-");
+  const localDateTime = new Date(yyyy, mm - 1, dd, hour, minute);
+
+  // Convert from local browser time to IST
+  const istOffset = 5.5 * 60; // minutes
+  const localOffset = localDateTime.getTimezoneOffset(); // in minutes
+  const diff = (istOffset + localOffset) * 60 * 1000; // milliseconds
+
+  const istDateTime = new Date(localDateTime.getTime() + diff);
+
+  const istHour = istDateTime.getHours();
+  const istMinute = istDateTime.getMinutes().toString().padStart(2, "0");
+  const suffix = istHour >= 12 ? "PM" : "AM";
+  const hour12 = (istHour % 12) || 12;
+  return `${hour12}:${istMinute} ${suffix}`;
 }
 
  // ✅ Function to load slots
