@@ -405,16 +405,16 @@ countrySelect.addEventListener("change", () => {
 
 initCountries();
 
-// 🕒 Detect user's timezone (browser-based only)
-const timezoneDisplay = document.getElementById("timezoneDisplay");
-function detectTimezone() {
+window.addEventListener("DOMContentLoaded", async () => {
+  const timezoneDisplay = document.getElementById("timezoneDisplay");
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const offsetHours = -new Date().getTimezoneOffset() / 60;
-  timezoneDisplay.textContent = `⏰ Your timezone: ${tz} (UTC ${offsetHours >= 0 ? "+" : ""}${offsetHours})`;
-  console.log("✅ Browser timezone detected:", tz);
-  return tz;
-}
-detectTimezone();
+  timezoneDisplay.textContent = `⏰ Your timezone: ${tz.replace("_", " ")} (UTC ${offsetHours >= 0 ? "+" : ""}${offsetHours})`;
+  console.log("✅ Timezone detected:", tz, "Offset:", offsetHours);
+
+  await initCountries();
+  loadSlots(todayISO);
+});
 
 // ✅ Block past dates + preselect today
 const todayISO = new Date().toISOString().split("T")[0];
@@ -482,12 +482,17 @@ async function loadSlots(date) {
       data.slots.forEach(slot => {
         const btn = document.createElement("button");
 
-        // ✅ Show slot time converted from UTC → user's local timezone
-        const localTime = new Date(slot.utc_time).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        });
+        // Fallback if slot.utc_time missing
+      let localTime;
+      if (slot.utc_time) {
+      localTime = new Date(slot.utc_time).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    hour12: true,
+  });
+} else {
+  localTime = convertToLocalTime(slot.time, date);
+}
 
         btn.textContent = `${localTime} (Your Time)`;
         btn.type = "button";
@@ -518,9 +523,6 @@ async function loadSlots(date) {
 
   validateForm();
 }
-
-// ✅ Load today's slots immediately on page load
-loadSlots(todayISO);
 
 // ✅ Also reload when user changes date
 dateInput.addEventListener("change", () => loadSlots(dateInput.value));
