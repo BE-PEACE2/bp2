@@ -133,6 +133,10 @@
 
   <h2>📝 Book Your Consultation</h2>
 
+  <p id="timezoneDisplay" style="text-align:center; color:#555; font-size:14px;">
+  ⏰ Detecting your timezone...
+</p>
+
     <form id="bookingForm">
     <label for="country">Select Your Country:</label>
     <select id="country" required></select>
@@ -388,9 +392,22 @@ countrySelect.addEventListener("change", () => {
   iti.setCountry(selected);
   setFee(selected);
   showDetectedCountryInfo(selected);
+
+  // 🔄 Refresh slots so times convert to correct local timezone
+  if (dateInput.value) {
+    loadSlots(dateInput.value);
+  }
+
+  // 🕒 Optional: show user’s timezone for clarity
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  console.log("User Timezone:", tz);
 });
 
 initCountries();
+
+// 🕒 Display timezone info to user
+const timezoneDisplay = document.getElementById("timezoneDisplay");
+timezoneDisplay.textContent = "⏰ Your timezone: " + Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 // ✅ Block past dates + preselect today
 const todayISO = new Date().toISOString().split("T")[0];
