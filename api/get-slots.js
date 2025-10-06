@@ -11,10 +11,10 @@ export default async function handler(req, res) {
 
     // ✅ Always use IST internally for consistency
     const nowUTC = new Date();
-    const nowIST = new Date(nowUTC.getTime() + (5.5 * 60 * 60 * 1000));
+    const nowIST = new Date(nowUTC.getTime() + 5.5 * 60 * 60 * 1000);
     const todayStrIST = nowIST.toISOString().split("T")[0];
 
-    // fetch already booked slots
+    // ✅ Fetch already booked slots
     const confirmed = await bookings.find({
       status: { $in: ["PAID", "SUCCESS"] },
       date,
@@ -22,46 +22,53 @@ export default async function handler(req, res) {
 
     const bookedSlots = confirmed.map(b => b.slot);
 
-    // generate 24 slots
+    // ✅ Generate 24 hourly slots
     const allSlots = [];
     for (let h = 0; h < 24; h++) {
-      const hour = h % 12 === 0 ? 12 : h % 12;
+      const hour12 = h % 12 === 0 ? 12 : h % 12;
       const suffix = h < 12 ? "AM" : "PM";
-      const time = `${hour.toString().padStart(2, "0")}:00 ${suffix}`;
+      const time = `${hour12.toString().padStart(2, "0")}:00 ${suffix}`;
       allSlots.push(time);
     }
 
-    const selectedDate = new Date(date);
+    const [yyyy, mm, dd] = date.split("-").map(Number);
+    const selectedDate = new Date(yyyy, mm - 1, dd);
     const todayDateIST = new Date(todayStrIST);
 
+    // ✅ Map each slot
     const slots = allSlots.map(slot => {
       let status = "AVAILABLE";
 
+      // Split slot into hours/minutes
+      const [timeStr, meridian] = slot.split(" ");
+      let [hour, minute] = timeStr.split(":").map(Number);
+      if (meridian === "PM" && hour !== 12) hour += 12;
+      if (meridian === "AM" && hour === 12) hour = 0;
+
+      const slotIST = new Date(yyyy, mm - 1, dd, hour, minute);
+      const slotUTC = new Date(slotIST.getTime() - 5.5 * 60 * 60 * 1000); // convert IST → UTC
+
+      // ✅ Mark BOOKED
       if (bookedSlots.includes(slot)) {
         status = "BOOKED";
-      } else {
-        // convert slot time into IST Date (direct, no offset math here)
-        const [timeStr, meridian] = slot.split(" ");
-        let [hour, minute] = timeStr.split(":").map(Number);
-        if (meridian === "PM" && hour !== 12) hour += 12;
-        if (meridian === "AM" && hour === 12) hour = 0;
-
-        const [yyyy, mm, dd] = date.split("-").map(Number);
-        const slotDateTime = new Date(yyyy, mm - 1, dd, hour, minute);
-
-        // ✅ Mark past slots if today
-        if (
-          selectedDate.getTime() === todayDateIST.getTime() &&
-          slotDateTime.getTime() <= nowIST.getTime()
-        ) {
-          status = "PAST";
-        }
+      }
+      // ✅ Mark PAST
+      else if (
+        selectedDate.getTime() === todayDateIST.getTime() &&
+        slotIST.getTime() <= nowIST.getTime()
+      ) {
+        status = "PAST";
       }
 
-      return { time: slot, status };
+      return {
+        time: slot, // e.g., "09:00 AM" (IST)
+        status,
+        ist_time: slotIST.toISOString(),
+        utc_time: slotUTC.toISOString(),
+      };
     });
 
-    res.status(200).json({ date, slots, timezone: "IST" });
+    res.status(200).json({ date, timezone: "Asia/Kolkata", slots });
   } catch (err) {
     console.error("Get slots error:", err);
     res.status(500).json({ error: "Failed to fetch slots" });

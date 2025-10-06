@@ -418,13 +418,14 @@ async function detectTimezone() {
 
     // Prefer IP-based timezone if available and consistent
     const detectedTZ = data.timezone || browserTZ;
-    timezoneDisplay.textContent = `⏰ Your timezone: ${detectedTZ}`;
+    const offsetHours = -new Date().getTimezoneOffset() / 60;
+    timezoneDisplay.textContent = `⏰ Your timezone: ${detectedTZ} (UTC ${offsetHours >= 0 ? "+" : ""}${offsetHours})`;
     return detectedTZ;
   } catch (err) {
-    const fallback = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const offset = new Date().getTimezoneOffset() / -60;
-    timezoneDisplay.textContent = `⏰ Your timezone: ${detectedTZ} (UTC ${offset >= 0 ? "+" : ""}${offset})`;
-    return fallback;
+    const fallbackTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const offsetHours = -new Date().getTimezoneOffset() / 60;
+    timezoneDisplay.textContent = `⏰ Your timezone: ${fallbackTZ} (UTC ${offsetHours >= 0 ? "+" : ""}${offsetHours})`;
+    return fallbackTZ;
   }
 }
 
@@ -481,47 +482,57 @@ function convertToIST(localDate, localTimeStr) {
   return `${hour12}:${istMinute} ${suffix}`;
 }
 
- // ✅ Function to load slots
-  async function loadSlots(date) {
-    slotContainer.innerHTML = "⏳ Loading slots...";
-    slotInput.value = "";
-    if (!date) return;
+// ✅ Function to load slots (show user’s local timezone)
+async function loadSlots(date) {
+  slotContainer.innerHTML = "⏳ Loading slots...";
+  slotInput.value = "";
+  if (!date) return;
 
-    try {
-      const res = await fetch(`/api/get-slots?date=${date}`);
-      const data = await res.json();
-      slotContainer.innerHTML = "";
+  try {
+    const res = await fetch(`/api/get-slots?date=${date}`);
+    const data = await res.json();
+    slotContainer.innerHTML = "";
 
-      if (data.slots && data.slots.length > 0) {
-        data.slots.forEach(slot => {
-          const btn = document.createElement("button");
+    if (data.slots && data.slots.length > 0) {
+      data.slots.forEach(slot => {
+        const btn = document.createElement("button");
 
-         // ✅ Show only local time
-          btn.textContent = `${convertToLocalTime(slot.time, date)} (Local Time)`;
-          btn.type = "button";
-          btn.className = `slot-btn ${slot.status}`;
-
-          if (slot.status === "AVAILABLE") {
-            btn.addEventListener("click", () => {
-              document.querySelectorAll(".slot-btn.AVAILABLE").forEach(b => b.classList.remove("selected"));
-              btn.classList.add("selected");
-              slotInput.value = slot.time;
-              validateForm();
-            });
-          } else {
-            btn.disabled = true; // BOOKED or PAST
-          }
-
-          slotContainer.appendChild(btn);
+        // ✅ Show slot time converted from UTC → user's local timezone
+        const localTime = new Date(slot.utc_time).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
         });
-      } else {
-        slotContainer.innerHTML = "<p>No slots available</p>";
-      }
-    } catch (err) {
-      slotContainer.innerHTML = "<p>❌ Error loading slots</p>";
+
+        btn.textContent = `${localTime} (Your Time)`;
+        btn.type = "button";
+        btn.className = `slot-btn ${slot.status}`;
+
+        if (slot.status === "AVAILABLE") {
+          btn.addEventListener("click", () => {
+            document.querySelectorAll(".slot-btn.AVAILABLE").forEach(b => b.classList.remove("selected"));
+            btn.classList.add("selected");
+
+            // ✅ Store IST time internally for backend consistency
+            slotInput.value = slot.time; 
+            validateForm();
+          });
+        } else {
+          btn.disabled = true;
+        }
+
+        slotContainer.appendChild(btn);
+      });
+    } else {
+      slotContainer.innerHTML = "<p>No slots available</p>";
     }
-    validateForm();
+  } catch (err) {
+    console.error("Slot load error:", err);
+    slotContainer.innerHTML = "<p>❌ Error loading slots</p>";
   }
+
+  validateForm();
+}
 
 // ✅ Load today's slots immediately on page load
 loadSlots(todayISO);
@@ -581,20 +592,25 @@ dateInput.addEventListener("change", () => loadSlots(dateInput.value));
   const slot = convertToIST(date, document.getElementById("slot").value);
 
 
-     fetch("/api/create-order", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      amount, currency,
-      customer_name: name,
-      customer_email: email,
-      customer_phone: phone,
-      customer_age: age,
-      customer_sex: sex,
-      date,
-      slot
-    })
+    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const userOffset = -new Date().getTimezoneOffset() / 60;
+
+fetch("/api/create-order", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    amount, currency,
+    customer_name: name,
+    customer_email: email,
+    customer_phone: phone,
+    customer_age: age,
+    customer_sex: sex,
+    date,
+    slot,
+    user_timezone: userTimezone,
+    user_utc_offset: userOffset
   })
+})
     .then(res => res.json())
     .then(data => {
       if (data.payment_session_id) {
