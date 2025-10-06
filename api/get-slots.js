@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     const { date } = req.query; // YYYY-MM-DD
     if (!date) return res.status(400).json({ error: "Date is required" });
 
-    // ✅ Current IST time
+    // ✅ Always use IST internally for consistency
     const nowUTC = new Date();
     const nowIST = new Date(nowUTC.getTime() + (5.5 * 60 * 60 * 1000));
     const todayStrIST = nowIST.toISOString().split("T")[0];

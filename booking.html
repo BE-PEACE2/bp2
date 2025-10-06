@@ -450,8 +450,8 @@ dateInput.value = todayISO;
         data.slots.forEach(slot => {
           const btn = document.createElement("button");
 
-          // Show both IST & Local time
-          btn.textContent = `${slot.time} IST (${convertToLocalTime(slot.time, date)} Local)`;
+         // ✅ Show only local time
+          btn.textContent = `${convertToLocalTime(slot.time, date)} (Local Time)`;
           btn.type = "button";
           btn.className = `slot-btn ${slot.status}`;
 
@@ -529,7 +529,11 @@ dateInput.addEventListener("change", () => loadSlots(dateInput.value));
   const age = document.getElementById("age").value;
   const sex = document.getElementById("sex").value;
   const date = document.getElementById("date").value;
-  const slot = document.getElementById("slot").value;
+
+
+  // ✅ Convert selected local slot to IST before sending
+  const slot = convertToIST(date, document.getElementById("slot").value);
+
 
      fetch("/api/create-order", {
     method: "POST",
