@@ -13,14 +13,17 @@ function parseSlotToDate(date, slot) {
 }
 
 export default async function handler(req, res) {
+  // 🧩 Reject non-POST
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
   try {
+    // 🧩 Parse webhook body safely
     const data = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
-     console.log("✅ Payment Webhook Data:", JSON.stringify(data, null, 2));
+    console.log("✅ Payment Webhook Data:", JSON.stringify(data, null, 2));
 
+    // 🧩 Extract core fields
     const orderId = data.order_id || data.data?.order?.order_id;
     const status =
       data.order_status?.toUpperCase() ||
@@ -36,14 +39,28 @@ export default async function handler(req, res) {
 
     if (!orderId) {
       console.error("❌ Missing orderId in webhook data");
-      return res.status(400).json({ error: "Invalid webhook payload" });
+      return res.status(200).send("Missing orderId (ignored)");
     }
 
-    // connect DB + find booking
+    // 🧩 Connect DB
     const db = await connectDB();
     const bookings = db.collection("bookings");
     const booking = await bookings.findOne({ order_id: orderId });
+    if (!booking) {
+      console.warn("⚠️ No booking found for:", orderId);
+      return res.status(200).send("No booking found");
+    }
 
+    // ✅ Prevent duplicate emails
+    if (booking.emailSent) {
+      console.log("⚠️ Email already sent for:", orderId);
+      return res.status(200).send("Already processed");
+    }
+
+    // ✅ Respond immediately to prevent gateway retries
+    res.status(200).send("OK");
+
+    // --- Below runs asynchronously, after response ---
     let meetingLink = null;
     let slotStart = null;
     let slotEnd = null;
@@ -53,9 +70,8 @@ export default async function handler(req, res) {
       booking?.date &&
       booking?.slot
     ) {
-      // parse slot to real datetime
       slotStart = parseSlotToDate(booking.date, booking.slot);
-      slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000); // +1 hr
+      slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000);
 
       // Meeting link for consult
       meetingLink = `https://bepeace.in/consult.html?room=${orderId}&date=${booking.date}&slot=${encodeURIComponent(
@@ -63,7 +79,6 @@ export default async function handler(req, res) {
       )}&name=${encodeURIComponent(customerName || "Patient")}`;
     }
 
-    // update DB
     await bookings.updateOne(
       { order_id: orderId },
       {
@@ -72,12 +87,12 @@ export default async function handler(req, res) {
           meetingLink,
           slotStart,
           slotEnd,
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       }
     );
 
-   let subject, patientEmailHTML, adminEmailHTML;
+    let subject, patientEmailHTML, adminEmailHTML, doctorEmailHTML;
 
     if (status === "PAID" || status === "SUCCESS") {
       // ✅ Success Email
@@ -100,7 +115,6 @@ export default async function handler(req, res) {
         <p>(Link expires 1 hour after consultation time.)</p>
         <p style="font-size:12px;color:#666;">
          This is an auto-generated email from <b>BE PEACE</b>.  
-         If you did not book this consultation, please ignore this email.
         </p>
       `;
 
@@ -120,49 +134,47 @@ export default async function handler(req, res) {
              ✅ Doctor Join Consultation
           </a>
         </p>
-        <p style="font-size:12px;color:#666;">
-         This is an auto-generated email from <b>BE PEACE</b>.  
-         Please be ready to join at the scheduled time.
-        </p>
+      `;
+
+      // Optional: Doctor email (if you want separate doctor notification)
+      doctorEmailHTML = `
+        <h2>New Consultation Scheduled 👩‍⚕️</h2>
+        <p><b>Patient:</b> ${customerName}</p>
+        <p><b>Date:</b> ${booking?.date}</p>
+        <p><b>Time:</b> ${booking?.slot}</p>
+        <p><b>Order ID:</b> ${orderId}</p>
+        <p><b>Join Link:</b></p>
+        <a href="${meetingLink}"
+           style="display:inline-block;padding:12px 20px;background:#17a2b8;color:#fff;text-decoration:none;border-radius:6px;">
+           🩺 Start Consultation
+        </a>
       `;
     } else {
-      // ❌ Failed / Cancelled Email WITH Retry Button
+      // ❌ Failed Email
       subject = "Your Payment Failed - BE PEACE";
       patientEmailHTML = `
         <h2>Payment Failed ❌</h2>
         <p>Dear <strong>${customerName}</strong>,</p>
-        <p>Unfortunately, your payment of <strong>${currency} ${amount}</strong> could not be completed.</p>
-        <p>Order ID: <strong>${orderId}</strong></p>
-        <p>Status: ${status}</p>
-        <p>You can retry your booking securely by clicking below:</p>
-        <p>
-          <a href="https://bepeace.in/booking.html" 
+        <p>Your payment of <strong>${currency} ${amount}</strong> could not be completed.</p>
+        <p><a href="https://bepeace.in/booking.html"
              style="display:inline-block;padding:12px 20px;background:#28a745;color:#fff;text-decoration:none;border-radius:6px;">
              🔄 Retry Payment
-          </a>
-        </p>
+        </a></p>
       `;
-
       adminEmailHTML = `
         <h2>⚠️ Failed Payment Alert</h2>
-        <p><strong>${customerName}</strong> attempted to book but the payment failed.</p>
         <ul>
-          <li>📧 Email: ${customerEmail}</li>
-          <li>💳 Amount: ${currency} ${amount}</li>
-          <li>🆔 Order ID: ${orderId}</li>
+          <li>📧 ${customerEmail}</li>
+          <li>💳 ${currency} ${amount}</li>
+          <li>🆔 ${orderId}</li>
           <li>📌 Status: ${status}</li>
         </ul>
       `;
     }
 
- // ✅ Send emails safely
-    if (customerEmail) {
-      await sendEmail(customerEmail, subject, patientEmailHTML);
-    } else {
-      console.warn("⚠️ Skipped sending patient email (no email found)");
-    }
-
-    if (process.env.ADMIN_EMAIL) {
+    // ✅ Send emails safely (non-blocking)
+    if (customerEmail) await sendEmail(customerEmail, subject, patientEmailHTML);
+    if (process.env.ADMIN_EMAIL)
       await sendEmail(
         process.env.ADMIN_EMAIL,
         status === "PAID" || status === "SUCCESS"
@@ -170,13 +182,29 @@ export default async function handler(req, res) {
           : "❌ Failed Payment - BE PEACE",
         adminEmailHTML
       );
-    } else {
-      console.warn("⚠️ Skipped sending admin email (ADMIN_EMAIL missing)");
+    if (process.env.DOCTOR_EMAIL && (status === "PAID" || status === "SUCCESS")) {
+      await sendEmail(
+        process.env.DOCTOR_EMAIL,
+        "🩺 New Consultation Scheduled - BE PEACE",
+        doctorEmailHTML
+      );
     }
 
-    return res.status(200).json({ message: "Webhook processed, emails attempted" });
+    // ✅ Mark booking as processed
+    await bookings.updateOne(
+      { order_id: orderId },
+      {
+        $set: {
+          emailSent: true,
+          updatedAt: new Date(),
+        },
+      }
+    );
+
+    console.log("✅ Emails sent & booking updated:", orderId);
   } catch (err) {
     console.error("❌ Webhook error:", err);
-    return res.status(500).json({ error: err.message });
+    // Still send OK to stop retries
+    res.status(200).send("Handled");
   }
 }
