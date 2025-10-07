@@ -209,6 +209,15 @@ const slotContainer = document.getElementById("slotContainer");
 const phoneInput = document.querySelector("#phone");
 
 let amount = 0, currency = "INR";
+
+// ✅ Normalize slot format
+function normalizeSlot(slot) {
+  if (!slot) return "";
+  let s = slot.toString().trim().toUpperCase();
+  s = s.replace(/^(\d):/, "0$1:"); // convert 3:00 PM → 03:00 PM
+  return s;
+}
+
 const countryToCurrency = {};
 let userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 let userOffset = -new Date().getTimezoneOffset() / 60;
@@ -469,7 +478,7 @@ function convertToIST(localDate, localTimeStr) {
   return `${hour12}:${istMinute} ${suffix}`;
 }
 
-// ✅ Function to load slots (show user’s local timezone)
+// ✅ Function to load slots (show user’s local timezone + mark booked/past slots)
 async function loadSlots(date) {
   slotContainer.innerHTML = "⏳ Loading slots...";
   slotInput.value = "";
@@ -481,42 +490,45 @@ async function loadSlots(date) {
     slotContainer.innerHTML = "";
 
     if (data.slots && data.slots.length > 0) {
+      const today = new Date();
+      const selectedDate = new Date(date);
+      const isToday = today.toDateString() === selectedDate.toDateString();
+
       data.slots.forEach(slot => {
         const btn = document.createElement("button");
-
-        // Fallback if slot.utc_time missing
-      let localTime;
-      if (slot.utc_time) {
-      localTime = new Date(slot.utc_time).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    hour12: true,
-  });
-} else {
-  localTime = convertToLocalTime(slot.time, date);
-}
-
+        const localTime = convertToLocalTime(slot.time, date);
         btn.textContent = `${localTime} (Your Time)`;
         btn.type = "button";
-        btn.className = `slot-btn ${slot.status}`;
 
-        if (slot.status === "AVAILABLE") {
+        // Normalize and apply class
+        const status = slot.status ? slot.status.toUpperCase() : "AVAILABLE";
+        btn.className = `slot-btn ${status}`;
+
+        // ✅ Make past slots disabled for today only
+        if (isToday && status === "PAST") {
+          btn.disabled = true;
+        }
+        // ✅ Disable booked slots always
+        else if (status === "BOOKED") {
+          btn.disabled = true;
+          btn.addEventListener("click", () => {
+            alert("🚫 This slot is already booked. Please choose another.");
+          });
+        }
+        // ✅ Allow selection for available slots
+        else if (status === "AVAILABLE") {
           btn.addEventListener("click", () => {
             document.querySelectorAll(".slot-btn.AVAILABLE").forEach(b => b.classList.remove("selected"));
             btn.classList.add("selected");
-
-            // ✅ Store IST time internally for backend consistency
-            slotInput.value = slot.time; 
+            slotInput.value = slot.time;
             validateForm();
           });
-        } else {
-          btn.disabled = true;
         }
 
         slotContainer.appendChild(btn);
       });
     } else {
-      slotContainer.innerHTML = "<p>No slots available</p>";
+      slotContainer.innerHTML = "<p>No slots available for this date</p>";
     }
   } catch (err) {
     console.error("Slot load error:", err);

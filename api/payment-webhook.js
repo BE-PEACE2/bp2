@@ -173,23 +173,27 @@ export default async function handler(req, res) {
     }
 
     // ✅ Send emails safely (non-blocking)
-    if (customerEmail) await sendEmail(customerEmail, subject, patientEmailHTML);
-    if (process.env.ADMIN_EMAIL)
-      await sendEmail(
-        process.env.ADMIN_EMAIL,
-        status === "PAID" || status === "SUCCESS"
-          ? "✅ New Booking - BE PEACE"
-          : "❌ Failed Payment - BE PEACE",
-        adminEmailHTML
-      );
-    if (process.env.DOCTOR_EMAIL && (status === "PAID" || status === "SUCCESS")) {
-      await sendEmail(
-        process.env.DOCTOR_EMAIL,
-        "🩺 New Consultation Scheduled - BE PEACE",
-        doctorEmailHTML
-      );
-    }
-
+    try {
+  if (customerEmail) await sendEmail(customerEmail, subject, patientEmailHTML);
+  if (process.env.ADMIN_EMAIL)
+    await sendEmail(
+      process.env.ADMIN_EMAIL,
+      status === "PAID" || status === "SUCCESS"
+        ? "✅ New Booking - BE PEACE"
+        : "❌ Failed Payment - BE PEACE",
+      adminEmailHTML
+    );
+  if (process.env.DOCTOR_EMAIL && (status === "PAID" || status === "SUCCESS")) {
+    await sendEmail(
+      process.env.DOCTOR_EMAIL,
+      "🩺 New Consultation Scheduled - BE PEACE",
+      doctorEmailHTML
+    );
+  }
+} catch (emailErr) {
+  console.error("⚠️ Email send error:", emailErr);
+}
+  
     // ✅ Mark booking as processed
     await bookings.updateOne(
       { order_id: orderId },

@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     // ✅ Always LIVE endpoint
     const baseURL = "https://api.cashfree.com/pg/orders";
 
-    const orderId = "ORDER_" + Date.now();
+    const orderId = "BEPEACE_" + Date.now();
     const customerId = "CUST_" + Date.now();
 
     // ✅ Fix phone formatting (add +91 if only 10 digits)
@@ -52,6 +52,9 @@ export default async function handler(req, res) {
     if (/^\d{10}$/.test(formattedPhone)) {
       formattedPhone = "+91" + formattedPhone;
     }
+
+     // ✅ Normalize slot for DB (match get-slots)
+    const normalizedSlot = slot.trim().toUpperCase();
 
     // ✅ Save pending booking in MongoDB
     const db = await connectDB();
@@ -64,10 +67,10 @@ export default async function handler(req, res) {
       customer_age,
       customer_sex,
       date,
-      slot,
+      slot: normalizedSlot,
       amount,
       currency,
-      status: "pending",
+      status: "PENDING",
       createdAt: new Date(),
     });
 
@@ -91,32 +94,30 @@ export default async function handler(req, res) {
           customer_phone: formattedPhone,
         },
         order_meta: {
-          return_url: `https://bepeace.in/pending.html?order_id=${orderId}&name=${encodeURIComponent(
-            customer_name
-          )}&email=${encodeURIComponent(customer_email)}&phone=${encodeURIComponent(
-            formattedPhone
-          )}&age=${encodeURIComponent(customer_age)}&sex=${encodeURIComponent(
-            customer_sex
-          )}&amount=${amount}&currency=${currency}`,
+          // ✅ Redirect page after payment
+          return_url: `https://bepeace.in/payment-success.html?order_id=${orderId}&status={order_status}`,
+          // ✅ Webhook for auto-update
           notify_url: "https://bepeace.in/api/payment-webhook",
         },
       }),
     });
 
-    const data = await response.json();
-    console.log("✅ Cashfree create-order response:", data);
+    const cfData = await response.json();
+    console.log("💳 Cashfree create-order:", cfData);
 
-    // ✅ Return only what frontend needs
-    if (data.payment_session_id) {
+    if (cfData.payment_session_id) {
       return res.status(200).json({
-        payment_session_id: data.payment_session_id,
+        payment_session_id: cfData.payment_session_id,
         order_id: orderId,
       });
     } else {
-      return res.status(400).json({ error: "Failed to create order", details: data });
+      return res.status(400).json({
+        error: "Failed to create order",
+        details: cfData,
+      });
     }
   } catch (err) {
-    console.error("❌ Cashfree create-order error:", err);
+    console.error("❌ create-order error:", err);
     return res.status(500).json({ error: err.message });
   }
 }
