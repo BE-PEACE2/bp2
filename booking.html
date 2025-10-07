@@ -95,7 +95,12 @@
     .slot-btn.BOOKED { background: #dc3545; color: #fff; cursor: not-allowed; opacity: 0.7; }
     .slot-btn.PAST { background: #6c757d; color: #fff; cursor: not-allowed; opacity: 0.7; }
     .slot-btn.selected { border: 2px solid #000; box-shadow: 0 0 6px #333; }
-
+    .slot-btn.selected {
+  background: #007bff;
+  color: #fff;
+  border: 2px solid #0056b3;
+  box-shadow: 0 0 6px rgba(0,123,255,0.6);
+}
     /* ✅ Legend styles */
     .legend {
       display: flex;
@@ -500,22 +505,27 @@ async function loadSlots(date) {
         btn.textContent = `${localTime} (Your Time)`;
         btn.type = "button";
 
-        // Normalize and apply class
-        const status = slot.status ? slot.status.toUpperCase() : "AVAILABLE";
+        // Normalize slot status (backend sends uppercase)
+        const status = (slot.status || "AVAILABLE").toUpperCase();
+
+        // Apply class and color
         btn.className = `slot-btn ${status}`;
 
-        // ✅ Make past slots disabled for today only
-        if (isToday && status === "PAST") {
+        // 🟥 BOOKED → disable + red
+        if (status === "BOOKED") {
           btn.disabled = true;
+          btn.title = "🚫 This slot is already booked.";
+          btn.style.cursor = "not-allowed";
         }
-        // ✅ Disable booked slots always
-        else if (status === "BOOKED") {
+
+        // ⚫ PAST → disable + gray
+        else if (status === "PAST") {
           btn.disabled = true;
-          btn.addEventListener("click", () => {
-            alert("🚫 This slot is already booked. Please choose another.");
-          });
+          btn.title = "⌛ This slot time has passed.";
+          btn.style.cursor = "not-allowed";
         }
-        // ✅ Allow selection for available slots
+
+        // 🟩 AVAILABLE → allow selection
         else if (status === "AVAILABLE") {
           btn.addEventListener("click", () => {
             document.querySelectorAll(".slot-btn.AVAILABLE").forEach(b => b.classList.remove("selected"));
@@ -540,6 +550,12 @@ async function loadSlots(date) {
 
 // ✅ Also reload when user changes date
 dateInput.addEventListener("change", () => loadSlots(dateInput.value));
+
+// 🔄 Auto-refresh slot availability every 30 seconds
+setInterval(() => {
+  const selectedDate = dateInput.value;
+  if (selectedDate) loadSlots(selectedDate);
+}, 30000);
 
   // ✅ Validation
   function validateForm() {

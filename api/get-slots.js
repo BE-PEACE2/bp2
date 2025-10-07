@@ -55,6 +55,18 @@ export default async function handler(req, res) {
       return { time: slot, status };
     });
 
+    // ✅ Sort slots from midnight to 11PM
+    slots.sort((a, b) => {
+      const parse = t => {
+        const [time, mer] = t.split(" ");
+        let [h, m] = time.split(":").map(Number);
+        if (mer === "PM" && h !== 12) h += 12;
+        if (mer === "AM" && h === 12) h = 0;
+        return h * 60 + m;
+      };
+      return parse(a.time) - parse(b.time);
+    });
+    
     // ✅ Send back results
     return res.status(200).json({ date, slots });
 
