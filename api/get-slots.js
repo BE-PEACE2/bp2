@@ -4,73 +4,67 @@ import connectDB from "../db.js";
 export default async function handler(req, res) {
   try {
     const db = await connectDB();
-    const bookings = db.collection("bookings");
+    const { date } = req.query;
 
-    const { date } = req.query; // YYYY-MM-DD
-    if (!date) return res.status(400).json({ error: "Date is required" });
-
-    // ✅ Always use IST internally for consistency
-    const nowUTC = new Date();
-    const nowIST = new Date(nowUTC.getTime() + 5.5 * 60 * 60 * 1000);
-    const todayStrIST = nowIST.toISOString().split("T")[0];
-
-    // ✅ Fetch already booked slots
-    const confirmed = await bookings.find({
-      status: { $in: ["PAID", "SUCCESS"] },
-      date,
-    }).toArray();
-
-    const bookedSlots = confirmed.map(b => b.slot);
-
-    // ✅ Generate 24 hourly slots
-    const allSlots = [];
-    for (let h = 0; h < 24; h++) {
-      const hour12 = h % 12 === 0 ? 12 : h % 12;
-      const suffix = h < 12 ? "AM" : "PM";
-      const time = `${hour12.toString().padStart(2, "0")}:00 ${suffix}`;
-      allSlots.push(time);
+    if (!date) {
+      return res.status(400).json({ error: "Missing date parameter" });
     }
 
-    const [yyyy, mm, dd] = date.split("-").map(Number);
-    const selectedDate = new Date(yyyy, mm - 1, dd);
-    const todayDateIST = new Date(todayStrIST);
+    // 🧩 Step 1: fetch all bookings for that date
+    const bookings = await db.collection("bookings").find({ date }).toArray();
 
-    // ✅ Map each slot
-    const slots = allSlots.map(slot => {
+    // Normalize statuses to uppercase
+    const bookedSlots = bookings
+      .filter(
+        (b) =>
+          ["SUCCESS", "PAID", "BOOKED"].includes((b.status || "").toUpperCase())
+      )
+      .map((b) => b.slot);
+
+    // 🧩 Step 2: generate all 24 hourly slots
+    const aSlots = [];
+    for (let h = 0; h < 24; h++) {
+      const suffix = h < 12 ? "am" : "pm";
+      const hour12 = h % 12 === 0 ? 12 : h % 12;
+      const t = `${hour12.toString().padStart(2, "0")}:00 ${suffix}`;
+      aSlots.push(t);
+    }
+
+    // 🧩 Step 3: mark slot status
+    const today = new Date();
+    const selected = new Date(date);
+    const todayIST = new Date(today.getTime() + 5.5 * 60 * 60 * 1000);
+    const selectedDateIST = new Date(selected.getTime() + 5.5 * 60 * 60 * 1000);
+
+    const slots = aSlots.map((slot) => {
       let status = "AVAILABLE";
 
-      // Split slot into hours/minutes
-      const [timeStr, meridian] = slot.split(" ");
-      let [hour, minute] = timeStr.split(":").map(Number);
-      if (meridian === "PM" && hour !== 12) hour += 12;
-      if (meridian === "AM" && hour === 12) hour = 0;
+      // If slot was booked in DB → mark as BOOKED
+      if (bookedSlots.includes(slot)) status = "BOOKED";
 
-      const slotIST = new Date(yyyy, mm - 1, dd, hour, minute);
-      const slotUTC = new Date(slotIST.getTime() - 5.5 * 60 * 60 * 1000); // convert IST → UTC
+      // Mark past slots (only if same date)
+      const [time, suffix] = slot.split(" ");
+      let [hour] = time.split(":").map(Number);
+      if (suffix === "pm" && hour !== 12) hour += 12;
+      if (suffix === "am" && hour === 12) hour = 0;
 
-      // ✅ Mark BOOKED
-      if (bookedSlots.includes(slot)) {
-        status = "BOOKED";
-      }
-      // ✅ Mark PAST
-      else if (
-        selectedDate.getTime() === todayDateIST.getTime() &&
-        slotIST.getTime() <= nowIST.getTime()
+      const slotTime = new Date(selectedDateIST);
+      slotTime.setHours(hour, 0, 0, 0);
+
+      if (
+        selectedDateIST.toDateString() === todayIST.toDateString() &&
+        slotTime.getTime() < todayIST.getTime()
       ) {
         status = "PAST";
       }
 
-      return {
-        time: slot, // e.g., "09:00 AM" (IST)
-        status,
-        ist_time: slotIST.toISOString(),
-        utc_time: slotUTC.toISOString(),
-      };
+      return { time: slot, status };
     });
 
-    res.status(200).json({ date, slots, timezone: "IST" });
+    // 🧩 Step 4: send result
+    return res.status(200).json({ date, slots });
   } catch (err) {
-    console.error("Get slots error:", err);
-    res.status(500).json({ error: "Failed to fetch slots" });
+    console.error("❌ get-slots error:", err);
+    res.status(500).json({ error: err.message });
   }
 }
