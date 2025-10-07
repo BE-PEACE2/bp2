@@ -5,18 +5,21 @@ export default async function handler(req, res) {
   try {
     // 1️⃣ Get date from query
     const { date } = req.query;
-    if (!date) {
-      return res.status(400).json({ error: "Missing date parameter" });
-    }
+    if (!date) return res.status(400).json({ error: "Missing date parameter" });
 
     // 2️⃣ Connect MongoDB
     const db = await connectDB();
 
-    // 3️⃣ Fetch booked slots from DB
+    // 3️⃣ Fetch booked slots (case-insensitive)
     const bookings = await db.collection("bookings")
       .find({
-        date: date, // exact format: YYYY-MM-DD
-        status: { $in: ["SUCCESS", "PAID"] } // only confirmed bookings
+        date,
+        $expr: {
+          $in: [
+            { $toUpper: "$status" },
+            ["SUCCESS", "PAID", "CONFIRMED", "BOOKED"]
+          ]
+        }
       })
       .toArray();
 
@@ -24,48 +27,41 @@ export default async function handler(req, res) {
     console.log("📅 Date requested:", date);
     console.log("🎯 Booked slots:", bookedSlots);
 
-    // 4️⃣ Time setup for IST (India time)
-    const now = new Date();
-    const nowIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
-    const selectedDateIST = new Date(`${date}T00:00:00+05:30`);
+    // 4️⃣ Get today’s date in IST
+    const nowUTC = new Date();
+    const nowIST = new Date(nowUTC.getTime() + 5.5 * 60 * 60 * 1000);
+    const todayIST = nowIST.toISOString().split("T")[0];
 
-    // 5️⃣ Create 24 hourly slots (12-hour format)
+    // 5️⃣ Create 24 hourly slots
     const allSlots = Array.from({ length: 24 }, (_, h) => {
-      const suffix = h < 12 ? "am" : "pm";
+      const suffix = h < 12 ? "AM" : "PM";
       const hour12 = h % 12 === 0 ? 12 : h % 12;
       return `${hour12.toString().padStart(2, "0")}:00 ${suffix}`;
     });
 
-    // 6️⃣ Build final slots with statuses
+    // 6️⃣ Build slot objects
     const slots = allSlots.map(slot => {
       let status = "AVAILABLE";
 
-      // Mark booked slots (from DB)
-      if (bookedSlots.includes(slot)) {
-        status = "BOOKED";
-      }
+      // Mark booked slots
+      if (bookedSlots.includes(slot)) status = "BOOKED";
 
-      // Convert slot to Date for past check
+      // Create slot time in IST
       const [time, meridiem] = slot.split(" ");
       let [hour, minute] = time.split(":").map(Number);
-      if (meridiem === "pm" && hour !== 12) hour += 12;
-      if (meridiem === "am" && hour === 12) hour = 0;
+      if (meridiem === "PM" && hour !== 12) hour += 12;
+      if (meridiem === "AM" && hour === 12) hour = 0;
 
-      const slotTime = new Date(selectedDateIST);
-      slotTime.setHours(hour, minute, 0, 0);
+      const slotDateIST = new Date(`${date}T${hour.toString().padStart(2, "0")}:${minute}:00+05:30`);
 
-      // Mark past slots (only for current day)
-      if (
-        selectedDateIST.toDateString() === nowIST.toDateString() &&
-        slotTime < nowIST
-      ) {
+      // Mark "past" slots only for today
+      if (date === todayIST && slotDateIST < nowIST) {
         status = "PAST";
       }
 
       return { time: slot, status };
     });
 
-    // 7️⃣ Send result
     return res.status(200).json({ date, slots });
 
   } catch (err) {
