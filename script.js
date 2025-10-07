@@ -393,7 +393,7 @@ async function savePendingBooking() {
 
 async function loadSlots() {
   try {
-    const res = await fetch("/api/getSlots");
+    const res = await fetch("/api/get-slots");
     const data = await res.json();
 
     const slotSelect = document.getElementById("slot");
