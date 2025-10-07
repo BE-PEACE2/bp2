@@ -3,57 +3,61 @@ import connectDB from "../db.js";
 
 export default async function handler(req, res) {
   try {
-    const db = await connectDB();
+    // 1️⃣ Get date from query
     const { date } = req.query;
-
     if (!date) {
       return res.status(400).json({ error: "Missing date parameter" });
     }
 
-    // 🧩 Step 1: fetch all bookings for that date
-    const bookings = await db.collection("bookings").find({ date }).toArray();
+    // 2️⃣ Connect MongoDB
+    const db = await connectDB();
 
-    // Normalize statuses to uppercase
-    const bookedSlots = bookings
-      .filter(
-        (b) =>
-          ["SUCCESS", "PAID", "BOOKED"].includes((b.status || "").toUpperCase())
-      )
-      .map((b) => b.slot);
+    // 3️⃣ Fetch booked slots from DB
+    const bookings = await db.collection("bookings")
+      .find({
+        date: date, // exact format: YYYY-MM-DD
+        status: { $in: ["SUCCESS", "PAID"] } // only confirmed bookings
+      })
+      .toArray();
 
-    // 🧩 Step 2: generate all 24 hourly slots
-    const aSlots = [];
-    for (let h = 0; h < 24; h++) {
+    const bookedSlots = bookings.map(b => b.slot);
+    console.log("📅 Date requested:", date);
+    console.log("🎯 Booked slots:", bookedSlots);
+
+    // 4️⃣ Time setup for IST (India time)
+    const now = new Date();
+    const nowIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+    const selectedDateIST = new Date(`${date}T00:00:00+05:30`);
+
+    // 5️⃣ Create 24 hourly slots (12-hour format)
+    const allSlots = Array.from({ length: 24 }, (_, h) => {
       const suffix = h < 12 ? "am" : "pm";
       const hour12 = h % 12 === 0 ? 12 : h % 12;
-      const t = `${hour12.toString().padStart(2, "0")}:00 ${suffix}`;
-      aSlots.push(t);
-    }
+      return `${hour12.toString().padStart(2, "0")}:00 ${suffix}`;
+    });
 
-    // 🧩 Step 3: mark slot status
-    const today = new Date();
-    const selected = new Date(date);
-    const todayIST = new Date(today.getTime() + 5.5 * 60 * 60 * 1000);
-    const selectedDateIST = new Date(selected.getTime() + 5.5 * 60 * 60 * 1000);
-
-    const slots = aSlots.map((slot) => {
+    // 6️⃣ Build final slots with statuses
+    const slots = allSlots.map(slot => {
       let status = "AVAILABLE";
 
-      // If slot was booked in DB → mark as BOOKED
-      if (bookedSlots.includes(slot)) status = "BOOKED";
+      // Mark booked slots (from DB)
+      if (bookedSlots.includes(slot)) {
+        status = "BOOKED";
+      }
 
-      // Mark past slots (only if same date)
-      const [time, suffix] = slot.split(" ");
-      let [hour] = time.split(":").map(Number);
-      if (suffix === "pm" && hour !== 12) hour += 12;
-      if (suffix === "am" && hour === 12) hour = 0;
+      // Convert slot to Date for past check
+      const [time, meridiem] = slot.split(" ");
+      let [hour, minute] = time.split(":").map(Number);
+      if (meridiem === "pm" && hour !== 12) hour += 12;
+      if (meridiem === "am" && hour === 12) hour = 0;
 
       const slotTime = new Date(selectedDateIST);
-      slotTime.setHours(hour, 0, 0, 0);
+      slotTime.setHours(hour, minute, 0, 0);
 
+      // Mark past slots (only for current day)
       if (
-        selectedDateIST.toDateString() === todayIST.toDateString() &&
-        slotTime.getTime() < todayIST.getTime()
+        selectedDateIST.toDateString() === nowIST.toDateString() &&
+        slotTime < nowIST
       ) {
         status = "PAST";
       }
@@ -61,10 +65,11 @@ export default async function handler(req, res) {
       return { time: slot, status };
     });
 
-    // 🧩 Step 4: send result
+    // 7️⃣ Send result
     return res.status(200).json({ date, slots });
+
   } catch (err) {
     console.error("❌ get-slots error:", err);
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 }
