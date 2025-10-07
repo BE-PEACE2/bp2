@@ -57,155 +57,162 @@ export default async function handler(req, res) {
       return res.status(200).send("Already processed");
     }
 
-    // ✅ Respond immediately to prevent gateway retries
+    // ✅ Respond immediately to stop Cashfree retry
     res.status(200).send("OK");
 
-    // --- Below runs asynchronously, after response ---
-    let meetingLink = null;
-    let slotStart = null;
-    let slotEnd = null;
+    // --- Run async process safely (Vercel-safe background execution) ---
+    const runAsync = async () => {
+      let meetingLink = null;
+      let slotStart = null;
+      let slotEnd = null;
 
-    if (
-      (status === "PAID" || status === "SUCCESS") &&
-      booking?.date &&
-      booking?.slot
-    ) {
-      slotStart = parseSlotToDate(booking.date, booking.slot);
-      slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000);
+      if (
+        (status === "PAID" || status === "SUCCESS") &&
+        booking?.date &&
+        booking?.slot
+      ) {
+        slotStart = parseSlotToDate(booking.date, booking.slot);
+        slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000);
 
-      // Meeting link for consult
-      meetingLink = `https://bepeace.in/consult.html?room=${orderId}&date=${booking.date}&slot=${encodeURIComponent(
-        booking.slot
-      )}&name=${encodeURIComponent(customerName || "Patient")}`;
-    }
-
-    await bookings.updateOne(
-      { order_id: orderId },
-      {
-        $set: {
-          status,
-          meetingLink,
-          slotStart,
-          slotEnd,
-          updatedAt: new Date(),
-        },
+        // Meeting link for consult
+        meetingLink = `https://bepeace.in/consult.html?room=${orderId}&date=${booking.date}&slot=${encodeURIComponent(
+          booking.slot
+        )}&name=${encodeURIComponent(customerName || "Patient")}`;
       }
-    );
 
-    let subject, patientEmailHTML, adminEmailHTML, doctorEmailHTML;
+      await bookings.updateOne(
+        { order_id: orderId },
+        {
+          $set: {
+            status,
+            meetingLink,
+            slotStart,
+            slotEnd,
+            updatedAt: new Date(),
+          },
+        }
+      );
 
-    if (status === "PAID" || status === "SUCCESS") {
-      // ✅ Success Email
-      subject = "Your Booking Confirmation - BE PEACE";
+      let subject, patientEmailHTML, adminEmailHTML, doctorEmailHTML;
 
-      patientEmailHTML = `
-        <h2>Booking Confirmed ✅</h2>
-        <p>Dear <strong>${customerName}</strong>,</p>
-        <p>Your consultation is booked.</p>
-        <p><b>Date:</b> ${booking?.date}</p>
-        <p><b>Time:</b> ${booking?.slot}</p>
-        <p><b>Amount:</b> ${currency} ${amount}</p>
-        <p>You can join 20 minutes before using this secure link:</p>
-        <p>
+      if (status === "PAID" || status === "SUCCESS") {
+        // ✅ Success Email
+        subject = "Your Booking Confirmation - BE PEACE";
+
+        patientEmailHTML = `
+          <h2>Booking Confirmed ✅</h2>
+          <p>Dear <strong>${customerName}</strong>,</p>
+          <p>Your consultation is booked.</p>
+          <p><b>Date:</b> ${booking?.date}</p>
+          <p><b>Time:</b> ${booking?.slot}</p>
+          <p><b>Amount:</b> ${currency} ${amount}</p>
+          <p>You can join 20 minutes before using this secure link:</p>
+          <p>
+            <a href="${meetingLink}"
+               style="display:inline-block;padding:12px 20px;background:#007bff;color:#fff;text-decoration:none;border-radius:6px;">
+               🔗 Join Consultation
+            </a>
+          </p>
+          <p>(Link expires 1 hour after consultation time.)</p>
+          <p style="font-size:12px;color:#666;">
+           This is an auto-generated email from <b>BE PEACE</b>.
+          </p>
+        `;
+
+        adminEmailHTML = `
+          <h2>New Booking Alert 🚀</h2>
+          <p>${customerName} booked a consultation.</p>
+          <ul>
+            <li>📧 ${customerEmail}</li>
+            <li>💳 ${currency} ${amount}</li>
+            <li>🗓 ${booking?.date}</li>
+            <li>⏰ ${booking?.slot}</li>
+            <li>🆔 ${orderId}</li>
+          </ul>
+          <p>
+            <a href="${meetingLink}"
+               style="display:inline-block;padding:12px 20px;background:#28a745;color:#fff;text-decoration:none;border-radius:6px;">
+               ✅ Doctor Join Consultation
+            </a>
+          </p>
+        `;
+
+        // Optional: Doctor email
+        doctorEmailHTML = `
+          <h2>New Consultation Scheduled 👩‍⚕️</h2>
+          <p><b>Patient:</b> ${customerName}</p>
+          <p><b>Date:</b> ${booking?.date}</p>
+          <p><b>Time:</b> ${booking?.slot}</p>
+          <p><b>Order ID:</b> ${orderId}</p>
+          <p><b>Join Link:</b></p>
           <a href="${meetingLink}"
-             style="display:inline-block;padding:12px 20px;background:#007bff;color:#fff;text-decoration:none;border-radius:6px;">
-             🔗 Join Consultation
+             style="display:inline-block;padding:12px 20px;background:#17a2b8;color:#fff;text-decoration:none;border-radius:6px;">
+             🩺 Start Consultation
           </a>
-        </p>
-        <p>(Link expires 1 hour after consultation time.)</p>
-        <p style="font-size:12px;color:#666;">
-         This is an auto-generated email from <b>BE PEACE</b>.  
-        </p>
-      `;
-
-      adminEmailHTML = `
-        <h2>New Booking Alert 🚀</h2>
-        <p>${customerName} booked a consultation.</p>
-        <ul>
-          <li>📧 ${customerEmail}</li>
-          <li>💳 ${currency} ${amount}</li>
-          <li>🗓 ${booking?.date}</li>
-          <li>⏰ ${booking?.slot}</li>
-          <li>🆔 ${orderId}</li>
-        </ul>
-        <p>
-          <a href="${meetingLink}"
-             style="display:inline-block;padding:12px 20px;background:#28a745;color:#fff;text-decoration:none;border-radius:6px;">
-             ✅ Doctor Join Consultation
-          </a>
-        </p>
-      `;
-
-      // Optional: Doctor email (if you want separate doctor notification)
-      doctorEmailHTML = `
-        <h2>New Consultation Scheduled 👩‍⚕️</h2>
-        <p><b>Patient:</b> ${customerName}</p>
-        <p><b>Date:</b> ${booking?.date}</p>
-        <p><b>Time:</b> ${booking?.slot}</p>
-        <p><b>Order ID:</b> ${orderId}</p>
-        <p><b>Join Link:</b></p>
-        <a href="${meetingLink}"
-           style="display:inline-block;padding:12px 20px;background:#17a2b8;color:#fff;text-decoration:none;border-radius:6px;">
-           🩺 Start Consultation
-        </a>
-      `;
-    } else {
-      // ❌ Failed Email
-      subject = "Your Payment Failed - BE PEACE";
-      patientEmailHTML = `
-        <h2>Payment Failed ❌</h2>
-        <p>Dear <strong>${customerName}</strong>,</p>
-        <p>Your payment of <strong>${currency} ${amount}</strong> could not be completed.</p>
-        <p><a href="https://bepeace.in/booking.html"
-             style="display:inline-block;padding:12px 20px;background:#28a745;color:#fff;text-decoration:none;border-radius:6px;">
-             🔄 Retry Payment
-        </a></p>
-      `;
-      adminEmailHTML = `
-        <h2>⚠️ Failed Payment Alert</h2>
-        <ul>
-          <li>📧 ${customerEmail}</li>
-          <li>💳 ${currency} ${amount}</li>
-          <li>🆔 ${orderId}</li>
-          <li>📌 Status: ${status}</li>
-        </ul>
-      `;
-    }
-
-    // ✅ Send emails safely (non-blocking)
-    try {
-  if (customerEmail) await sendEmail(customerEmail, subject, patientEmailHTML);
-  if (process.env.ADMIN_EMAIL)
-    await sendEmail(
-      process.env.ADMIN_EMAIL,
-      status === "PAID" || status === "SUCCESS"
-        ? "✅ New Booking - BE PEACE"
-        : "❌ Failed Payment - BE PEACE",
-      adminEmailHTML
-    );
-  if (process.env.DOCTOR_EMAIL && (status === "PAID" || status === "SUCCESS")) {
-    await sendEmail(
-      process.env.DOCTOR_EMAIL,
-      "🩺 New Consultation Scheduled - BE PEACE",
-      doctorEmailHTML
-    );
-  }
-} catch (emailErr) {
-  console.error("⚠️ Email send error:", emailErr);
-}
-  
-    // ✅ Mark booking as processed
-    await bookings.updateOne(
-      { order_id: orderId },
-      {
-        $set: {
-          emailSent: true,
-          updatedAt: new Date(),
-        },
+        `;
+      } else {
+        // ❌ Failed Email
+        subject = "Your Payment Failed - BE PEACE";
+        patientEmailHTML = `
+          <h2>Payment Failed ❌</h2>
+          <p>Dear <strong>${customerName}</strong>,</p>
+          <p>Your payment of <strong>${currency} ${amount}</strong> could not be completed.</p>
+          <p><a href="https://bepeace.in/booking.html"
+               style="display:inline-block;padding:12px 20px;background:#28a745;color:#fff;text-decoration:none;border-radius:6px;">
+               🔄 Retry Payment
+          </a></p>
+        `;
+        adminEmailHTML = `
+          <h2>⚠️ Failed Payment Alert</h2>
+          <ul>
+            <li>📧 ${customerEmail}</li>
+            <li>💳 ${currency} ${amount}</li>
+            <li>🆔 ${orderId}</li>
+            <li>📌 Status: ${status}</li>
+          </ul>
+        `;
       }
-    );
 
-    console.log("✅ Emails sent & booking updated:", orderId);
+      try {
+        // ✅ Send Emails
+        if (customerEmail)
+          await sendEmail(customerEmail, subject, patientEmailHTML);
+        if (process.env.ADMIN_EMAIL)
+          await sendEmail(
+            process.env.ADMIN_EMAIL,
+            status === "PAID" || status === "SUCCESS"
+              ? "✅ New Booking - BE PEACE"
+              : "❌ Failed Payment - BE PEACE",
+            adminEmailHTML
+          );
+        if (process.env.DOCTOR_EMAIL && (status === "PAID" || status === "SUCCESS")) {
+          await sendEmail(
+            process.env.DOCTOR_EMAIL,
+            "🩺 New Consultation Scheduled - BE PEACE",
+            doctorEmailHTML
+          );
+        }
+      } catch (emailErr) {
+        console.error("⚠️ Email send error:", emailErr);
+      }
+
+      // ✅ Mark booking as processed
+      await bookings.updateOne(
+        { order_id: orderId },
+        {
+          $set: {
+            emailSent: true,
+            updatedAt: new Date(),
+          },
+        }
+      );
+
+      console.log("✅ Emails sent & booking updated:", orderId);
+    }; // end runAsync()
+
+    // 🔹 Run async safely
+    runAsync().catch((err) => console.error("⚠️ Async webhook error:", err));
+
   } catch (err) {
     console.error("❌ Webhook error:", err);
     // Still send OK to stop retries
