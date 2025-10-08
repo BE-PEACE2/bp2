@@ -25,12 +25,13 @@ export default async function handler(req, res) {
     console.log("📅 Requested Date:", date);
     console.log("🔴 Booked Slots:", bookedSlots);
 
-    // ✅ Current IST time setup
+    // ✅ Get IST time reliably
     const nowUTC = new Date();
-    const nowIST = new Date(nowUTC.getTime() + 5.5 * 60 * 60 * 1000);
+    const nowIST = new Date(nowUTC.getTime() + (5.5 * 60 * 60 * 1000)); // Convert UTC → IST
     const todayIST = nowIST.toISOString().split("T")[0];
+    const currentISTHour = nowIST.getHours(); // integer 0-23
 
-    // ✅ Generate 24 hourly slots
+    // ✅ Create 24-hour slots
     const allSlots = Array.from({ length: 24 }, (_, h) => {
       const suffix = h < 12 ? "AM" : "PM";
       const hour12 = h % 12 === 0 ? 12 : h % 12;
@@ -44,43 +45,24 @@ export default async function handler(req, res) {
       if (meridiem === "PM" && hour !== 12) hour += 12;
       if (meridiem === "AM" && hour === 12) hour = 0;
 
-      // Create the specific slot time for that day in IST
-      const slotDateIST = new Date(`${date}T${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}:00+05:30`);
-
       let status = "AVAILABLE";
 
-      // 🔴 Mark booked slots
+      // 🔴 Booked slots first
       if (bookedSlots.includes(normalizedSlot)) {
         status = "BOOKED";
       }
 
-      // ⚫ Mark as past only if date == today AND time < nowIST
-      if (date === todayIST && slotDateIST.getTime() < nowIST.getTime()) {
-        if (!bookedSlots.includes(normalizedSlot)) {
-          status = "PAST";
-        }
+      // ⚫ Mark as PAST only for *today* and if slot hour < current IST hour
+      if (date === todayIST && hour < currentISTHour && !bookedSlots.includes(normalizedSlot)) {
+        status = "PAST";
       }
 
-      // ✅ Future dates should never show past
-      if (date > todayIST) {
-        if (!bookedSlots.includes(normalizedSlot)) {
-          status = "AVAILABLE";
-        }
+      // 🟩 Future dates → always AVAILABLE unless booked
+      if (date > todayIST && !bookedSlots.includes(normalizedSlot)) {
+        status = "AVAILABLE";
       }
 
       return { time: slot, status };
-    });
-
-    // ✅ Sort slots in correct order
-    slots.sort((a, b) => {
-      const parse = t => {
-        const [time, mer] = t.split(" ");
-        let [h, m] = time.split(":").map(Number);
-        if (mer === "PM" && h !== 12) h += 12;
-        if (mer === "AM" && h === 12) h = 0;
-        return h * 60 + m;
-      };
-      return parse(a.time) - parse(b.time);
     });
 
     return res.status(200).json({ date, slots });
