@@ -468,4 +468,7 @@ async function loadSlots(date) {
   }
 }
 
-window.addEventListener("DOMContentLoaded", loadSlots);
+window.addEventListener("DOMContentLoaded", () => {
+  const today = new Date().toISOString().split("T")[0];
+  loadSlots(today);
+});
