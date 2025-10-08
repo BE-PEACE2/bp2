@@ -391,28 +391,80 @@ async function savePendingBooking() {
   console.log("Booking saved:", result);
 }
 
-async function loadSlots() {
+async function loadSlots(date) {
+  // ✅ 1. Check for valid date before proceeding
+  if (!date) {
+    console.warn("⚠️ Skipping loadSlots() — no date provided.");
+    return;
+  }
+
+  // ✅ 2. Find slot container safely
+  const slotSelect = document.getElementById("slotContainer");
+  if (!slotSelect) {
+    console.error("❌ Slot container not found in DOM.");
+    return;
+  }
+
   try {
-    const res = await fetch("/api/get-slots");
+    console.log("📡 Fetching slots for:", date);
+    const res = await fetch(`/api/get-slots?date=${date}`);
+    if (!res.ok) throw new Error(`Server returned ${res.status}`);
     const data = await res.json();
 
-    const slotSelect = document.getElementById("slot");
-    slotSelect.innerHTML = ""; // clear old
+    // Clear old slots
+    slotSelect.innerHTML = "";
 
-    if (!data.available || data.available.length === 0) {
-      slotSelect.innerHTML = `<option>No slots available</option>`;
-      slotSelect.disabled = true;
+    // ✅ 3. No available data check
+    if (!data.slots || data.slots.length === 0) {
+      slotSelect.innerHTML = "<p>No slots available</p>";
       return;
     }
 
-    data.available.forEach(slot => {
-      const opt = document.createElement("option");
-      opt.value = slot;
-      opt.textContent = slot;
-      slotSelect.appendChild(opt);
+    const now = new Date();
+    const selectedDate = new Date(date);
+    const todayIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0];
+    const nowIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+
+    // ✅ 4. Create buttons for each slot
+    data.slots.forEach(slot => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = `${slot.time} (Your Time)`;
+
+      let status = (slot.status || "AVAILABLE").toUpperCase();
+
+      // 🟥 Mark all booked slots red
+      if (status === "BOOKED") {
+        btn.className = "slot-btn BOOKED";
+        btn.disabled = true;
+        btn.title = "🚫 Already booked";
+      } 
+      // ⚫ Mark past slots grey
+      else if (status === "PAST") {
+        btn.className = "slot-btn PAST";
+        btn.disabled = true;
+        btn.title = "⌛ Past slot";
+      } 
+      // 🟩 Available (selectable)
+      else {
+        btn.className = "slot-btn AVAILABLE";
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".slot-btn.AVAILABLE").forEach(b => b.classList.remove("selected"));
+          btn.classList.add("selected");
+          document.getElementById("slot").value = slot.time;
+          validateForm();
+        });
+      }
+
+      slotSelect.appendChild(btn);
+      console.log(`🕒 ${slot.time} → ${status}`);
     });
   } catch (err) {
-    console.error("Failed to load slots:", err);
+    console.error("❌ Failed to load slots:", err);
+    const slotSelect = document.getElementById("slotContainer");
+    if (slotSelect) slotSelect.innerHTML = "<p>⚠️ Error loading slots</p>";
   }
 }
 
