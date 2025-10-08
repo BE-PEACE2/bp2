@@ -1,24 +1,19 @@
-// /api/get-slots.js
 import connectDB from "../db.js";
 
 export default async function handler(req, res) {
   try {
-    // ✅ Allow only GET
     if (req.method !== "GET") {
       return res.status(405).json({ error: "Method Not Allowed" });
     }
 
-    // ✅ Validate date parameter
     const { date } = req.query;
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return res.status(400).json({ error: "Missing or invalid date parameter" });
     }
 
-    // ✅ Connect to MongoDB
     const db = await connectDB();
     const bookings = db.collection("bookings");
 
-    // ✅ Fetch booked slots
     const bookedRecords = await bookings
       .find({ date, status: { $in: ["SUCCESS", "PAID", "BOOKED", "CONFIRMED"] } })
       .toArray();
@@ -30,10 +25,10 @@ export default async function handler(req, res) {
     console.log("📅 Requested Date:", date);
     console.log("🔴 Booked Slots:", bookedSlots);
 
-    // ✅ Get current IST time correctly (without shifting date)
-   const nowUTC = new Date();
-     const nowIST = new Date(nowUTC.getTime() + (5.5 * 60 * 60 * 1000));
-     const todayIST = nowIST.toISOString().split("T")[0];
+    // ✅ Get current IST time correctly
+    const nowUTC = new Date();
+    const nowIST = new Date(nowUTC.getTime() + 5.5 * 60 * 60 * 1000);
+    const todayIST = nowIST.toISOString().split("T")[0];
 
     // ✅ Generate all 24 hourly slots
     const allSlots = Array.from({ length: 24 }, (_, h) => {
@@ -42,7 +37,6 @@ export default async function handler(req, res) {
       return `${hour12.toString().padStart(2, "0")}:00 ${suffix}`;
     });
 
-    // ✅ Build slot list with correct statuses
     const slots = allSlots.map(slot => {
       const normalizedSlot = slot.trim().toUpperCase();
       const [time, meridiem] = slot.split(" ");
@@ -50,31 +44,25 @@ export default async function handler(req, res) {
       if (meridiem === "PM" && hour !== 12) hour += 12;
       if (meridiem === "AM" && hour === 12) hour = 0;
 
-      // Create IST-based slot time
-      const slotDateIST = new Date(`${date}T${hour.toString().padStart(2, "0")}:${minute}:00+05:30`);
+      const slotDateIST = new Date(`${date}T${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}:00+05:30`);
 
       let status = "AVAILABLE";
 
-      // If booked, mark RED
       if (bookedSlots.includes(normalizedSlot)) {
-        status = "BOOKED";
+        status = "BOOKED"; // 🔴 booked stays red
       }
 
-      // ✅ If slot is for today and time already passed → mark as PAST
-if (date === todayIST) {
-  if (slotDateIST.getTime() < nowIST.getTime()) {
-    if (bookedSlots.includes(normalizedSlot)) {
-      status = "BOOKED"; // Booked stays red
-    } else {
-      status = "PAST"; // Past unbooked → gray
-    }
-  }
-}
+      // ✅ Mark past slots (for today's date only)
+      if (date === todayIST) {
+        if (slotDateIST.getTime() < nowIST.getTime()) {
+          status = bookedSlots.includes(normalizedSlot) ? "BOOKED" : "PAST"; // ⚫ past or booked
+        }
+      }
 
       return { time: slot, status };
     });
 
-    // ✅ Sort in chronological order
+    // ✅ Sort slots
     slots.sort((a, b) => {
       const parse = t => {
         const [time, mer] = t.split(" ");
@@ -86,7 +74,6 @@ if (date === todayIST) {
       return parse(a.time) - parse(b.time);
     });
 
-    // ✅ Respond
     return res.status(200).json({ date, slots });
 
   } catch (err) {
