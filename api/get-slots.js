@@ -52,10 +52,10 @@ export default async function handler(req, res) {
         status = "BOOKED";
       }
 
-      // ⚫ Mark as PAST only for *today* and if slot hour < current IST hour
-      if (date === todayIST && hour < currentISTHour && !bookedSlots.includes(normalizedSlot)) {
-        status = "PAST";
-      }
+      // ⚫ Mark as PAST for *today* if slot time is less than or equal to current hour
+if (date === todayIST && hour <= currentISTHour && !bookedSlots.includes(normalizedSlot)) {
+  status = "PAST";
+}
 
       // 🟩 Future dates → always AVAILABLE unless booked
       if (date > todayIST && !bookedSlots.includes(normalizedSlot)) {
