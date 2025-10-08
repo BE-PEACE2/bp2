@@ -468,7 +468,14 @@ async function loadSlots(date) {
   }
 }
 
+// ✅ Load slots only on the Booking Page
 window.addEventListener("DOMContentLoaded", () => {
-  const today = new Date().toISOString().split("T")[0];
-  loadSlots(today);
+  // Check if we are on booking.html page
+  if (window.location.pathname.includes("booking.html")) {
+    console.log("📅 Booking page detected — loading slots...");
+    const today = new Date().toISOString().split("T")[0];
+    loadSlots(today);
+  } else {
+    console.log("ℹ️ Not on booking page — skipping slot load.");
+  }
 });
