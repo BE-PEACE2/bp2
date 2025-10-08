@@ -30,10 +30,10 @@ export default async function handler(req, res) {
     console.log("📅 Requested Date:", date);
     console.log("🔴 Booked Slots:", bookedSlots);
 
-    // ✅ Get current IST date/time
-    const now = new Date();
-    const nowIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
-    const todayIST = nowIST.toISOString().split("T")[0];
+    // ✅ Get current IST time correctly (without shifting date)
+   const nowUTC = new Date();
+     const nowIST = new Date(nowUTC.getTime() + (5.5 * 60 * 60 * 1000));
+     const todayIST = nowIST.toISOString().split("T")[0];
 
     // ✅ Generate all 24 hourly slots
     const allSlots = Array.from({ length: 24 }, (_, h) => {
@@ -60,14 +60,16 @@ export default async function handler(req, res) {
         status = "BOOKED";
       }
 
-      // If it's today's date, check for past timing
-      if (date === todayIST && slotDateIST < nowIST) {
-        // Booked + Past = 🔴 Red (still BOOKED)
-        if (!bookedSlots.includes(normalizedSlot)) {
-          // Not booked but past → ⚫ Gray
-          status = "PAST";
-        }
-      }
+      // ✅ If slot is for today and time already passed → mark as PAST
+if (date === todayIST) {
+  if (slotDateIST.getTime() < nowIST.getTime()) {
+    if (bookedSlots.includes(normalizedSlot)) {
+      status = "BOOKED"; // Booked stays red
+    } else {
+      status = "PAST"; // Past unbooked → gray
+    }
+  }
+}
 
       return { time: slot, status };
     });
