@@ -3,207 +3,246 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Book Consultation - BE PEACE</title>
+  <title>Book Online Pediatric Consultation | BE PEACE</title>
 
-  <!-- SEO -->
-  <meta name="description" content="Book an online pediatric or general health consultation with BE PEACE. Simple, fast, and trusted video consultations." />
-  <meta property="og:title" content="Book a Consultation – BE PEACE" />
-  <meta property="og:description" content="Schedule your online health consultation with BE PEACE today. Trusted by families worldwide." />
+  <!-- 🌍 SEO -->
+  <meta name="description" content="Book your online pediatric or general health consultation with Dr. Mahesh Yadav at BE PEACE. Trusted video consultations for children and families worldwide." />
+  <meta name="keywords" content="online pediatric consultation, Dr Mahesh Yadav, BE PEACE, child doctor online, video doctor, pediatric teleconsultation, kids doctor online, baby health consultation" />
+  <meta name="author" content="BE PEACE by Dr. Mahesh Yadav" />
+  <link rel="canonical" href="https://bepeace.in/booking.html" />
+
+  <!-- 📱 Open Graph (Facebook, WhatsApp) -->
+  <meta property="og:title" content="Book Online Pediatric Consultation | BE PEACE" />
+  <meta property="og:description" content="Fast, secure, and caring video consultations for children. Trusted by families worldwide." />
+  <meta property="og:image" content="https://bepeace.in/images/doctor-banner.jpg" />
   <meta property="og:url" content="https://bepeace.in/booking.html" />
-  <meta property="og:image" content="https://bepeace.in/images/doctor.jpg" />
-  <meta name="twitter:card" content="summary_large_image" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="BE PEACE" />
 
-  <link rel="stylesheet" href="/style.css" />
-  <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css" />
+  <!-- 🐦 Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Book Pediatric Consultation – BE PEACE" />
+  <meta name="twitter:description" content="Book your online consultation with BE PEACE. Expert care from Dr. Mahesh Yadav, trusted by families worldwide." />
+  <meta name="twitter:image" content="https://bepeace.in/images/doctor-banner.jpg" />
+
+  <!-- 📲 Apple / Mobile -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#c71585" />
+
+  <!-- External Libraries -->
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
+  <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <link rel="icon" href="/images/logo.svg" type="image/svg+xml" />
 
   <style>
-    body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 0; }
-    h2 { text-align: center; color: #c71585; margin: 25px 0; }
-    form { background: #fff; padding: 25px; border-radius: 10px; max-width: 650px; margin: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    label { font-weight: bold; display: block; margin: 10px 0 5px; }
-    input, select, textarea { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #ccc; font-size: 1rem; height: 44px; box-sizing: border-box; }
-    textarea { min-height: 100px; }
-    button { background: #ccc; color: white; padding: 12px; border: none; border-radius: 5px; font-size: 16px; width: 100%; cursor: not-allowed; transition: all 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
-    button.active { background: #28a745; cursor: pointer; }
-    button.active:hover { box-shadow: 0 6px 15px rgba(40,167,69,0.6); transform: translateY(-2px); }
-    .slots-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin: 10px 0 20px; }
-    .slot-btn { padding: 10px; border-radius: 6px; font-size: 14px; border: none; cursor: pointer; font-weight: bold; transition: all 0.3s; }
-    .slot-btn.available { background: #28a745; color: #fff; }
-    .slot-btn.booked { background: #dc3545; color: #fff; cursor: not-allowed; opacity: 0.7; }
-    .slot-btn.past { background: #6c757d; color: #fff; cursor: not-allowed; opacity: 0.7; }
-    .slot-btn.selected { background: #007bff; color: #fff; border: 2px solid #0056b3; box-shadow: 0 0 6px rgba(0,123,255,0.6); }
-    .legend { display: flex; justify-content: center; gap: 15px; margin: 10px 0 20px; }
-    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: bold; }
-    .legend-item::before { content: ""; width: 14px; height: 14px; border-radius: 3px; }
-    .legend-item.available::before { background: #28a745; }
-    .legend-item.booked::before { background: #dc3545; }
-    .legend-item.past::before { background: #6c757d; }
+    :root {
+      --bg-light: linear-gradient(135deg, #fce4ec, #e3f2fd);
+      --bg-dark: linear-gradient(135deg, #0d1117, #161b22);
+      --text-light: #333;
+      --text-dark: #eee;
+      --card-light: rgba(255,255,255,0.95);
+      --card-dark: rgba(30,30,30,0.95);
+    }
+    body {
+      font-family: "Poppins", sans-serif;
+      background: var(--bg-light);
+      color: var(--text-light);
+      transition: all 0.5s ease;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    body.dark { background: var(--bg-dark); color: var(--text-dark); }
+
+    header { text-align: center; margin-top: 20px; position: relative; }
+    .theme-toggle {
+      position: absolute; right: 20px; top: 0; background: none;
+      border: none; cursor: pointer; font-size: 1.5rem; color: inherit;
+    }
+    h1.peach-text { color: #c71585; font-weight: 700; }
+    h2 { text-align: center; margin: 25px 0 10px; font-size: 1.8rem; }
+
+    form, #successScreen {
+      background: var(--card-light);
+      border-radius: 20px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      padding: 30px;
+      width: 90%;
+      max-width: 700px;
+      margin-bottom: 50px;
+      transition: background 0.5s ease;
+      animation: fadeIn 0.7s ease-in-out;
+    }
+    body.dark form, body.dark #successScreen { background: var(--card-dark); }
+    @keyframes fadeIn { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+
+    label { font-weight: 600; display: block; margin: 12px 0 6px; }
+    input, select, textarea {
+      width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ccc;
+      font-size: 1rem; background: #fff; transition: border-color 0.3s;
+    }
+    body.dark input, body.dark select, body.dark textarea {
+      background: #1e1e1e; color: #fff; border: 1px solid #444;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: #c71585; outline: none;
+      box-shadow: 0 0 5px rgba(199, 21, 133, 0.4);
+    }
+    textarea { min-height: 100px; resize: vertical; }
+
+    .select2-container--default .select2-selection--single {
+      border-radius: 10px; height: 46px; padding: 6px 12px;
+      font-size: 16px; border: 1px solid #ccc;
+    }
+    .fee { background: #f3f4f6; padding: 12px; border-radius: 8px;
+      text-align: center; margin: 15px 0 25px; font-weight: bold; }
+
+    .slots-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 15px; margin: 15px 0 25px; }
+    .slot-btn { padding: 14px; border-radius: 10px; border: none;
+      font-weight: 600; cursor: pointer; transition: all 0.25s; }
+    .slot-btn.available {
+      background: linear-gradient(145deg, #43a047, #2e7d32); color: #fff;
+    }
+    .slot-btn.booked { background: #dc3545; color: #fff; opacity: 0.8; cursor: not-allowed; }
+    .slot-btn.past { background: #999; color: #fff; opacity: 0.8; cursor: not-allowed; }
+    .slot-btn.selected { background: linear-gradient(145deg, #007bff, #0056b3); color: #fff; }
+
+    #payBtn {
+      background: #bbb; color: white; padding: 14px; width: 100%;
+      border-radius: 10px; border: none; font-size: 16px;
+      font-weight: 600; cursor: not-allowed; transition: all 0.3s;
+    }
+    #payBtn.active {
+      background: linear-gradient(135deg, #43cea2, #185a9d); cursor: pointer;
+    }
+    #payBtn.active:hover { transform: scale(1.03); }
+
+    .success { text-align: center; color: #28a745;
+      font-weight: bold; font-size: 15px; margin: 10px 0; }
+
+    /* 🎉 Success screen */
+    #successScreen { display: none; text-align: center; }
+    #successScreen h2 { color: #28a745; font-size: 1.8rem; margin-bottom: 10px; }
+    #successScreen p { font-size: 1.1rem; line-height: 1.5; color: #333; }
+    #successScreen button {
+      margin-top: 15px; background: linear-gradient(135deg, #43cea2, #185a9d);
+      color: #fff; border: none; padding: 12px 18px; border-radius: 8px;
+      font-size: 1rem; cursor: pointer; transition: all 0.3s;
+    }
+    #successScreen button:hover { transform: scale(1.05); }
+
+    footer { margin-top: auto; text-align: center; padding: 20px; font-size: 14px; color: #555; }
   </style>
 </head>
 
 <body>
   <header>
-    <div class="logo-container">
-      <div class="earth"></div>
-      <h1 class="peach-text">BE PEACE</h1>
-    </div>
+    <h1 class="peach-text">🌍 BE PEACE</h1>
+    <button class="theme-toggle" id="themeToggle" title="Toggle Dark Mode">🌙</button>
   </header>
 
-  <h2>📝 Book Your Consultation</h2>
-  <p id="timezoneDisplay" style="text-align:center; color:#555; font-size:14px;">⏰ Detecting your timezone...</p>
+  <h2>🩺 Book Your Consultation</h2>
+  <p id="timezoneDisplay" style="text-align:center;">⏰ Detecting your timezone...</p>
 
+  <!-- Booking Form -->
   <form id="bookingForm">
-    <label for="country">Select Your Country:</label>
+    <label>Select Your Country:</label>
     <select id="country" required></select>
     <p class="fee" id="feeDisplay">Consultation Fee: --</p>
 
     <label>Name:</label><input type="text" id="name" required />
-    <label>Age:</label><input type="text" id="age" required placeholder="e.g., 5 years" />
+    <label>Age:</label><input type="text" id="age" required />
     <label>Sex:</label>
     <select id="sex" required>
-      <option value="">Select Sex</option>
-      <option value="Male">Male ♂</option>
-      <option value="Female">Female ♀</option>
-      <option value="Other">Other ⚧</option>
+      <option value="">Select</option>
+      <option>Male ♂</option><option>Female ♀</option><option>Other ⚧</option>
     </select>
+
     <label>Phone:</label><input id="phone" type="tel" required />
     <label>Email:</label><input type="email" id="email" required />
     <label>Health Concern:</label><textarea id="concern" required></textarea>
 
-    <label>Choose Date:</label>
-    <input type="date" id="date" required />
+    <label>Choose Date:</label><input type="date" id="date" required />
     <label>Choose Time Slot:</label>
     <div id="slotContainer" class="slots-grid"></div>
     <input type="hidden" id="slot" required />
 
-    <div class="legend">
-      <span class="legend-item available">Available</span>
-      <span class="legend-item booked">Booked</span>
-      <span class="legend-item past">Past</span>
-    </div>
-
-    <p id="successMsg" class="success" style="display:none;color:green;font-weight:bold;">✅ All good! Proceed to payment.</p>
-    <button type="button" id="payBtn" disabled>Proceed to Payment</button>
-    <a href="index.html" class="back-btn" style="text-align:center;display:block;margin-top:12px;">⬅ Back to Homepage</a>
+    <p id="successMsg" class="success" style="display:none;">✅ All good! Proceed to payment.</p>
+    <button type="button" id="payBtn" disabled>Proceed to Payment 💳</button>
   </form>
 
-  <footer>
-    <div class="footer-logo">
-      <div class="earth slow"></div>
-      <h1 class="peach-text">BE PEACE</h1>
-    </div>
-    <p>© 2025 BE PEACE. All rights reserved.</p>
-  </footer>
+  <!-- 🎉 Success Screen -->
+  <section id="successScreen">
+    <h2>🎉 Booking Confirmed!</h2>
+    <p id="bookingSummary"></p>
+    <p>We’ve also sent a confirmation email with your consultation details.</p>
+    <button onclick="bookAgain()">🩺 Book Another Consultation</button>
+    <button onclick="goHome()">🏠 Back to Homepage</button>
+  </section>
+
+  <footer>© 2025 BE PEACE | Online Pediatric Consultation by Dr. Mahesh Yadav</footer>
 
   <script>
-    const payBtn = document.getElementById("payBtn");
-    const countrySelect = document.getElementById("country");
-    const dateInput = document.getElementById("date");
-    const slotContainer = document.getElementById("slotContainer");
-    const slotInput = document.getElementById("slot");
-    const feeDisplay = document.getElementById("feeDisplay");
-    const successMsg = document.getElementById("successMsg");
-    const phoneInput = document.querySelector("#phone");
+    // 🌙 Dark mode toggle
+    const themeBtn=document.getElementById("themeToggle");
+    if(localStorage.getItem("theme")==="dark"){document.body.classList.add("dark");themeBtn.textContent="☀️";}
+    themeBtn.onclick=()=>{document.body.classList.toggle("dark");
+      const dark=document.body.classList.contains("dark");
+      localStorage.setItem("theme",dark?"dark":"light");
+      themeBtn.textContent=dark?"☀️":"🌙";};
 
-    let amount = 0, currency = "INR";
-    const todayISO = new Date().toISOString().split("T")[0];
-    dateInput.setAttribute("min", todayISO);
-    dateInput.value = todayISO;
+    // 🌎 Phone + country
+    const phoneInput=document.querySelector("#phone");
+    const iti=window.intlTelInput(phoneInput,{initialCountry:"auto",
+      geoIpLookup:cb=>fetch("https://ipapi.co/json").then(r=>r.json()).then(d=>cb(d.country_code)).catch(()=>cb("IN"))});
+    const countrySelect=document.getElementById("country");
+    const dateInput=document.getElementById("date");
+    const slotContainer=document.getElementById("slotContainer");
+    const slotInput=document.getElementById("slot");
+    const payBtn=document.getElementById("payBtn");
+    const feeDisplay=document.getElementById("feeDisplay");
+    const successMsg=document.getElementById("successMsg");
+    const todayISO=new Date().toISOString().split("T")[0];
+    dateInput.min=todayISO; dateInput.value=todayISO;
+    let amount=0;
 
-    const currencySymbols = { INR: "₹", USD: "$", GBP: "£", EUR: "€", AED: "د.إ", CAD: "CA$", AUD: "A$", SGD: "S$", JPY: "¥", CNY: "¥" };
-    const countryToCurrency = { IN: "INR", US: "USD", GB: "GBP", AE: "AED", CA: "CAD", AU: "AUD" };
-
-    // 📞 intl-tel-input
-    const iti = window.intlTelInput(phoneInput, {
-      initialCountry: "auto",
-      geoIpLookup: cb => fetch("https://ipapi.co/json").then(res => res.json()).then(d => cb(d.country_code)).catch(() => cb("IN")),
-      utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
-    });
-
-    // 💱 Exchange Rates (cache 24h)
-    let exchangeRates = {};
-    async function loadRates() {
-      try {
-        const cache = localStorage.getItem("exchangeRatesData");
-        const cacheTime = localStorage.getItem("exchangeRatesTime");
-        const now = Date.now();
-        if (cache && cacheTime && now - cacheTime < 24*60*60*1000) {
-          exchangeRates = JSON.parse(cache);
-          return;
-        }
-        const res = await fetch("https://open.er-api.com/v6/latest/USD");
-        const data = await res.json();
-        exchangeRates = data.rates || {};
-        localStorage.setItem("exchangeRatesData", JSON.stringify(exchangeRates));
-        localStorage.setItem("exchangeRatesTime", now);
-      } catch (err) { console.warn("Exchange rate fetch failed:", err); }
-    }
-
-    // 🌍 Set Fee
-    function setFee(code) {
-      if (code === "IN") {
-        amount = 10; currency = "INR"; feeDisplay.textContent = `Consultation Fee: ₹10 INR`;
-      } else {
-        amount = 40; currency = "USD";
-        const localCur = countryToCurrency[code] || "USD";
-        const base = `$${amount} USD`;
-        if (exchangeRates[localCur]) {
-          const converted = (amount * exchangeRates[localCur]).toFixed(2);
-          const localSymbol = currencySymbols[localCur] || localCur;
-          feeDisplay.textContent = `Consultation Fee: ${base} (~${localSymbol}${converted} ${localCur})`;
-        } else feeDisplay.textContent = `Consultation Fee: ${base}`;
-      }
-    }
-
-    async function loadCountries() {
-      const res = await fetch("https://restcountries.com/v3.1/all?fields=cca2,name");
-      const countries = await res.json();
-      countries.sort((a,b)=>a.name.common.localeCompare(b.name.common));
-      countries.forEach(c=>{
+    async function loadCountries(){
+      const res=await fetch("https://restcountries.com/v3.1/all?fields=cca2,name,flag");
+      const data=await res.json();
+      data.sort((a,b)=>a.name.common.localeCompare(b.name.common));
+      data.forEach(c=>{
         const opt=document.createElement("option");
-        opt.value=c.cca2; opt.textContent=c.name.common;
+        opt.value=c.cca2; opt.textContent=`${c.flag||''} ${c.name.common}`;
         countrySelect.appendChild(opt);
       });
+      $("#country").select2();
+      countrySelect.value="IN"; setFee("IN");
     }
 
-    window.addEventListener("DOMContentLoaded", async()=>{
-      await loadCountries(); await loadRates();
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      document.getElementById("timezoneDisplay").textContent = `⏰ Your timezone: ${tz}`;
-      countrySelect.value = "IN"; iti.setCountry("IN"); setFee("IN");
-      loadSlots(todayISO);
-    });
+    function setFee(code){ amount=code==="IN"?10:40;
+      feeDisplay.textContent=code==="IN"?"Consultation Fee: ₹10 INR":"Consultation Fee: $40 USD"; }
 
-    countrySelect.addEventListener("change", ()=>setFee(countrySelect.value));
-
-    // ✅ Slots (cache 24h)
-    async function loadSlots(date) {
-      slotContainer.innerHTML = "⏳ Loading slots...";
-      const cacheKey=`slots_${date}`, cacheTimeKey=`${cacheKey}_time`, now=Date.now();
-      const cached=localStorage.getItem(cacheKey), cacheTime=localStorage.getItem(cacheTimeKey);
-      if(cached && cacheTime && now-cacheTime<24*60*60*1000){
-        renderSlots(JSON.parse(cached)); return;
-      }
-      try{
-        const res=await fetch(`/api/doctor?path=slots&date=${date}`);
-        const data=await res.json();
-        if(!data.success||!data.slots?.length){slotContainer.innerHTML="<p>No slots available</p>";return;}
-        localStorage.setItem(cacheKey,JSON.stringify(data.slots));localStorage.setItem(cacheTimeKey,now);
-        renderSlots(data.slots);
-      }catch(e){slotContainer.innerHTML="<p>❌ Error loading slots</p>";}
-    }
-
-    function renderSlots(slots){
+    async function loadSlots(date){
+      slotContainer.innerHTML="⏳ Loading...";
+      const res=await fetch(`/api/doctor?path=slots&date=${date}`);
+      const data=await res.json();
+      if(!data.success)return slotContainer.innerHTML="<p>❌ Error loading slots.</p>";
       slotContainer.innerHTML="";
-      slots.forEach(s=>{
+      data.slots.forEach(s=>{
         const btn=document.createElement("button");
         btn.textContent=s.slot;btn.type="button";
         btn.className=`slot-btn ${s.status.toLowerCase()}`;
         if(s.status==="available"){
           btn.onclick=()=>{document.querySelectorAll(".slot-btn.available").forEach(b=>b.classList.remove("selected"));
-          btn.classList.add("selected");slotInput.value=s.slot;validateForm();};
+            btn.classList.add("selected");slotInput.value=s.slot;validateForm();};
         }else btn.disabled=true;
         slotContainer.appendChild(btn);
       });
@@ -211,31 +250,47 @@
     }
 
     function validateForm(){
-      const valid=["name","age","sex","phone","email","concern","date","slot"].every(id=>document.getElementById(id).value.trim());
-      if(valid){payBtn.disabled=false;payBtn.classList.add("active");successMsg.style.display="block";}
-      else{payBtn.disabled=true;payBtn.classList.remove("active");successMsg.style.display="none";}
+      const ids=["name","age","sex","phone","email","concern","date","slot"];
+      const valid=ids.every(id=>document.getElementById(id).value.trim());
+      payBtn.disabled=!valid;
+      payBtn.classList.toggle("active",valid);
+      successMsg.style.display=valid?"block":"none";
       return valid;
     }
-    ["name","age","sex","phone","email","concern","date","slot"].forEach(id=>{
-      document.getElementById(id).addEventListener("input",validateForm);
-      document.getElementById(id).addEventListener("change",validateForm);
+
+    document.querySelectorAll("input,select,textarea").forEach(el=>{
+      el.addEventListener("input",validateForm);
+      el.addEventListener("change",validateForm);
+    });
+    dateInput.addEventListener("change",()=>loadSlots(dateInput.value));
+
+    // 🎉 Confetti + Success Screen
+    function fireConfetti(){const end=Date.now()+1500;(function frame(){
+      confetti({particleCount:5,angle:60,spread:55,origin:{x:0}});
+      confetti({particleCount:5,angle:120,spread:55,origin:{x:1}});
+      if(Date.now()<end)requestAnimationFrame(frame);})();}
+
+    function showSuccessScreen(details){
+      document.getElementById("bookingForm").style.display="none";
+      document.getElementById("bookingSummary").innerHTML=
+        `<b>Name:</b> ${details.name}<br><b>Date:</b> ${details.date}<br><b>Time:</b> ${details.slot}<br><b>Country:</b> ${details.country||"N/A"}`;
+      document.getElementById("successScreen").style.display="block";
+      fireConfetti();
+    }
+    function bookAgain(){document.getElementById("successScreen").style.display="none";
+      document.getElementById("bookingForm").reset();document.getElementById("bookingForm").style.display="block";
+      loadSlots(dateInput.value);}
+    function goHome(){window.location.href="index.html";}
+
+    payBtn.addEventListener("click",async()=>{
+      if(!validateForm())return;
+      const details={name:name.value.trim(),email:email.value.trim(),
+        phone:iti.getNumber(),date:date.value,slot:slot.value,
+        country:countrySelect.value};
+      showSuccessScreen(details);
     });
 
-    payBtn.addEventListener("click", async()=>{
-      if(!validateForm())return;
-      const name=name.value.trim(),email=email.value.trim(),phone=iti.getNumber(),
-            age=document.getElementById("age").value.trim(),sex=document.getElementById("sex").value,
-            concern=document.getElementById("concern").value.trim(),date=document.getElementById("date").value,
-            slot=document.getElementById("slot").value;
-      try{
-        const res=await fetch("/api/payment?path=create",{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({name,email,phone,amount,currency,date,slot,age,sex,concern})});
-        const data=await res.json();
-        if(!data.success)return alert("❌ Payment creation failed.");
-        const cashfree=new Cashfree({mode:"production"});
-        cashfree.checkout({paymentSessionId:data.payment_session_id,redirectTarget:"_self"});
-      }catch(err){alert("⚠️ Server error.");console.error(err);}
-    });
+    window.onload=()=>{loadCountries();loadSlots(todayISO);};
   </script>
 </body>
 </html>
