@@ -1,73 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Doctor Dashboard - BE PEACE</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="style.css">
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css" />
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; background: #f9f9f9; }
-    h2 { text-align: center; margin: 20px 0; color: #c71585; }
-    .dashboard {
-      max-width: 1100px;
-      margin: 20px auto;
-      background: #fff;
-      border-radius: 10px;
-      padding: 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f9f9f9}
+    h2{text-align:center;margin:20px 0;color:#c71585}
+    .dashboard{max-width:1200px;margin:20px auto;background:#fff;border-radius:10px;padding:20px;box-shadow:0 4px 12px rgba(0,0,0,0.1)}
+    table{width:100%;border-collapse:collapse;margin-top:15px}
+    table th,table td{border:1px solid #ddd;padding:10px;text-align:left}
+    table th{background:#f2f2f2}
+    .btn{display:inline-block;padding:8px 12px;border-radius:5px;text-decoration:none;color:#fff;font-size:14px;border:none;cursor:pointer}
+    .btn-join{background:#28a745}
+    .btn-end{background:#888}
+    .btn-logout{background:#c00;float:right;margin-bottom:10px}
+    .status{font-weight:bold;padding:4px 8px;border-radius:5px}
+    .status.SUCCESS,.status.PAID{background:#d4edda;color:#155724}
+    .status.FAILED{background:#f8d7da;color:#721c24}
+    .status.PENDING{background:#fff3cd;color:#856404}
+    .filters{margin-bottom:15px;flex-wrap:wrap;display:flex;align-items:center;gap:10px}
+    .filters label{font-weight:bold}
+    .filters select,.filters input{padding:6px}
+    #summaryPanel,#walkinSummary{display:flex;justify-content:space-between;flex-wrap:wrap;margin:20px 0;text-align:center}
+    #summaryPanel div,#walkinSummary div{flex:1;padding:15px;margin:5px;border-radius:8px}
+    #summaryPanel div{background:#f2f2f2}
+    #walkinSummary div:nth-child(1){background:#e8f5e9}
+    #walkinSummary div:nth-child(2){background:#fff8e1}
+    #walkinSummary div:nth-child(3){background:#e3f2fd}
+    #walkinSummary div:nth-child(4){background:#fce4ec}
+    #summaryPanel h3,#walkinSummary h3{margin:0 0 10px;color:#333}
+    #summaryPanel p,#walkinSummary p{font-size:20px;font-weight:bold;margin:0}
+    .past-row{background:#f8f9fa;color:#888}
+    td small{font-size:13px;color:#555}
+    @media(max-width:768px){
+      table,thead,tbody,th,td,tr{display:block}
+      tr{margin-bottom:10px;border:1px solid #ddd;border-radius:8px;padding:8px}
+      td{border:none}
     }
-    table {
-      width: 100%; border-collapse: collapse; margin-top: 15px;
-    }
-    table th, table td {
-      border: 1px solid #ddd; padding: 10px; text-align: left;
-    }
-    table th { background: #f2f2f2; }
-    .btn {
-      display: inline-block; padding: 8px 12px;
-      border-radius: 5px; text-decoration: none;
-      color: #fff; font-size: 14px;
-    }
-    .btn-join { background: #28a745; }
-    .btn-logout { background: #c00; float: right; margin-bottom: 10px; }
-
-    /* ✅ Status labels */
-    .status { font-weight: bold; padding: 4px 8px; border-radius: 5px; }
-    .status.SUCCESS, .status.PAID { background: #d4edda; color: #155724; }
-    .status.FAILED { background: #f8d7da; color: #721c24; }
-    .status.PENDING { background: #fff3cd; color: #856404; }
-
-    .filters { margin-bottom: 15px; }
-    .filters label { margin-right: 10px; font-weight: bold; }
-    .filters select, .filters input {
-      margin-right: 20px; padding: 6px;
-    }
-
-    /* ✅ Summary panel */
-    #summaryPanel {
-      display: flex;
-      justify-content: space-between;
-      margin: 20px 0;
-      text-align: center;
-      flex-wrap: wrap;
-    }
-    #summaryPanel div {
-      flex: 1;
-      padding: 15px;
-      margin: 5px;
-      background: #f2f2f2;
-      border-radius: 8px;
-    }
-    #summaryPanel h3 { margin: 0 0 10px; color: #333; }
-    #summaryPanel p { font-size: 20px; font-weight: bold; margin: 0; color: #000; }
-
-    /* ✅ Grey out past rows */
-    .past-row { background: #f8f9fa; color: #888; }
   </style>
 </head>
 <body>
-  <!-- Header -->
+  <!-- HEADER -->
   <header>
     <div class="logo-container">
       <div class="earth"></div>
@@ -79,29 +54,25 @@
     <h2>👨‍⚕️ Doctor Dashboard</h2>
     <button class="btn btn-logout" onclick="logout()">Logout</button>
 
-    <!-- ✅ Summary Panel -->
+    <!-- 📊 Appointments Summary -->
     <div id="summaryPanel">
-      <div>
-        <h3>Today’s Bookings</h3>
-        <p id="todayBookings">0</p>
-      </div>
-      <div>
-        <h3>Upcoming</h3>
-        <p id="upcomingBookings">0</p>
-      </div>
-      <div>
-        <h3>Today’s Revenue</h3>
-        <p id="todayRevenue">₹0</p>
-      </div>
-      <div>
-        <h3>This Month</h3>
-        <p id="monthRevenue">₹0</p>
-      </div>
+      <div><h3>Today’s Bookings</h3><p id="todayBookings">0</p></div>
+      <div><h3>Upcoming</h3><p id="upcomingBookings">0</p></div>
+      <div><h3>Today’s Revenue</h3><p id="todayRevenue">₹0</p></div>
+      <div><h3>This Month</h3><p id="monthRevenue">₹0</p></div>
     </div>
 
-    <!-- ✅ Filters -->
+    <!-- 🩺 Walk-in Summary -->
+    <div id="walkinSummary">
+      <div><h3>🟢 Waiting</h3><p id="waitingCount">0</p></div>
+      <div><h3>🟡 Consulting</h3><p id="consultingCount">0</p></div>
+      <div><h3>🟣 Completed Today</h3><p id="completedCount">0</p></div>
+      <div><h3>💰 Revenue Today</h3><p id="revenueToday">₹0</p></div>
+    </div>
+
+    <!-- 🔎 Filters -->
     <div class="filters">
-      <label for="status">Status:</label>
+      <label>Status:</label>
       <select id="status" onchange="loadBookings()">
         <option value="ALL" selected>All</option>
         <option value="PAID">Paid</option>
@@ -110,7 +81,7 @@
         <option value="PENDING">Pending</option>
       </select>
 
-      <label for="range">Date Range:</label>
+      <label>Date Range:</label>
       <select id="range" onchange="loadBookings()">
         <option value="TODAY">Today</option>
         <option value="7DAYS">Next 7 Days</option>
@@ -119,16 +90,30 @@
         <option value="PAST">Past</option>
       </select>
 
-      <label for="search">🔍 Search:</label>
-      <input type="text" id="search" placeholder="Patient name or email" oninput="loadBookings()">
+      <label>Country:</label>
+      <select id="country" onchange="loadBookings()">
+        <option value="ALL" selected>All</option>
+        <option value="India">India 🇮🇳</option>
+        <option value="United States">United States 🇺🇸</option>
+        <option value="United Arab Emirates">UAE 🇦🇪</option>
+        <option value="United Kingdom">UK 🇬🇧</option>
+      </select>
+
+      <label>🔍</label>
+      <input type="text" id="search" placeholder="Patient name or email" oninput="loadBookings()" />
     </div>
 
-    <div id="bookingContainer">
-      <p>⏳ Loading bookings...</p>
-    </div>
+    <!-- 📅 Appointment Table -->
+    <div id="bookingContainer"><p>⏳ Loading bookings...</p></div>
+
+    <!-- 👥 Walk-in Waiting Room -->
+    <section style="margin-top:30px;">
+      <h3>👥 Live Walk-in Waiting Room</h3>
+      <div id="liveQueue">Loading queue...</div>
+    </section>
   </div>
 
-  <!-- Footer -->
+  <!-- FOOTER -->
   <footer>
     <div class="footer-logo">
       <div class="earth slow"></div>
@@ -137,67 +122,140 @@
     <p>© 2025 BE PEACE. All rights reserved.</p>
   </footer>
 
+  <!-- SCRIPT -->
   <script>
     const token = localStorage.getItem("doctorToken");
-    if (!token) {
-      window.location.href = "login.html";
+    if (!token) window.location.href = "login.html";
+
+    // 🌍 Country flags
+    const flags = {India:"🇮🇳","United States":"🇺🇸","United Arab Emirates":"🇦🇪","United Kingdom":"🇬🇧","Unknown":"🌍"};
+    const flag = c=>flags[c]||"🌍";
+
+    // ===== LOAD APPOINTMENTS =====
+    async function loadBookings(){
+      const status=document.getElementById("status").value;
+      const range=document.getElementById("range").value;
+      const search=document.getElementById("search").value.trim();
+      const country=document.getElementById("country").value;
+      try{
+        const res=await fetch(`/api/get-doctor-bookings?status=${status}&range=${range}&search=${encodeURIComponent(search)}&country=${encodeURIComponent(country)}`,
+          {headers:{Authorization:`Bearer ${token}`}}
+        );
+        const data=await res.json();
+        if(data.summary){
+          todayBookings.innerText=data.summary.todayBookings;
+          upcomingBookings.innerText=data.summary.upcoming;
+          todayRevenue.innerText="₹"+data.summary.todayRevenue;
+          monthRevenue.innerText="₹"+data.summary.monthRevenue;
+        }
+        const container=document.getElementById("bookingContainer");
+        if(!data.bookings||!data.bookings.length){container.innerHTML="<p>✅ No bookings found.</p>";return;}
+        const todayStr=new Date().toISOString().split("T")[0];
+        let html="<table><tr><th>Date</th><th>Time</th><th>Patient</th><th>Country</th><th>Contact</th><th>Status</th><th>Join</th></tr>";
+        data.bookings.forEach(b=>{
+          const past=b.date<todayStr;
+          html+=`<tr class='${past?"past-row":""}'>
+            <td>${b.date}</td>
+            <td><div>${b.slotIST||"-"}</div><small>🕒 ${b.slotLocal||""}</small></td>
+            <td>${b.name||"-"}</td>
+            <td>${flag(b.country)} ${b.country||"🌍"}</td>
+            <td>${b.email||""}<br>${b.phone||""}</td>
+            <td><span class='status ${b.status}'>${b.status}</span></td>
+            <td>${b.meetingLink&&!past?`<a class='btn btn-join' href='${b.meetingLink}' target='_blank'>Join</a>`:"-"}</td>
+          </tr>`;
+        });
+        html+="</table>";
+        container.innerHTML=html;
+      }catch(e){console.error(e);bookingContainer.innerHTML="<p>❌ Load failed</p>";}
     }
 
-    async function loadBookings() {
-      const status = document.getElementById("status").value;
-      const range = document.getElementById("range").value;
-      const search = document.getElementById("search").value.trim();
+    // ===== WALK-IN SUMMARY =====
+    async function loadWalkinSummary(){
+      try{
+        const r=await fetch("/api/get-waiting-summary",{headers:{Authorization:`Bearer ${token}`}});
+        const d=await r.json();
+        if(!d.success)return;
+        waitingCount.innerText=d.waitingCount;
+        consultingCount.innerText=d.consultingCount;
+        completedCount.innerText=d.completedToday;
+        revenueToday.innerText="₹"+d.revenueToday;
+      }catch(e){console.error("summary",e);}
+    }
 
-      try {
-        const res = await fetch(`/api/get-doctor-bookings?status=${status}&range=${range}&search=${encodeURIComponent(search)}`, {
-          headers: { Authorization: `Bearer ${token}` }
+    // ===== WALK-IN QUEUE =====
+    async function loadLiveQueue(){
+      try{
+        const r=await fetch("/api/get-waiting-list",{headers:{Authorization:`Bearer ${token}`}});
+        const d=await r.json();
+        if(!d.success){liveQueue.innerText="Error";return;}
+        const list=d.waiting;
+        if(!list||!list.length){liveQueue.innerHTML="<p>No walk-in patients waiting.</p>";return;}
+        let h="<table><tr><th>#</th><th>Name</th><th>Joined</th><th>Action</th></tr>";
+        list.forEach(p=>{
+          h+=`<tr><td>${p.position}</td><td>${p.name}</td><td>${new Date(p.createdAt).toLocaleTimeString()}</td>
+          <td>
+            <button class='btn btn-join' onclick="startConsult('${p.orderId}')">Start</button>
+            <button class='btn btn-end' onclick="endConsult('${p.orderId}')">End</button>
+          </td></tr>`;
         });
-        const data = await res.json();
+        h+="</table>";
+        liveQueue.innerHTML=h;
+      }catch(e){console.error(e);liveQueue.innerText="Error";}
+    }
 
-        // ✅ Update summary panel directly from API
-        if (data.summary) {
-          document.getElementById("todayBookings").innerText = data.summary.todayBookings;
-          document.getElementById("upcomingBookings").innerText = data.summary.upcoming;
-          document.getElementById("todayRevenue").innerText = "₹" + data.summary.todayRevenue;
-          document.getElementById("monthRevenue").innerText = "₹" + data.summary.monthRevenue;
-        }
-
-        const container = document.getElementById("bookingContainer");
-        if (!data.bookings || data.bookings.length === 0) {
-          container.innerHTML = "<p>✅ No bookings found.</p>";
-          return;
-        }
-
-        const todayStr = new Date().toISOString().split("T")[0];
-        let html = "<table><tr><th>Date</th><th>Time</th><th>Patient</th><th>Contact</th><th>Status</th><th>Join</th></tr>";
-        data.bookings.forEach(b => {
-          const isPast = b.date < todayStr;
-          html += `
-            <tr class="${isPast ? 'past-row' : ''}">
-              <td>${b.date}</td>
-              <td>${b.slot}</td>
-              <td>${b.name || "-"}</td>
-              <td>${b.email || ""}<br>${b.phone || ""}</td>
-              <td><span class="status ${b.status}">${b.status}</span></td>
-              <td>${b.meetingLink && !isPast ? `<a class="btn btn-join" href="${b.meetingLink}" target="_blank">Join</a>` : "-"}</td>
-            </tr>
-          `;
+    // ===== START CONSULT =====
+    async function startConsult(orderId){
+      if(!confirm("Start consultation for this patient?"))return;
+      try{
+        const r=await fetch("/api/start-consult",{
+          method:"POST",
+          headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"},
+          body:JSON.stringify({orderId})
         });
-        html += "</table>";
-        container.innerHTML = html;
+        const d=await r.json();
+        if(!d.success){alert(d.message||"Error");return;}
+        window.open(`/consult-room.html?room=${encodeURIComponent(d.roomName)}&orderId=${encodeURIComponent(orderId)}`,"_blank");
+        loadLiveQueue();loadWalkinSummary();
+      }catch(e){console.error(e);}
+    }
 
-      } catch (err) {
-        console.error("❌ Error loading bookings:", err);
-        document.getElementById("bookingContainer").innerHTML = "<p>❌ Failed to load bookings.</p>";
+    // ===== END CONSULT =====
+    async function endConsult(orderId){
+      if(!confirm("End this consultation?")) return;
+      try{
+        const res=await fetch("/api/end-consult",{
+          method:"POST",
+          headers:{
+            Authorization:`Bearer ${token}`,
+            "Content-Type":"application/json"
+          },
+          body:JSON.stringify({orderId})
+        });
+        const d=await res.json();
+        if(d.success){
+          alert("✅ Consultation marked as done.");
+          loadLiveQueue();
+          loadWalkinSummary();
+        }else{
+          alert("❌ "+(d.message||"Unable to end consultation"));
+        }
+      }catch(err){
+        console.error(err);
+        alert("Server error while ending consultation.");
       }
     }
 
-    loadBookings();
-
-    function logout() {
+    // ===== LOGOUT =====
+    function logout(){
       localStorage.removeItem("doctorToken");
-      window.location.href = "login.html";
+      window.location.href="login.html";
     }
+
+    // ===== INIT =====
+    loadBookings();
+    loadWalkinSummary();
+    loadLiveQueue();
+    setInterval(()=>{loadWalkinSummary();loadLiveQueue();},8000);
   </script>
 </body>
 </html>

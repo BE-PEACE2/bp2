@@ -1,84 +1,151 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Consultation Room - BE PEACE</title>
-  <script src="https://meet.jit.si/external_api.js"></script>
+  <meta charset="utf-8" />
+  <title>BE PEACE — Join Virtual Waiting Room</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="/style.css" />
   <style>
-    body, html { 
-      margin: 0; 
-      height: 100%; 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      font-family: Arial, sans-serif; 
-      background: #f9f9f9;
-    }
-    #jitsi-container { 
-      height: 100vh; 
-      width: 100%; 
-      display: none; 
-    }
-    .msg { 
-      font-size: 18px; 
-      text-align: center; 
-      color: #c00; 
-      margin: 20px; 
-      max-width: 500px; 
-      line-height: 1.6; 
-    }
-    .msg.success { color: green; }
+    body,html{height:100%;margin:0;font-family:Arial,Helvetica,sans-serif;background:#f9f9f9}
+    main{min-height:80vh;display:flex;align-items:center;justify-content:center}
+    .card{background:#fff;padding:24px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,0.08);max-width:520px;width:100%;text-align:center}
+    input,button{padding:10px 12px;border-radius:6px;border:1px solid #ccc;font-size:16px}
+    button{background:#c71585;color:#fff;border:none;cursor:pointer}
+    #queueInfo{margin-top:14px;color:#333}
   </style>
 </head>
 <body>
-  <div id="message" class="msg">⏳ Checking your consultation link...</div>
-  <div id="jitsi-container"></div>
+  <!-- keep your header/footer or use partial loader if you want -->
+  <header><!-- your header markup / partial --></header>
+
+  <main>
+    <div class="card">
+      <h2>BE PEACE — Virtual Waiting Room</h2>
+      <p>Enter your name and pay to join the virtual queue</p>
+
+      <div id="joinForm">
+        <input id="name" placeholder="Full name" /><br/><br/>
+        <select id="purpose">
+          <option value="walkin_consult">General Consultation</option>
+        </select><br/><br/>
+        <input id="email" type="email" placeholder="Email (optional)"/><br/><br/>
+        <input id="phone" placeholder="Phone (optional)" /><br/><br/>
+        <button id="joinBtn" onclick="startPayment()">Pay & Join Waiting Room</button>
+      </div>
+
+      <div id="afterJoin" style="display:none">
+        <p id="queueInfo">Joining queue…</p>
+        <p style="font-size:13px;color:#666">Keep this page open — you'll be redirected when the doctor calls you.</p>
+      </div>
+    </div>
+  </main>
+
+  <footer><!-- your footer markup / partial --></footer>
 
   <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const room = urlParams.get("room");   // order_id
-    const date = urlParams.get("date");   // YYYY-MM-DD
-    const slot = urlParams.get("slot");   // e.g. "10:30 AM"
-    const customerName = urlParams.get("name") || "Guest";
+    // ---------- CONFIG ----------
+    // You must have a server endpoint to create a Cashfree order for walk-ins.
+    // I assume you will create an endpoint at /api/create-order-walkin
+    // which accepts { name, email, phone, amount } and returns { paymentUrl, orderId }
+    const CREATE_ORDER_ENDPOINT = "/api/create-order-walkin";
+    const JOIN_WAITING_ENDPOINT = "/api/join-waiting";
+    const GET_WAITING_STATUS = "/api/get-waiting-status"; // ?orderId=...
 
-    function parseSlotToDate(date, slot) {
-      const [time, meridian] = slot.split(" ");
-      let [hour, minute] = time.split(":").map(Number);
-      if (meridian === "PM" && hour !== 12) hour += 12;
-      if (meridian === "AM" && hour === 12) hour = 0;
-      return new Date(`${date}T${hour.toString().padStart(2,"0")}:${minute.toString().padStart(2,"0")}:00`);
+    // Payment amount (set default or let server decide based on purpose)
+    const DEFAULT_AMOUNT = 499; // ₹
+
+    function qs(name) {
+      return new URLSearchParams(window.location.search).get(name);
     }
 
-    if (!room || !date || !slot) {
-      document.getElementById("message").innerText = "❌ Invalid or expired link.";
-    } else {
-      const slotTime = parseSlotToDate(date, slot);
-      const now = new Date();
+    async function startPayment(){
+      const name = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const purpose = document.getElementById("purpose").value;
 
-      const startTime = new Date(slotTime.getTime() - 20 * 60000); // 20 min before
-      const expiryTime = new Date(slotTime.getTime() + 60 * 60000); // 1 hr after
+      if(!name) return alert("Please enter your name");
 
-      if (now < startTime) {
-        document.getElementById("message").innerText = 
-          "⏳ You can join only 20 minutes before your consultation.";
-      } else if (now > expiryTime) {
-        document.getElementById("message").innerText = 
-          "❌ This consultation link has expired.";
-      } else {
-        document.getElementById("message").style.display = "none";
-        document.getElementById("jitsi-container").style.display = "block";
+      // call server to create order with Cashfree (server will use your secret keys)
+      document.getElementById("joinBtn").disabled = true;
+      document.getElementById("joinBtn").innerText = "Creating payment...";
 
-        const domain = "meet.jit.si";
-        const options = {
-          roomName: "BEPEACE_" + room, // unique per order
-          width: "100%",
-          height: "100%",
-          parentNode: document.getElementById("jitsi-container"),
-          userInfo: { displayName: customerName }
-        };
-        new JitsiMeetExternalAPI(domain, options);
+      try {
+        const res = await fetch(CREATE_ORDER_ENDPOINT, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            name, email, phone, purpose, amount: DEFAULT_AMOUNT
+          })
+        });
+        const data = await res.json();
+        if(!data || !data.paymentUrl || !data.orderId) throw new Error("Invalid order response");
+        // redirect patient to Cashfree payment page (or use popup)
+        // Cashfree may offer redirect to hosted pages; we use redirect for simplicity
+        // Server should set success URL to consult.html?payment=success&orderId=<orderId>
+        window.location.href = data.paymentUrl;
+      } catch (err) {
+        alert("Payment initialization failed. Try again.");
+        console.error(err);
+        document.getElementById("joinBtn").disabled = false;
+        document.getElementById("joinBtn").innerText = "Pay & Join Waiting Room";
       }
     }
+
+    // If Cashfree redirects back after success, the URL should contain payment=success&orderId=...
+    async function onLoadAfterPayment() {
+      const payment = qs("payment");
+      const orderId = qs("orderId");
+      if(payment === "success" && orderId) {
+        // Call server to verify payment and then add to waiting queue
+        document.getElementById("joinForm").style.display = "none";
+        document.getElementById("afterJoin").style.display = "block";
+        document.getElementById("queueInfo").innerText = "Verifying payment...";
+
+        try {
+          const res = await fetch(JOIN_WAITING_ENDPOINT, {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({ orderId })
+          });
+          const d = await res.json();
+          if(!d.success) throw new Error(d.message || "join failed");
+
+          // show queue number
+          document.getElementById("queueInfo").innerText = `You joined the queue as number ${d.position}. Keep this page open.`;
+
+          // Poll for status change (doctor will set status to 'consulting' and provide roomName)
+          pollStatus(orderId);
+        } catch(err) {
+          console.error(err);
+          document.getElementById("queueInfo").innerText = "Failed to join queue. Please contact support.";
+        }
+      }
+    }
+
+    // Poll for patient's status (every 4s)
+    let pollTimer = null;
+    async function pollStatus(orderId) {
+      try {
+        const res = await fetch(`${GET_WAITING_STATUS}?orderId=${encodeURIComponent(orderId)}`);
+        const d = await res.json();
+        if(d.status === "consulting" && d.roomName) {
+          // redirect patient to internal consult-room page
+          window.location.href = `/consult-room.html?room=${encodeURIComponent(d.roomName)}&orderId=${encodeURIComponent(orderId)}`;
+          return;
+        }
+        // update queue position if provided
+        if(d.position) {
+          document.getElementById("queueInfo").innerText = `You are number ${d.position} in the queue.`;
+        }
+      } catch(e){
+        console.error("poll error", e);
+      }
+      pollTimer = setTimeout(()=> pollStatus(orderId), 4000);
+    }
+
+    // On page load, check for payment success redirect
+    window.addEventListener("DOMContentLoaded", onLoadAfterPayment);
   </script>
 </body>
 </html>

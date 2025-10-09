@@ -1,0 +1,40 @@
+// api/get-waiting-list.js
+import connectDB from "../db.js";
+import jwt from "jsonwebtoken";
+
+export default async function handler(req, res) {
+  try {
+    // simple auth check for doctor (optional but recommended)
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: "No token provided" });
+    }
+    const token = authHeader.split(" ")[1];
+    try {
+      jwt.verify(token, process.env.JWT_SECRET);
+    } catch (e) {
+      return res.status(403).json({ error: "Invalid token" });
+    }
+
+    const db = await connectDB();
+    const waiting = db.collection("waiting");
+
+    const list = await waiting.find({ status: "waiting" }).sort({ createdAt: 1 }).toArray();
+
+    // Add positions
+    const enriched = list.map((d, idx) => ({
+      id: d._id,
+      orderId: d.orderId,
+      name: d.name,
+      email: d.email,
+      phone: d.phone,
+      createdAt: d.createdAt,
+      position: idx + 1
+    }));
+
+    res.json({ success: true, waiting: enriched });
+  } catch (err) {
+    console.error("get-waiting-list error", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+}

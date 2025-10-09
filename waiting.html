@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BePeace | Waiting Room</title>
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    main {
+      min-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+    }
+    .waiting-box {
+      border: 1px solid #ccc;
+      padding: 25px;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+      max-width: 400px;
+      background-color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div id="header"></div>
+
+  <main>
+    <div class="waiting-box">
+      <h2>Welcome to BePeace Consultation</h2>
+      <p id="msg">Checking your queue position...</p>
+    </div>
+  </main>
+
+  <div id="footer"></div>
+
+  <script>
+    async function loadPartials() {
+      const header = await fetch('/partials/header.html').then(r => r.text());
+      const footer = await fetch('/partials/footer.html').then(r => r.text());
+      document.getElementById('header').innerHTML = header;
+      document.getElementById('footer').innerHTML = footer;
+    }
+    loadPartials();
+
+    // Example polling logic (will be replaced with real API)
+    const bookingId = new URLSearchParams(window.location.search).get('bookingId');
+    async function checkStatus() {
+      const res = await fetch(`/api/get-status?bookingId=${bookingId}`);
+      const data = await res.json();
+
+      if (data.status === 'in-consultation') {
+        window.location.href = '/consultation-room.html';
+      } else {
+        document.getElementById('msg').innerText =
+          `You are number ${data.position} in queue. Please wait...`;
+      }
+    }
+    setInterval(checkStatus, 5000);
+  </script>
+</body>
+</html>
