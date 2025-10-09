@@ -1,7 +1,6 @@
 // /api/payment.js
 import connectDB from "../db.js";
 import crypto from "crypto";
-import axios from "axios";
 
 export default async function handler(req, res) {
   const { path } = req.query; // e.g. /api/payment?path=create
@@ -13,33 +12,38 @@ export default async function handler(req, res) {
     const locks = db.collection("slotLocks");
 
     // =====================================================
-    // 🟢 CREATE ORDER  –  called from frontend
+    // 🟢 CREATE ORDER – called from frontend
     // =====================================================
     if (path === "create" && req.method === "POST") {
       const { name, email, phone, amount, currency, date, slot, age, sex, concern } = req.body;
       if (!date || !slot) return res.status(400).json({ error: "Date and slot required" });
 
       const now = new Date();
-      const expiry = new Date(now.getTime() + 5 * 60 * 1000); // 5-minute slot hold
+      const expiry = new Date(now.getTime() + 5 * 60 * 1000); // 5-minute hold window
 
-      // remove expired locks
+      // Clean expired locks
       await locks.deleteMany({ expiresAt: { $lt: now } });
 
-      // prevent duplicate bookings
+      // Prevent double-booking
       const existingBooking = await bookings.findOne({ date, slot });
       const activeLock = await locks.findOne({ date, slot });
       if (existingBooking) return res.status(400).json({ error: "Slot already booked" });
-      if (activeLock) return res.status(400).json({ error: "Slot temporarily held, try again soon" });
+      if (activeLock) return res.status(400).json({ error: "Slot temporarily held, please try again soon" });
 
-      // lock slot temporarily
+      // Lock slot temporarily
       await locks.insertOne({ date, slot, heldBy: email, createdAt: now, expiresAt: expiry });
 
       const orderId = "ORDER_" + Date.now();
 
-      // 💳 create order on Cashfree LIVE endpoint
-      const response = await axios.post(
-        "https://api.cashfree.com/pg/orders",
-        {
+      // 💳 Create order on Cashfree LIVE endpoint using fetch
+      const cfResponse = await fetch("https://api.cashfree.com/pg/orders", {
+        method: "POST",
+        headers: {
+          "x-client-id": process.env.CASHFREE_APP_ID,
+          "x-client-secret": process.env.CASHFREE_SECRET_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           order_id: orderId,
           order_amount: amount,
           order_currency: currency,
@@ -54,18 +58,24 @@ export default async function handler(req, res) {
             return_url: `https://bepeace.in/payment-success.html?order_id=${orderId}`,
             notify_url: `https://bepeace.in/api/payment?path=webhook`,
           },
-        },
-        {
-          headers: {
-            "x-client-id": process.env.CASHFREE_APP_ID,
-            "x-client-secret": process.env.CASHFREE_SECRET_KEY,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+        }),
+      });
 
-      const { payment_session_id } = response.data;
+      if (!cfResponse.ok) {
+        const errorText = await cfResponse.text();
+        console.error("💥 Cashfree order creation failed:", errorText);
+        return res.status(500).json({ error: "Cashfree order creation failed", details: errorText });
+      }
 
+      const data = await cfResponse.json();
+      const { payment_session_id } = data;
+
+      if (!payment_session_id) {
+        console.error("❌ Cashfree response invalid:", data);
+        return res.status(500).json({ error: "Invalid Cashfree response", details: data });
+      }
+
+      // Save payment in DB
       await payments.insertOne({
         orderId,
         name,
@@ -82,21 +92,22 @@ export default async function handler(req, res) {
         createdAt: now,
       });
 
-      return res.status(200).json({ success: true, orderId, payment_session_id });
+      return res.status(200).json({
+        success: true,
+        orderId,
+        payment_session_id,
+      });
     }
 
     // =====================================================
-    // 🟢 VERIFY PAYMENT  –  called by payment-success.html
+    // 🟢 VERIFY PAYMENT – called from payment-success.html
     // =====================================================
     if (path === "verify" && req.method === "POST") {
       const { orderId } = req.body;
       const payment = await payments.findOne({ orderId });
       if (!payment) return res.status(404).json({ error: "Order not found" });
 
-      await payments.updateOne(
-        { orderId },
-        { $set: { status: "PAID", verifiedAt: new Date() } }
-      );
+      await payments.updateOne({ orderId }, { $set: { status: "PAID", verifiedAt: new Date() } });
 
       const existingBooking = await bookings.findOne({ date: payment.date, slot: payment.slot });
       if (!existingBooking) {
@@ -116,10 +127,10 @@ export default async function handler(req, res) {
     }
 
     // =====================================================
-    // 🟢 WEBHOOK  –  Cashfree notification handler
+    // 🟢 WEBHOOK – Cashfree automatic notification
     // =====================================================
     if (path === "webhook" && req.method === "POST") {
-      console.log("🔔 Cashfree Webhook:", req.body);
+      console.log("🔔 Cashfree Webhook Received:", req.body);
 
       const signature = req.headers["x-webhook-signature"];
       if (!signature) return res.status(400).json({ error: "Missing signature" });
@@ -169,7 +180,7 @@ export default async function handler(req, res) {
     }
 
     // =====================================================
-    // 🧹 CLEANUP  –  remove expired locks
+    // 🧹 CLEANUP – remove expired locks
     // =====================================================
     if (path === "cleanup" && req.method === "GET") {
       const now = new Date();
@@ -182,7 +193,10 @@ export default async function handler(req, res) {
     // =====================================================
     return res.status(404).json({ error: "Invalid path" });
   } catch (err) {
-    console.error("❌ Payment API error:", err.response?.data || err.message);
-    return res.status(500).json({ error: "Server error" });
+    console.error("❌ Payment API error:", err);
+    return res.status(500).json({
+      error: "Server error",
+      details: err.message || err,
+    });
   }
 }
