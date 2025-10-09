@@ -1,137 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Book Consultation - BE PEACE</title>
 
   <!-- SEO -->
-  <meta name="description" content="Book an online pediatric or general health consultation with BE PEACE. Simple, fast, and trusted video consultations.">
-  <meta property="og:title" content="Book a Consultation – BE PEACE">
-  <meta property="og:description" content="Schedule your online health consultation with BE PEACE today. Trusted by families worldwide.">
-  <meta property="og:url" content="https://bepeace.in/booking.html">
-  <meta property="og:image" content="https://bepeace.in/images/doctor.jpg">
-  <meta name="twitter:card" content="summary_large_image">
+  <meta name="description" content="Book an online pediatric or general health consultation with BE PEACE. Simple, fast, and trusted video consultations." />
+  <meta property="og:title" content="Book a Consultation – BE PEACE" />
+  <meta property="og:description" content="Schedule your online health consultation with BE PEACE today. Trusted by families worldwide." />
+  <meta property="og:url" content="https://bepeace.in/booking.html" />
+  <meta property="og:image" content="https://bepeace.in/images/doctor.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
 
-  <link rel="stylesheet" href="/style.css">
-
-  <!-- Cashfree v3 SDK (LIVE only) -->
+  <link rel="stylesheet" href="/style.css" />
   <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
-
-  <!-- ✅ intl-tel-input CSS + JS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
-
-  <!-- ✅ Select2 (searchable dropdown) -->
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0/css/select2.min.css" rel="stylesheet" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0/js/select2.min.js"></script>
 
   <style>
     body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 0; }
     h2 { text-align: center; color: #c71585; margin: 25px 0; }
-    form {
-      background: white;
-      padding: 25px;
-      border-radius: 10px;
-      max-width: 650px;
-      margin: auto;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
+    form { background: #fff; padding: 25px; border-radius: 10px; max-width: 650px; margin: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
     label { font-weight: bold; display: block; margin: 10px 0 5px; }
-    input, select, textarea {
-      width: 100%; padding: 12px; margin-bottom: 15px;
-      border-radius: 5px; border: 1px solid #ccc;
-      font-size: 1rem; height: 44px; box-sizing: border-box;
-    }
-    textarea { height: auto; min-height: 100px; }
-    input:focus, select:focus, textarea:focus {
-      border-color: #00bfff;
-      box-shadow: 0 0 8px rgba(0,191,255,0.5);
-      outline: none;
-    }
-    .fee { font-size: 18px; color: #0077cc; font-weight: bold; margin: 10px 0; }
-    .success { color: green; font-size: 0.95rem; display: none; margin: 10px 0; font-weight: bold; }
-    .calendly-inline-widget {
-      margin-top: 20px; min-width: 320px; height: 630px; border: none;
-    }
-    button {
-      background: #ccc; color: white; padding: 12px;
-      border: none; border-radius: 5px;
-      font-size: 16px; cursor: not-allowed; width: 100%;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-    }
-    button.active {
-      background: #28a745;
-      cursor: pointer;
-    }
-    button.active:hover {
-      box-shadow: 0 6px 15px rgba(40,167,69,0.6);
-      transform: translateY(-2px);
-    }
-    .back-btn {
-      display: block; text-align: center; margin-top: 12px;
-      color: #0077cc; text-decoration: none;
-    }
-
-     /* ✅ Slots grid */
-    .slots-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-      gap: 10px;
-      margin: 10px 0 20px;
-    }
-    .slot-btn {
-      padding: 10px;
-      border-radius: 6px;
-      font-size: 14px;
-      border: none;
-      cursor: pointer;
-      font-weight: bold;
-      transition: all 0.3s;
-    }
-    .slot-btn.available,
-    .slot-btn.AVAILABLE { background: #28a745; color: #fff; }
-    .slot-btn.AVAILABLE:hover { background: #218838; }
-    .slot-btn.booked,
-    .slot-btn.BOOKED { background: #dc3545; color: #fff; cursor: not-allowed; opacity: 0.7; }
-    .slot-btn.past,
-    .slot-btn.PAST { background: #6c757d; color: #fff; cursor: not-allowed; opacity: 0.7; }
-    .slot-btn.selected { border: 2px solid #000; box-shadow: 0 0 6px #333; }
-    .slot-btn.selected {
-  background: #007bff;
-  color: #fff;
-  border: 2px solid #0056b3;
-  box-shadow: 0 0 6px rgba(0,123,255,0.6);
-}
-    /* ✅ Legend styles */
-    .legend {
-      display: flex;
-      justify-content: center;
-      gap: 15px;
-      margin: 10px 0 20px;
-    }
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 14px;
-      font-weight: bold;
-    }
-    .legend-item::before {
-      content: "";
-      display: inline-block;
-      width: 14px;
-      height: 14px;
-      border-radius: 3px;
-    }
+    input, select, textarea { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #ccc; font-size: 1rem; height: 44px; box-sizing: border-box; }
+    textarea { min-height: 100px; }
+    button { background: #ccc; color: white; padding: 12px; border: none; border-radius: 5px; font-size: 16px; width: 100%; cursor: not-allowed; transition: all 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+    button.active { background: #28a745; cursor: pointer; }
+    button.active:hover { box-shadow: 0 6px 15px rgba(40,167,69,0.6); transform: translateY(-2px); }
+    .slots-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin: 10px 0 20px; }
+    .slot-btn { padding: 10px; border-radius: 6px; font-size: 14px; border: none; cursor: pointer; font-weight: bold; transition: all 0.3s; }
+    .slot-btn.available { background: #28a745; color: #fff; }
+    .slot-btn.booked { background: #dc3545; color: #fff; cursor: not-allowed; opacity: 0.7; }
+    .slot-btn.past { background: #6c757d; color: #fff; cursor: not-allowed; opacity: 0.7; }
+    .slot-btn.selected { background: #007bff; color: #fff; border: 2px solid #0056b3; box-shadow: 0 0 6px rgba(0,123,255,0.6); }
+    .legend { display: flex; justify-content: center; gap: 15px; margin: 10px 0 20px; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: bold; }
+    .legend-item::before { content: ""; width: 14px; height: 14px; border-radius: 3px; }
     .legend-item.available::before { background: #28a745; }
     .legend-item.booked::before { background: #dc3545; }
     .legend-item.past::before { background: #6c757d; }
   </style>
 </head>
+
 <body>
-  <!-- Header -->
   <header>
     <div class="logo-container">
       <div class="earth"></div>
@@ -140,22 +52,15 @@
   </header>
 
   <h2>📝 Book Your Consultation</h2>
+  <p id="timezoneDisplay" style="text-align:center; color:#555; font-size:14px;">⏰ Detecting your timezone...</p>
 
-  <p id="timezoneDisplay" style="text-align:center; color:#555; font-size:14px;">
-  ⏰ Detecting your timezone...
-</p>
-
-    <form id="bookingForm">
+  <form id="bookingForm">
     <label for="country">Select Your Country:</label>
     <select id="country" required></select>
     <p class="fee" id="feeDisplay">Consultation Fee: --</p>
 
-    <label>Name:</label>
-    <input type="text" id="name" required>
-
-    <label>Age:</label>
-    <input type="text" id="age" required placeholder="e.g., 1 day, 2 months, 5 years">
-
+    <label>Name:</label><input type="text" id="name" required />
+    <label>Age:</label><input type="text" id="age" required placeholder="e.g., 5 years" />
     <label>Sex:</label>
     <select id="sex" required>
       <option value="">Select Sex</option>
@@ -163,40 +68,27 @@
       <option value="Female">Female ♀</option>
       <option value="Other">Other ⚧</option>
     </select>
+    <label>Phone:</label><input id="phone" type="tel" required />
+    <label>Email:</label><input type="email" id="email" required />
+    <label>Health Concern:</label><textarea id="concern" required></textarea>
 
-    <label>Phone Number:</label>
-    <input id="phone" type="tel" required>
-
-    <label>Email:</label>
-    <input type="email" id="email" required>
-
-    <label>Health Concern:</label>
-    <textarea id="concern" rows="4" required></textarea>
-
-    <!-- ✅ New Date + Slot selectors -->
-    <label for="date">Choose Date:</label>
-    <input type="date" id="date" required min="">
-
-    <label for="slot">Choose Time Slot:</label>
+    <label>Choose Date:</label>
+    <input type="date" id="date" required />
+    <label>Choose Time Slot:</label>
     <div id="slotContainer" class="slots-grid"></div>
-    <input type="hidden" id="slot" required> <!-- keeps selected slot -->
+    <input type="hidden" id="slot" required />
 
-    <!-- ✅ Legend -->
     <div class="legend">
       <span class="legend-item available">Available</span>
       <span class="legend-item booked">Booked</span>
       <span class="legend-item past">Past</span>
     </div>
 
-    <!-- ✅ Success message -->
-    <p id="successMsg" class="success">✅ All good! You can now proceed to payment.</p>
-
-    <!-- Payment button -->
+    <p id="successMsg" class="success" style="display:none;color:green;font-weight:bold;">✅ All good! Proceed to payment.</p>
     <button type="button" id="payBtn" disabled>Proceed to Payment</button>
-    <a href="index.html" class="back-btn">⬅ Back to Homepage</a>
+    <a href="index.html" class="back-btn" style="text-align:center;display:block;margin-top:12px;">⬅ Back to Homepage</a>
   </form>
 
-  <!-- Footer -->
   <footer>
     <div class="footer-logo">
       <div class="earth slow"></div>
@@ -205,446 +97,145 @@
     <p>© 2025 BE PEACE. All rights reserved.</p>
   </footer>
 
-  <!-- Logic -->
-<script>
-const payBtn = document.getElementById("payBtn");
-const countrySelect = document.getElementById("country");
-const feeDisplay = document.getElementById("feeDisplay");
-const successMsg = document.getElementById("successMsg");
-const dateInput = document.getElementById("date");
-const slotInput = document.getElementById("slot");
-const slotContainer = document.getElementById("slotContainer");
-const phoneInput = document.querySelector("#phone");
+  <script>
+    const payBtn = document.getElementById("payBtn");
+    const countrySelect = document.getElementById("country");
+    const dateInput = document.getElementById("date");
+    const slotContainer = document.getElementById("slotContainer");
+    const slotInput = document.getElementById("slot");
+    const feeDisplay = document.getElementById("feeDisplay");
+    const successMsg = document.getElementById("successMsg");
+    const phoneInput = document.querySelector("#phone");
 
-let amount = 0, currency = "INR";
+    let amount = 0, currency = "INR";
+    const todayISO = new Date().toISOString().split("T")[0];
+    dateInput.setAttribute("min", todayISO);
+    dateInput.value = todayISO;
 
-// ✅ Normalize slot format
-function normalizeSlot(slot) {
-  if (!slot) return "";
-  let s = slot.toString().trim().toUpperCase();
-  s = s.replace(/^(\d):/, "0$1:"); // convert 3:00 PM → 03:00 PM
-  return s;
-}
+    const currencySymbols = { INR: "₹", USD: "$", GBP: "£", EUR: "€", AED: "د.إ", CAD: "CA$", AUD: "A$", SGD: "S$", JPY: "¥", CNY: "¥" };
+    const countryToCurrency = { IN: "INR", US: "USD", GB: "GBP", AE: "AED", CA: "CAD", AU: "AUD" };
 
-const countryToCurrency = {};
-let userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-let userOffset = -new Date().getTimezoneOffset() / 60;
+    // 📞 intl-tel-input
+    const iti = window.intlTelInput(phoneInput, {
+      initialCountry: "auto",
+      geoIpLookup: cb => fetch("https://ipapi.co/json").then(res => res.json()).then(d => cb(d.country_code)).catch(() => cb("IN")),
+      utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
+    });
 
-function emojiFlag(code) {
-  if (!code) return "";
-  return code
-    .toUpperCase()
-    .replace(/./g, char => String.fromCodePoint(127397 + char.charCodeAt()));
-}
+    // 💱 Exchange Rates (cache 24h)
+    let exchangeRates = {};
+    async function loadRates() {
+      try {
+        const cache = localStorage.getItem("exchangeRatesData");
+        const cacheTime = localStorage.getItem("exchangeRatesTime");
+        const now = Date.now();
+        if (cache && cacheTime && now - cacheTime < 24*60*60*1000) {
+          exchangeRates = JSON.parse(cache);
+          return;
+        }
+        const res = await fetch("https://open.er-api.com/v6/latest/USD");
+        const data = await res.json();
+        exchangeRates = data.rates || {};
+        localStorage.setItem("exchangeRatesData", JSON.stringify(exchangeRates));
+        localStorage.setItem("exchangeRatesTime", now);
+      } catch (err) { console.warn("Exchange rate fetch failed:", err); }
+    }
 
-async function loadCountries() {
-  try {
-    const res = await fetch("https://restcountries.com/v3.1/all?fields=cca2,name,currencies");
-    const countries = await res.json();
-    countries.sort((a, b) => a.name.common.localeCompare(b.name.common));
-
-    countries.forEach(c => {
-      const opt = document.createElement("option");
-      opt.value = c.cca2;
-      opt.textContent = `${emojiFlag(c.cca2)} ${c.name.common}`;
-      countrySelect.appendChild(opt);
-      if (c.currencies) {
-        const firstCurrency = Object.keys(c.currencies)[0];
-        if (firstCurrency) countryToCurrency[c.cca2] = firstCurrency;
+    // 🌍 Set Fee
+    function setFee(code) {
+      if (code === "IN") {
+        amount = 10; currency = "INR"; feeDisplay.textContent = `Consultation Fee: ₹10 INR`;
+      } else {
+        amount = 40; currency = "USD";
+        const localCur = countryToCurrency[code] || "USD";
+        const base = `$${amount} USD`;
+        if (exchangeRates[localCur]) {
+          const converted = (amount * exchangeRates[localCur]).toFixed(2);
+          const localSymbol = currencySymbols[localCur] || localCur;
+          feeDisplay.textContent = `Consultation Fee: ${base} (~${localSymbol}${converted} ${localCur})`;
+        } else feeDisplay.textContent = `Consultation Fee: ${base}`;
       }
+    }
+
+    async function loadCountries() {
+      const res = await fetch("https://restcountries.com/v3.1/all?fields=cca2,name");
+      const countries = await res.json();
+      countries.sort((a,b)=>a.name.common.localeCompare(b.name.common));
+      countries.forEach(c=>{
+        const opt=document.createElement("option");
+        opt.value=c.cca2; opt.textContent=c.name.common;
+        countrySelect.appendChild(opt);
+      });
+    }
+
+    window.addEventListener("DOMContentLoaded", async()=>{
+      await loadCountries(); await loadRates();
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      document.getElementById("timezoneDisplay").textContent = `⏰ Your timezone: ${tz}`;
+      countrySelect.value = "IN"; iti.setCountry("IN"); setFee("IN");
+      loadSlots(todayISO);
     });
-  } catch {
-    console.warn("⚠️ Using fallback country list");
-    const fallbackCountries = [
-      { code: "IN", name: "India", currency: "INR", flag: "🇮🇳" },
-      { code: "US", name: "United States", currency: "USD", flag: "🇺🇸" },
-      { code: "GB", name: "United Kingdom", currency: "GBP", flag: "🇬🇧" },
-      { code: "AE", name: "UAE", currency: "AED", flag: "🇦🇪" },
-      { code: "CA", name: "Canada", currency: "CAD", flag: "🇨🇦" },
-      { code: "AU", name: "Australia", currency: "AUD", flag: "🇦🇺" }
-    ];
-    fallbackCountries.forEach(c => {
-      const opt = document.createElement("option");
-      opt.value = c.code;
-      opt.textContent = `${c.flag} ${c.name}`;
-      countrySelect.appendChild(opt);
-      countryToCurrency[c.code] = c.currency;
-    });
-  }
-}
 
-// 🌍 Detect user country with fallback
-async function detectCountry() {
-  try {
-    let country = "IN";
-    const res1 = await fetch("https://ipapi.co/json");
-    const data1 = await res1.json();
-    if (data1.country_code && data1.country_code !== "AF") {
-      country = data1.country_code;
-    } else {
-      const res2 = await fetch("https://ipinfo.io/json?token=fa9b9b2fca0c45");
-      const data2 = await res2.json();
-      if (data2.country) country = data2.country;
-    }
-    return country;
-  } catch {
-    return "IN";
-  }
-}
+    countrySelect.addEventListener("change", ()=>setFee(countrySelect.value));
 
-// 🌍 Show detected country under select box
-function showDetectedCountryInfo(code) {
-  let infoBox = document.getElementById("detectedCountryInfo");
-  if (!infoBox) {
-    infoBox = document.createElement("p");
-    infoBox.id = "detectedCountryInfo";
-    infoBox.style.fontSize = "14px";
-    infoBox.style.color = "#555";
-    infoBox.style.fontWeight = "bold";
-    infoBox.style.marginTop = "-10px";
-    countrySelect.insertAdjacentElement("afterend", infoBox);
-  }
-  infoBox.textContent = `🌍 Detected: ${emojiFlag(code)} ${countrySelect.options[countrySelect.selectedIndex].text}`;
-}
-
-// 🌍 Initialize countries + detect
-async function initCountries() {
-  await loadCountries();
-  const detected = await detectCountry();
-  countrySelect.value = detected;
-  iti.setCountry(detected);
-  setFee(detected);
-  showDetectedCountryInfo(detected);
-}
-
-// ✅ Currency symbols map for better display
-const currencySymbols = {
-  INR: "₹",
-  USD: "$",
-  GBP: "£",
-  EUR: "€",
-  AED: "د.إ",
-  CAD: "CA$",
-  AUD: "A$",
-  SGD: "S$",
-  JPY: "¥",
-  CNY: "¥",
-  BRL: "R$",
-  ZAR: "R",
-};
-
-let exchangeRates = {};
-let exchangeRatesLoaded = false;
-
-// ✅ Load exchange rates (with cache for 24 hours)
-async function loadRates() {
-  try {
-    const cached = localStorage.getItem("exchangeRatesData");
-    const cachedTime = localStorage.getItem("exchangeRatesTime");
-    const now = Date.now();
-
-    // Use cache if less than 24h old
-    if (cached && cachedTime && now - cachedTime < 24 * 60 * 60 * 1000) {
-      exchangeRates = JSON.parse(cached);
-      exchangeRatesLoaded = true;
-      console.log("💰 Using cached exchange rates");
-      return;
+    // ✅ Slots (cache 24h)
+    async function loadSlots(date) {
+      slotContainer.innerHTML = "⏳ Loading slots...";
+      const cacheKey=`slots_${date}`, cacheTimeKey=`${cacheKey}_time`, now=Date.now();
+      const cached=localStorage.getItem(cacheKey), cacheTime=localStorage.getItem(cacheTimeKey);
+      if(cached && cacheTime && now-cacheTime<24*60*60*1000){
+        renderSlots(JSON.parse(cached)); return;
+      }
+      try{
+        const res=await fetch(`/api/doctor?path=slots&date=${date}`);
+        const data=await res.json();
+        if(!data.success||!data.slots?.length){slotContainer.innerHTML="<p>No slots available</p>";return;}
+        localStorage.setItem(cacheKey,JSON.stringify(data.slots));localStorage.setItem(cacheTimeKey,now);
+        renderSlots(data.slots);
+      }catch(e){slotContainer.innerHTML="<p>❌ Error loading slots</p>";}
     }
 
-   const res = await fetch("https://open.er-api.com/v6/latest/USD");
-    const data = await res.json();
-    data.rates = data.rates || data.result?.rates || {};
-
-    if (data && data.rates) {
-      exchangeRates = data.rates;
-      localStorage.setItem("exchangeRatesData", JSON.stringify(exchangeRates));
-      localStorage.setItem("exchangeRatesTime", now.toString());
-      exchangeRatesLoaded = true;
-      console.log("✅ Exchange rates loaded:", Object.keys(exchangeRates).length);
-    } else {
-      console.warn("⚠️ No exchange rate data found");
-    }
-  } catch (err) {
-    console.warn("❌ Exchange rate fetch failed:", err);
-  }
-}
-
-loadRates();
-
-// ✅ Update consultation fee dynamically
-function setFee(countryCode) {
-  if (countryCode === "IN") {
-    amount = 10;
-    currency = "INR";
-    const symbol = currencySymbols["INR"] || "₹";
-    feeDisplay.textContent = `Consultation Fee: ${symbol}${amount} INR`;
-  } else {
-    amount = 40;
-    currency = "USD";
-    const symbol = currencySymbols["USD"] || "$";
-    feeDisplay.textContent = `Consultation Fee: ${symbol}${amount} USD`;
-
-    const localCurrency = countryToCurrency[countryCode] || "USD";
-    if (localCurrency !== "USD" && exchangeRates[localCurrency]) {
-      const converted = (amount * exchangeRates[localCurrency]).toFixed(2);
-      const localSymbol = currencySymbols[localCurrency] || localCurrency;
-      feeDisplay.textContent += ` (~${localSymbol}${converted} ${localCurrency})`;
-    } else if (!exchangeRatesLoaded) {
-      // if rates not ready yet, retry in 2 seconds
-      setTimeout(() => setFee(countryCode), 2000);
-    }
-  }
-}
-
-// 📞 intl-tel-input setup
-const iti = window.intlTelInput(phoneInput, {
-  initialCountry: "auto",
-  geoIpLookup: cb => fetch("https://ipapi.co/json")
-    .then(res => res.json())
-    .then(data => cb(data.country_code))
-    .catch(() => cb("IN")),
-  utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
-});
-
-countrySelect.addEventListener("change", () => {
-  const selected = countrySelect.value;
-  iti.setCountry(selected);
-  setFee(selected);
-  showDetectedCountryInfo(selected);
-
-  // 🔄 Refresh slots so times convert to correct local timezone
-  if (dateInput.value) {
-    loadSlots(dateInput.value);
-  }
-
-  // 🕒 Optional: show user’s timezone for clarity
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  console.log("User Timezone:", tz);
-});
-
-initCountries();
-
-window.addEventListener("DOMContentLoaded", async () => {
-  const timezoneDisplay = document.getElementById("timezoneDisplay");
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const offsetHours = -new Date().getTimezoneOffset() / 60;
-  timezoneDisplay.textContent = `⏰ Your timezone: ${tz.replace("_", " ")} (UTC ${offsetHours >= 0 ? "+" : ""}${offsetHours})`;
-  console.log("✅ Timezone detected:", tz, "Offset:", offsetHours);
-
-  await initCountries();
-  loadSlots(todayISO);
-});
-
-// ✅ Block past dates + preselect today
-const todayISO = new Date().toISOString().split("T")[0];
-dateInput.setAttribute("min", todayISO);
-dateInput.value = todayISO;
-
- // 🔹 Convert IST slot → User’s Local Time
-  function convertToLocalTime(slotTime, date) {
-    const [timeStr, meridian] = slotTime.split(" ");
-    let [hour, minute] = timeStr.split(":").map(Number);
-    if (meridian === "PM" && hour !== 12) hour += 12;
-    if (meridian === "AM" && hour === 12) hour = 0;
-
-    const [yyyy, mm, dd] = date.split("-");
-    const localDateTime = new Date(yyyy, mm - 1, dd, hour, minute);
-
-    // Create IST date in UTC (by subtracting 5h30m offset)
-  const utcMillis = Date.UTC(yyyy, mm - 1, dd, hour - 5, minute - 30);
-  const utcDate = new Date(utcMillis);
-
-  // Convert to user’s local browser time
-  return utcDate.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
-}
-
-// ✅ Convert Local (User’s) Time → IST (for backend consistency)
-function convertToIST(localDate, localTimeStr) {
-  const [timeStr, meridian] = localTimeStr.split(" ");
-  let [hour, minute] = timeStr.split(":").map(Number);
-  if (meridian === "PM" && hour !== 12) hour += 12;
-  if (meridian === "AM" && hour === 12) hour = 0;
-
-  const [yyyy, mm, dd] = localDate.split("-");
-  const localDateTime = new Date(yyyy, mm - 1, dd, hour, minute);
-
-  // Convert from local browser time to IST
-  const istOffset = 5.5 * 60; // minutes
-  const localOffset = localDateTime.getTimezoneOffset(); // in minutes
-  const diff = (istOffset + localOffset) * 60 * 1000; // milliseconds
-
-  const istDateTime = new Date(localDateTime.getTime() + diff);
-
-  const istHour = istDateTime.getHours();
-  const istMinute = istDateTime.getMinutes().toString().padStart(2, "0");
-  const suffix = istHour >= 12 ? "PM" : "AM";
-  const hour12 = (istHour % 12) || 12;
-  return `${hour12}:${istMinute} ${suffix}`;
-}
-
-// ✅ Function to load slots (show user’s local timezone + mark booked/past slots)
-async function loadSlots(date) {
-  slotContainer.innerHTML = "⏳ Loading slots...";
-  slotInput.value = "";
-  if (!date) return;
-
-  try {
-    const res = await fetch(`/api/get-slots?date=${date}`);
-    const data = await res.json();
-    slotContainer.innerHTML = "";
-
-    if (data.slots && data.slots.length > 0) {
-      const today = new Date();
-      const selectedDate = new Date(date);
-      const isToday = today.toDateString() === selectedDate.toDateString();
-
-      data.slots.forEach(slot => {
-        const btn = document.createElement("button");
-        const localTime = convertToLocalTime(slot.time, date);
-        btn.textContent = `${localTime} (Your Time)`;
-        btn.type = "button";
-
-        // Normalize slot status (backend sends uppercase)
-        const status = (slot.status || "AVAILABLE").toUpperCase();
-
-        // Apply class and color
-        btn.className = `slot-btn ${status}`;
-
-        // 🟥 BOOKED → disable + red
-        if (status === "BOOKED") {
-          btn.disabled = true;
-          btn.title = "🚫 This slot is already booked.";
-          btn.style.cursor = "not-allowed";
-        }
-
-        // ⚫ PAST → disable + gray
-        else if (status === "PAST") {
-          btn.disabled = true;
-          btn.title = "⌛ This slot time has passed.";
-          btn.style.cursor = "not-allowed";
-        }
-
-        // 🟩 AVAILABLE → allow selection
-        else if (status === "AVAILABLE") {
-          btn.addEventListener("click", () => {
-            document.querySelectorAll(".slot-btn.AVAILABLE").forEach(b => b.classList.remove("selected"));
-            btn.classList.add("selected");
-            slotInput.value = slot.time;
-            validateForm();
-          });
-        }
-
+    function renderSlots(slots){
+      slotContainer.innerHTML="";
+      slots.forEach(s=>{
+        const btn=document.createElement("button");
+        btn.textContent=s.slot;btn.type="button";
+        btn.className=`slot-btn ${s.status.toLowerCase()}`;
+        if(s.status==="available"){
+          btn.onclick=()=>{document.querySelectorAll(".slot-btn.available").forEach(b=>b.classList.remove("selected"));
+          btn.classList.add("selected");slotInput.value=s.slot;validateForm();};
+        }else btn.disabled=true;
         slotContainer.appendChild(btn);
       });
-    } else {
-      slotContainer.innerHTML = "<p>No slots available for this date</p>";
-    }
-  } catch (err) {
-    console.error("Slot load error:", err);
-    slotContainer.innerHTML = "<p>❌ Error loading slots</p>";
-  }
-
-  validateForm();
-}
-
-// ✅ Also reload when user changes date
-dateInput.addEventListener("change", () => loadSlots(dateInput.value));
-
-// 🔄 Auto-refresh slot availability every 30 seconds
-setInterval(() => {
-  const selectedDate = dateInput.value;
-  if (selectedDate) loadSlots(selectedDate);
-}, 30000);
-
-  // ✅ Validation
-  function validateForm() {
-    const name = document.getElementById("name").value.trim();
-    const age = document.getElementById("age").value.trim();
-    const sex = document.getElementById("sex").value;
-    const phone = iti.getNumber(); // full intl format, e.g. +91xxxx or +1xxxx
-    const email = document.getElementById("email").value.trim();
-    const concern = document.getElementById("concern").value.trim();
-    const country = countrySelect.value;
-    const date = dateInput.value;
-    const slot = slotInput.value;
-
-    let valid = true;
-    if (!name || !age || !sex || !phone || !email || !concern || !country || !date || !slot) {
-      valid = false;
+      validateForm();
     }
 
-    if (valid) {
-      payBtn.disabled = false;
-      payBtn.classList.add("active");
-      successMsg.style.display = "block";
-    } else {
-      payBtn.disabled = true;
-      payBtn.classList.remove("active");
-      successMsg.style.display = "none";
+    function validateForm(){
+      const valid=["name","age","sex","phone","email","concern","date","slot"].every(id=>document.getElementById(id).value.trim());
+      if(valid){payBtn.disabled=false;payBtn.classList.add("active");successMsg.style.display="block";}
+      else{payBtn.disabled=true;payBtn.classList.remove("active");successMsg.style.display="none";}
+      return valid;
     }
-    return valid;
-  }
+    ["name","age","sex","phone","email","concern","date","slot"].forEach(id=>{
+      document.getElementById(id).addEventListener("input",validateForm);
+      document.getElementById(id).addEventListener("change",validateForm);
+    });
 
-
- // ✅ Watch fields
-  ["name","age","sex","phone","email","concern","country","date","slot"].forEach(id=>{
-    document.getElementById(id).addEventListener("input", validateForm);
-    document.getElementById(id).addEventListener("change", validateForm);
-  });
-
-  // ✅ Payment trigger with Cashfree v3 Checkout
-  payBtn.addEventListener("click", function () {
-    if (!validateForm()) return;
-
-  const name = document.getElementById("name").value;
-  const email = document.getElementById("email").value;
-  const phone = iti.getNumber(); // full intl format
-  const age = document.getElementById("age").value;
-  const sex = document.getElementById("sex").value;
-  const date = document.getElementById("date").value;
-
-
-  // ✅ Convert selected local slot to IST before sending
-  const slot = convertToIST(date, document.getElementById("slot").value);
-
-
-    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const userOffset = -new Date().getTimezoneOffset() / 60;
-
-fetch("/api/create-order", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    amount, currency,
-    customer_name: name,
-    customer_email: email,
-    customer_phone: phone,
-    customer_age: age,
-    customer_sex: sex,
-    date,
-    slot,
-    user_timezone: userTimezone,
-    user_utc_offset: userOffset
-  })
-})
-    .then(res => res.json())
-    .then(data => {
-      if (data.payment_session_id) {
-        const cashfree = new Cashfree({ mode: "production" }); // ✅ LIVE only
-        cashfree.checkout({
-          paymentSessionId: data.payment_session_id,
-          redirectTarget: "_self"
-        });
-      } else {
-        alert("❌ Error creating payment session.");
-      }
-    })
-    .catch(() => alert("Server error. Please try again later."));
-  });
-</script>
+    payBtn.addEventListener("click", async()=>{
+      if(!validateForm())return;
+      const name=name.value.trim(),email=email.value.trim(),phone=iti.getNumber(),
+            age=document.getElementById("age").value.trim(),sex=document.getElementById("sex").value,
+            concern=document.getElementById("concern").value.trim(),date=document.getElementById("date").value,
+            slot=document.getElementById("slot").value;
+      try{
+        const res=await fetch("/api/payment?path=create",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({name,email,phone,amount,currency,date,slot,age,sex,concern})});
+        const data=await res.json();
+        if(!data.success)return alert("❌ Payment creation failed.");
+        const cashfree=new Cashfree({mode:"production"});
+        cashfree.checkout({paymentSessionId:data.payment_session_id,redirectTarget:"_self"});
+      }catch(err){alert("⚠️ Server error.");console.error(err);}
+    });
+  </script>
 </body>
 </html>
