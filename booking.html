@@ -3,267 +3,337 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Book Online Pediatric Consultation | BE PEACE</title>
+  <title>Book Consultation - BE PEACE</title>
 
-  <!-- 🌍 SEO -->
-  <meta name="description" content="Book your online pediatric or general health consultation with Dr. Mahesh Yadav at BE PEACE. Trusted video consultations for children and families worldwide." />
-  <meta name="keywords" content="BE PEACE, online pediatric consultation, Dr Mahesh Yadav, child doctor online, video consultation, baby health care" />
-  <meta name="author" content="BE PEACE by Dr. Mahesh Yadav" />
-  <link rel="canonical" href="https://bepeace.in/booking.html" />
-
-  <!-- 📱 Social Sharing -->
-  <meta property="og:title" content="Book Online Pediatric Consultation | BE PEACE" />
-  <meta property="og:description" content="Fast, trusted, and caring video consultations with Dr. Mahesh Yadav – BE PEACE." />
-  <meta property="og:image" content="https://bepeace.in/images/doctor-banner.jpg" />
+  <!-- SEO -->
+  <meta name="description" content="Book an online pediatric or general health consultation with BE PEACE. Simple, fast, and trusted video consultations." />
+  <meta property="og:title" content="Book a Consultation – BE PEACE" />
+  <meta property="og:description" content="Schedule your online health consultation with BE PEACE today. Trusted by families worldwide." />
   <meta property="og:url" content="https://bepeace.in/booking.html" />
-  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://bepeace.in/images/doctor.jpg" />
   <meta name="twitter:card" content="summary_large_image" />
 
-  <!-- 🧠 Favicon -->
-  <link rel="icon" href="/images/logo.svg" type="image/svg+xml" />
-
-  <!-- 🌐 External Libraries -->
-  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <!-- Styles -->
+  <link rel="stylesheet" href="/style.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
 
-  <!-- 💅 CSS -->
   <style>
-    :root {
-      --peach: #c71585;
-      --aqua: #00bfa6;
-      --bg-light: #fdfdfd;
-      --bg-gradient: linear-gradient(135deg, #fce4ec, #e3f2fd);
-    }
+    /* 🌈 Background & layout */
     body {
-      margin: 0;
       font-family: "Poppins", sans-serif;
-      background: var(--bg-gradient);
-      color: #333;
-      scroll-behavior: smooth;
+      background: linear-gradient(135deg, #fce4ec, #e3f2fd);
+      margin: 0;
+      padding: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
+      min-height: 100vh;
     }
 
-    /* HEADER */
-    header {
-      background: linear-gradient(90deg, #e1f5fe, #fce4ec);
-      width: 100%;
-      padding: 20px 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
-    }
-    .logo-container {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .logo-container img {
-      height: 45px;
-    }
-    .logo-container h1 {
-      color: var(--peach);
-      font-weight: 700;
-      font-size: 1.8rem;
-      margin: 0;
-    }
+    header { text-align: center; margin-top: 20px; }
+    h1.peach-text { color: #c71585; font-weight: 700; letter-spacing: 1px; }
 
-    /* MAIN HEADING */
     h2 {
+      color: #333;
       text-align: center;
-      margin: 25px 0 5px;
-      color: #222;
-      font-size: 1.9rem;
-    }
-    #timezoneDisplay {
-      text-align: center;
-      color: #777;
-      font-size: 14px;
-      margin-bottom: 15px;
+      margin: 30px 0 10px;
+      font-size: 1.8rem;
     }
 
-    /* FORM */
+    /* 💎 Booking card */
     form {
       background: rgba(255, 255, 255, 0.95);
-      border-radius: 16px;
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+      border-radius: 20px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      backdrop-filter: blur(10px);
       padding: 30px;
       width: 90%;
       max-width: 700px;
-      margin-bottom: 50px;
+      margin-bottom: 60px;
+      animation: fadeIn 0.7s ease-in-out;
     }
-    label { font-weight: 600; display: block; margin: 12px 0 6px; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    label {
+      font-weight: 600;
+      color: #333;
+      display: block;
+      margin: 12px 0 6px;
+    }
+
     input, select, textarea {
       width: 100%;
       padding: 12px;
-      border-radius: 8px;
+      border-radius: 10px;
       border: 1px solid #ccc;
       font-size: 1rem;
       box-sizing: border-box;
-      transition: border-color 0.3s;
+      transition: all 0.3s ease;
+      background: #fff;
     }
+
     input:focus, select:focus, textarea:focus {
-      border-color: var(--peach);
+      border-color: #c71585;
+      box-shadow: 0 0 6px rgba(199, 21, 133, 0.3);
       outline: none;
-      box-shadow: 0 0 5px rgba(199, 21, 133, 0.4);
     }
+
     textarea { min-height: 100px; resize: vertical; }
+
+    /* ✨ Country dropdown styling */
+    select#country {
+      background: #fff url('https://cdn-icons-png.flaticon.com/512/709/709790.png') no-repeat 96% center;
+      background-size: 18px;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+    }
 
     .fee {
       background: #f3f4f6;
       padding: 12px;
-      border-radius: 6px;
+      border-radius: 8px;
       text-align: center;
-      margin: 15px 0 25px;
+      color: #333;
       font-weight: bold;
-      color: #444;
+      margin: 15px 0 25px;
     }
 
-    /* SLOTS */
+    /* 🕒 Slots grid - Hourly layout */
     .slots-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 10px;
-      margin: 20px 0;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 15px;
+      margin: 15px 0 25px;
+      justify-items: center;
     }
-    .slot-btn {
-      border: none;
-      border-radius: 8px;
-      padding: 12px;
-      font-weight: 600;
-      transition: all 0.25s;
-      cursor: pointer;
-    }
-    .slot-btn.available { background: #43a047; color: #fff; }
-    .slot-btn.booked { background: #dc3545; color: #fff; opacity: 0.8; cursor: not-allowed; }
-    .slot-btn.past { background: #999; color: #fff; opacity: 0.8; cursor: not-allowed; }
-    .slot-btn.selected { background: var(--aqua); color: #fff; }
 
-    /* BUTTON */
-    #payBtn {
-      background: #ccc;
-      color: #fff;
+    .slot-btn {
+      padding: 16px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
       border: none;
-      padding: 14px;
-      border-radius: 8px;
+      cursor: pointer;
       width: 100%;
+      transition: all 0.25s ease;
+      text-align: center;
+    }
+
+    .slot-btn.available {
+      background: linear-gradient(145deg, #43a047, #2e7d32);
+      color: #fff;
+      box-shadow: 0 4px 10px rgba(76, 175, 80, 0.35);
+    }
+    .slot-btn.available:hover {
+      transform: scale(1.05);
+      background: linear-gradient(145deg, #2e7d32, #43a047);
+      box-shadow: 0 6px 14px rgba(76, 175, 80, 0.45);
+    }
+    .slot-btn.booked {
+      background: #e57373;
+      color: #fff;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    .slot-btn.past {
+      background: #9e9e9e;
+      color: #fff;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    .slot-btn.selected {
+      background: linear-gradient(145deg, #007bff, #0056b3);
+      color: #fff;
+      transform: scale(1.08);
+      box-shadow: 0 0 15px rgba(0, 123, 255, 0.5);
+    }
+
+    /* 🌟 Legend */
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin: 15px 0;
+      font-weight: 600;
+    }
+    .legend-item::before {
+      content: "";
+      width: 15px;
+      height: 15px;
+      border-radius: 3px;
+      display: inline-block;
+      margin-right: 6px;
+    }
+    .legend-item.available::before { background: #28a745; }
+    .legend-item.booked::before { background: #dc3545; }
+    .legend-item.past::before { background: #6c757d; }
+
+    /* 💳 Payment button */
+    #payBtn {
+      background: #bbb;
+      color: white;
+      padding: 14px;
+      width: 100%;
+      border-radius: 10px;
+      border: none;
       font-size: 16px;
       font-weight: 600;
-      transition: all 0.3s;
       cursor: not-allowed;
+      transition: all 0.3s;
     }
+
     #payBtn.active {
       background: linear-gradient(135deg, #43cea2, #185a9d);
       cursor: pointer;
+      box-shadow: 0 5px 15px rgba(24, 90, 157, 0.4);
     }
-    #payBtn.active:hover { transform: scale(1.03); }
 
-    .success { text-align: center; color: #28a745; margin: 10px 0; }
+    #payBtn.active:hover {
+      transform: scale(1.03);
+      box-shadow: 0 8px 20px rgba(24, 90, 157, 0.5);
+    }
 
-    /* FOOTER */
-    footer {
-      background: linear-gradient(90deg, #fce4ec, #e1f5fe);
-      color: #444;
-      width: 100%;
+    .success {
       text-align: center;
-      padding: 15px 10px;
-      font-size: 14px;
-      border-top: 2px solid #f8bbd0;
+      color: #28a745;
+      font-weight: bold;
+      font-size: 15px;
+      margin: 10px 0;
+      animation: blink 1s infinite alternate;
     }
-    footer h1 {
-      margin: 5px 0;
-      color: var(--peach);
-      font-size: 1.4rem;
-      font-weight: 700;
+
+    @keyframes blink {
+      from { opacity: 0.7; }
+      to { opacity: 1; }
+    }
+
+    footer {
+      margin-top: auto;
+      text-align: center;
+      padding: 20px 0;
+      color: #555;
+      font-size: 14px;
+    }
+
+    @media (max-width: 600px) {
+      .slots-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+      .slot-btn { font-size: 14px; padding: 12px; }
     }
   </style>
 </head>
 
 <body>
-  <!-- HEADER -->
   <header>
-    <div class="logo-container">
-      <img src="/images/logo.svg" alt="BE PEACE Logo">
-      <h1>BE PEACE</h1>
-    </div>
+    <h1 class="peach-text">🌍 BE PEACE</h1>
   </header>
 
-  <!-- MAIN -->
-  <main>
-    <h2>🩺 Book Your Consultation</h2>
-    <p id="timezoneDisplay">⏰ Detecting your timezone...</p>
+  <h2>🩺 Book Your Consultation</h2>
+  <p id="timezoneDisplay" style="text-align:center; color:#555; font-size:14px;">⏰ Detecting your timezone...</p>
 
-    <form id="bookingForm">
-      <label>Select Your Country:</label>
-      <select id="country" required></select>
-      <p class="fee" id="feeDisplay">Consultation Fee: --</p>
+  <form id="bookingForm">
+    <label>Select Your Country:</label>
+    <select id="country" required></select>
+    <p class="fee" id="feeDisplay">Consultation Fee: --</p>
 
-      <label>Name:</label><input type="text" id="name" required />
-      <label>Age:</label><input type="text" id="age" required />
-      <label>Sex:</label>
-      <select id="sex" required>
-        <option value="">Select</option>
-        <option>Male ♂</option><option>Female ♀</option><option>Other ⚧</option>
-      </select>
+    <label>Name:</label>
+    <input type="text" id="name" placeholder="Full name" required />
 
-      <label>Phone:</label><input id="phone" type="tel" required />
-      <label>Email:</label><input type="email" id="email" required />
-      <label>Health Concern:</label><textarea id="concern" required></textarea>
+    <label>Age:</label>
+    <input type="text" id="age" placeholder="e.g. 5 years" required />
 
-      <label>Choose Date:</label><input type="date" id="date" required />
-      <label>Choose Time Slot:</label>
-      <div id="slotContainer" class="slots-grid"></div>
-      <input type="hidden" id="slot" required />
+    <label>Sex:</label>
+    <select id="sex" required>
+      <option value="">Select</option>
+      <option value="Male">Male ♂</option>
+      <option value="Female">Female ♀</option>
+      <option value="Other">Other ⚧</option>
+    </select>
 
-      <p id="successMsg" class="success" style="display:none;">✅ All good! Proceed to payment.</p>
-      <button type="button" id="payBtn" disabled>Proceed to Payment 💳</button>
-    </form>
-  </main>
+    <label>Phone:</label>
+    <input id="phone" type="tel" required />
 
-  <!-- FOOTER -->
-  <footer>
-    <h1>BE PEACE</h1>
-    <p>© 2025 BE PEACE | Online Pediatric Consultation by Dr. Mahesh Yadav</p>
-    <p><a href="index.html" style="color:#c71585;text-decoration:none;font-weight:600;">🏠 Back to Homepage</a></p>
-  </footer>
+    <label>Email:</label>
+    <input type="email" id="email" required placeholder="you@example.com" />
+
+    <label>Health Concern:</label>
+    <textarea id="concern" placeholder="Describe your concern briefly..." required></textarea>
+
+    <label>Choose Date:</label>
+    <input type="date" id="date" required />
+
+    <label>Choose Time Slot:</label>
+    <div id="slotContainer" class="slots-grid"></div>
+    <input type="hidden" id="slot" required />
+
+    <div class="legend">
+      <span class="legend-item available">Available</span>
+      <span class="legend-item booked">Booked</span>
+      <span class="legend-item past">Past</span>
+    </div>
+
+    <p id="successMsg" class="success" style="display:none;">✅ All good! You can proceed to payment.</p>
+    <button type="button" id="payBtn" disabled>Proceed to Payment 💳</button>
+    <a href="index.html" style="display:block;text-align:center;margin-top:15px;color:#555;text-decoration:none;">⬅ Back to Homepage</a>
+  </form>
+
+  <footer>© 2025 BE PEACE. All rights reserved.</footer>
 
   <script>
-    // 📞 Phone + country
-    const phoneInput=document.querySelector("#phone");
-    const iti=window.intlTelInput(phoneInput,{initialCountry:"auto",
-      geoIpLookup:cb=>fetch("https://ipapi.co/json").then(r=>r.json()).then(d=>cb(d.country_code)).catch(()=>cb("IN"))});
+    const payBtn = document.getElementById("payBtn");
+    const countrySelect = document.getElementById("country");
+    const dateInput = document.getElementById("date");
+    const slotContainer = document.getElementById("slotContainer");
+    const slotInput = document.getElementById("slot");
+    const feeDisplay = document.getElementById("feeDisplay");
+    const successMsg = document.getElementById("successMsg");
+    const phoneInput = document.querySelector("#phone");
 
-    const countrySelect=document.getElementById("country");
-    const dateInput=document.getElementById("date");
-    const slotContainer=document.getElementById("slotContainer");
-    const slotInput=document.getElementById("slot");
-    const payBtn=document.getElementById("payBtn");
-    const feeDisplay=document.getElementById("feeDisplay");
-    const successMsg=document.getElementById("successMsg");
-    const todayISO=new Date().toISOString().split("T")[0];
-    dateInput.min=todayISO; dateInput.value=todayISO;
-    let amount=0;
+    let amount = 0, currency = "INR";
+    const todayISO = new Date().toISOString().split("T")[0];
+    dateInput.min = todayISO;
+    dateInput.value = todayISO;
 
-    async function loadCountries(){
-      const res=await fetch("https://restcountries.com/v3.1/all?fields=cca2,name,flag");
-      const data=await res.json();
+    const iti = window.intlTelInput(phoneInput, {
+      initialCountry: "auto",
+      geoIpLookup: cb => fetch("https://ipapi.co/json").then(res=>res.json()).then(d=>cb(d.country_code)).catch(()=>cb("IN")),
+      utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
+    });
+
+    // 🌎 Load countries beautifully
+    async function loadCountries() {
+      const res = await fetch("https://restcountries.com/v3.1/all?fields=cca2,name,flags");
+      const data = await res.json();
       data.sort((a,b)=>a.name.common.localeCompare(b.name.common));
       data.forEach(c=>{
         const opt=document.createElement("option");
-        opt.value=c.cca2; opt.textContent=`${c.flag||''} ${c.name.common}`;
+        opt.value=c.cca2;
+        opt.textContent=`${c.flag || ''} ${c.name.common}`;
         countrySelect.appendChild(opt);
       });
-      $("#country").select2();
-      countrySelect.value="IN"; setFee("IN");
+      countrySelect.value="IN";
+      setFee("IN");
     }
 
-    function setFee(code){ amount=code==="IN"?10:40;
-      feeDisplay.textContent=code==="IN"?"Consultation Fee: ₹10 INR":"Consultation Fee: $40 USD"; }
+    const currencySymbols={INR:"₹",USD:"$",GBP:"£",EUR:"€",AED:"د.إ"};
+    const countryToCurrency={IN:"INR",US:"USD",GB:"GBP",AE:"AED"};
+
+    function setFee(code){
+      if(code==="IN"){amount=10;currency="INR";feeDisplay.textContent="Consultation Fee: ₹10 INR";}
+      else{amount=40;currency="USD";feeDisplay.textContent="Consultation Fee: $40 USD";}
+    }
+
+    countrySelect.addEventListener("change",()=>setFee(countrySelect.value));
+    loadCountries();
 
     async function loadSlots(date){
       slotContainer.innerHTML="⏳ Loading...";
@@ -273,38 +343,30 @@
       slotContainer.innerHTML="";
       data.slots.forEach(s=>{
         const btn=document.createElement("button");
-        btn.textContent=s.slot;btn.type="button";
+        btn.textContent=s.slot;
+        btn.type="button";
         btn.className=`slot-btn ${s.status.toLowerCase()}`;
         if(s.status==="available"){
           btn.onclick=()=>{document.querySelectorAll(".slot-btn.available").forEach(b=>b.classList.remove("selected"));
-            btn.classList.add("selected");slotInput.value=s.slot;validateForm();};
-        }else btn.disabled=true;
+          btn.classList.add("selected");slotInput.value=s.slot;validateForm();};
+        } else btn.disabled=true;
         slotContainer.appendChild(btn);
       });
       validateForm();
     }
 
     function validateForm(){
-      const ids=["name","age","sex","phone","email","concern","date","slot"];
-      const valid=ids.every(id=>document.getElementById(id).value.trim());
-      payBtn.disabled=!valid;
-      payBtn.classList.toggle("active",valid);
-      successMsg.style.display=valid?"block":"none";
+      const valid=["name","age","sex","phone","email","concern","date","slot"].every(id=>document.getElementById(id).value.trim());
+      if(valid){payBtn.disabled=false;payBtn.classList.add("active");successMsg.style.display="block";}
+      else{payBtn.disabled=true;payBtn.classList.remove("active");successMsg.style.display="none";}
       return valid;
     }
-
-    document.querySelectorAll("input,select,textarea").forEach(el=>{
-      el.addEventListener("input",validateForm);
-      el.addEventListener("change",validateForm);
+    ["name","age","sex","phone","email","concern","date"].forEach(id=>{
+      document.getElementById(id).addEventListener("input",validateForm);
     });
+
     dateInput.addEventListener("change",()=>loadSlots(dateInput.value));
-
-    payBtn.addEventListener("click",async()=>{
-      if(!validateForm())return;
-      alert("✅ Booking confirmed! Payment integration pending.");
-    });
-
-    window.onload=()=>{loadCountries();loadSlots(todayISO);};
+    window.onload=()=>loadSlots(todayISO);
   </script>
 </body>
 </html>
