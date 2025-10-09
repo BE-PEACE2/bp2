@@ -38,11 +38,12 @@ export default async function handler(req, res) {
       // 💳 Create order on Cashfree LIVE endpoint using fetch
       const cfResponse = await fetch("https://api.cashfree.com/pg/orders", {
         method: "POST",
-        headers: {
-          "x-client-id": process.env.CASHFREE_APP_ID,
-          "x-client-secret": process.env.CASHFREE_SECRET_KEY,
-          "Content-Type": "application/json",
-        },
+       headers: {
+        "x-client-id": process.env.CASHFREE_APP_ID,
+        "x-client-secret": process.env.CASHFREE_SECRET_KEY,
+       "x-api-version": "2022-09-01",
+       "Content-Type": "application/json",
+       },
         body: JSON.stringify({
           order_id: orderId,
           order_amount: amount,
@@ -63,7 +64,7 @@ export default async function handler(req, res) {
 
       if (!cfResponse.ok) {
         const errorText = await cfResponse.text();
-        console.error("💥 Cashfree order creation failed:", errorText);
+        console.error("💥 Cashfree order creation failed:", cfResponse.status, errorText);
         return res.status(500).json({ error: "Cashfree order creation failed", details: errorText });
       }
 
