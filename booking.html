@@ -57,7 +57,7 @@
   <form id="bookingForm">
     <label for="country">Select Your Country:</label>
     <select id="country" required></select>
-    <p class="fee" id="feeDisplay">Consultation Fee: --</p>
+    <p class="fee" id="feeDisplay">Consultation Fee: ₹10 INR</p>
 
     <label>Name:</label><input type="text" id="name" required />
     <label>Age:</label><input type="text" id="age" required placeholder="e.g., 5 years" />
@@ -107,13 +107,13 @@ const feeDisplay = document.getElementById("feeDisplay");
 const successMsg = document.getElementById("successMsg");
 const phoneInput = document.querySelector("#phone");
 
-let amount = 0, currency = "INR", iti;
+let amount = 10; 
+let currency = "INR"; // 💡 Force INR only for production
+let iti;
+
 const todayISO = new Date().toISOString().split("T")[0];
 dateInput.setAttribute("min", todayISO);
 dateInput.value = todayISO;
-
-const currencySymbols = { INR: "₹", USD: "$", GBP: "£", EUR: "€", AED: "د.إ", CAD: "CA$", AUD: "A$", SGD: "S$", JPY: "¥", CNY: "¥" };
-const countryToCurrency = { IN: "INR", US: "USD", GB: "GBP", AE: "AED", CA: "CAD", AU: "AUD" };
 
 // 🌍 Load all countries for dropdown
 async function loadCountries() {
@@ -127,51 +127,24 @@ async function loadCountries() {
   });
 }
 
-// 🌍 Detect user's country and timezone, then initialize phone & fee
+// 🌍 Detect user's country and timezone
 async function initDetection() {
   try {
     const res = await fetch("https://ipapi.co/json");
     const data = await res.json();
-    const detected = data.country_code || "IN";
     const timezone = data.timezone || "Asia/Kolkata";
-
-    // Set timezone text
     document.getElementById("timezoneDisplay").textContent = `⏰ Your timezone: ${timezone}`;
-
-    // Set dropdown
-    countrySelect.value = detected;
-
-    // Initialize phone input AFTER detection
-    iti = window.intlTelInput(phoneInput, {
-      initialCountry: detected,
-      preferredCountries: ["IN", "US", "AE", "GB"],
-      utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
-    });
-
-    // Set fee
-    setFee(detected);
-
-    // Sync phone flag when user changes country manually
-    countrySelect.addEventListener("change", () => {
-      iti.setCountry(countrySelect.value);
-      setFee(countrySelect.value);
-    });
-
+    countrySelect.value = data.country_code || "IN";
   } catch (e) {
     console.warn("Geo detection failed, defaulting to IN");
-    iti = window.intlTelInput(phoneInput, { initialCountry: "IN" });
     countrySelect.value = "IN";
-    setFee("IN");
   }
-}
 
-// 💱 Set consultation fee by country
-function setFee(code) {
-  if (code === "IN") {
-    amount = 10; currency = "INR"; feeDisplay.textContent = "Consultation Fee: ₹10 INR";
-  } else {
-    amount = 40; currency = "USD"; feeDisplay.textContent = "Consultation Fee: $40 USD";
-  }
+  iti = window.intlTelInput(phoneInput, {
+    initialCountry: "IN",
+    preferredCountries: ["IN", "US", "AE", "GB"],
+    utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
+  });
 }
 
 // 🕒 Load slots
@@ -237,16 +210,25 @@ payBtn.addEventListener("click", async()=>{
         date=document.getElementById("date").value,
         slot=document.getElementById("slot").value;
   try{
-    const res=await fetch("/api/payment?path=create",{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({name,email,phone,amount,currency,date,slot,age,sex,concern})});
+    const res=await fetch("/api/payment?path=create",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({name,email,phone,amount,currency,date,slot,age,sex,concern})
+    });
     const data=await res.json();
-    if(!data.success)return alert("❌ Payment creation failed.");
+    if(!data.success){
+      console.error("Cashfree API error:", data);
+      return alert("❌ Payment creation failed. Please try again or check your internet connection.");
+    }
     const cashfree=new Cashfree({mode:"production"});
     cashfree.checkout({paymentSessionId:data.payment_session_id,redirectTarget:"_self"});
-  }catch(err){alert("⚠️ Server error.");console.error(err);}
+  }catch(err){
+    console.error("⚠️ Server error:", err);
+    alert("⚠️ Server error while starting payment. Please retry.");
+  }
 });
 
-// 🚀 Initialize all
+// 🚀 Initialize
 window.addEventListener("DOMContentLoaded", async()=>{
   await loadCountries();
   await initDetection();
