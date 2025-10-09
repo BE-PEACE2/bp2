@@ -98,144 +98,160 @@
   </footer>
 
   <script>
-    const payBtn = document.getElementById("payBtn");
-    const countrySelect = document.getElementById("country");
-    const dateInput = document.getElementById("date");
-    const slotContainer = document.getElementById("slotContainer");
-    const slotInput = document.getElementById("slot");
-    const feeDisplay = document.getElementById("feeDisplay");
-    const successMsg = document.getElementById("successMsg");
-    const phoneInput = document.querySelector("#phone");
+const payBtn = document.getElementById("payBtn");
+const countrySelect = document.getElementById("country");
+const dateInput = document.getElementById("date");
+const slotContainer = document.getElementById("slotContainer");
+const slotInput = document.getElementById("slot");
+const feeDisplay = document.getElementById("feeDisplay");
+const successMsg = document.getElementById("successMsg");
+const phoneInput = document.querySelector("#phone");
 
-    let amount = 0, currency = "INR";
-    const todayISO = new Date().toISOString().split("T")[0];
-    dateInput.setAttribute("min", todayISO);
-    dateInput.value = todayISO;
+let amount = 0, currency = "INR", iti;
+const todayISO = new Date().toISOString().split("T")[0];
+dateInput.setAttribute("min", todayISO);
+dateInput.value = todayISO;
 
-    const currencySymbols = { INR: "₹", USD: "$", GBP: "£", EUR: "€", AED: "د.إ", CAD: "CA$", AUD: "A$", SGD: "S$", JPY: "¥", CNY: "¥" };
-    const countryToCurrency = { IN: "INR", US: "USD", GB: "GBP", AE: "AED", CA: "CAD", AU: "AUD" };
+const currencySymbols = { INR: "₹", USD: "$", GBP: "£", EUR: "€", AED: "د.إ", CAD: "CA$", AUD: "A$", SGD: "S$", JPY: "¥", CNY: "¥" };
+const countryToCurrency = { IN: "INR", US: "USD", GB: "GBP", AE: "AED", CA: "CAD", AU: "AUD" };
 
-    // 📞 intl-tel-input
-    const iti = window.intlTelInput(phoneInput, {
-      initialCountry: "auto",
-      geoIpLookup: cb => fetch("https://ipapi.co/json").then(res => res.json()).then(d => cb(d.country_code)).catch(() => cb("IN")),
+// 🌍 Load all countries for dropdown
+async function loadCountries() {
+  const res = await fetch("https://restcountries.com/v3.1/all?fields=cca2,name");
+  const countries = await res.json();
+  countries.sort((a,b)=>a.name.common.localeCompare(b.name.common));
+  countries.forEach(c=>{
+    const opt=document.createElement("option");
+    opt.value=c.cca2; opt.textContent=c.name.common;
+    countrySelect.appendChild(opt);
+  });
+}
+
+// 🌍 Detect user's country and timezone, then initialize phone & fee
+async function initDetection() {
+  try {
+    const res = await fetch("https://ipapi.co/json");
+    const data = await res.json();
+    const detected = data.country_code || "IN";
+    const timezone = data.timezone || "Asia/Kolkata";
+
+    // Set timezone text
+    document.getElementById("timezoneDisplay").textContent = `⏰ Your timezone: ${timezone}`;
+
+    // Set dropdown
+    countrySelect.value = detected;
+
+    // Initialize phone input AFTER detection
+    iti = window.intlTelInput(phoneInput, {
+      initialCountry: detected,
+      preferredCountries: ["IN", "US", "AE", "GB"],
       utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
     });
 
-    // 💱 Exchange Rates (cache 24h)
-    let exchangeRates = {};
-    async function loadRates() {
-      try {
-        const cache = localStorage.getItem("exchangeRatesData");
-        const cacheTime = localStorage.getItem("exchangeRatesTime");
-        const now = Date.now();
-        if (cache && cacheTime && now - cacheTime < 24*60*60*1000) {
-          exchangeRates = JSON.parse(cache);
-          return;
-        }
-        const res = await fetch("https://open.er-api.com/v6/latest/USD");
-        const data = await res.json();
-        exchangeRates = data.rates || {};
-        localStorage.setItem("exchangeRatesData", JSON.stringify(exchangeRates));
-        localStorage.setItem("exchangeRatesTime", now);
-      } catch (err) { console.warn("Exchange rate fetch failed:", err); }
-    }
+    // Set fee
+    setFee(detected);
 
-    // 🌍 Set Fee
-    function setFee(code) {
-      if (code === "IN") {
-        amount = 10; currency = "INR"; feeDisplay.textContent = `Consultation Fee: ₹10 INR`;
-      } else {
-        amount = 40; currency = "USD";
-        const localCur = countryToCurrency[code] || "USD";
-        const base = `$${amount} USD`;
-        if (exchangeRates[localCur]) {
-          const converted = (amount * exchangeRates[localCur]).toFixed(2);
-          const localSymbol = currencySymbols[localCur] || localCur;
-          feeDisplay.textContent = `Consultation Fee: ${base} (~${localSymbol}${converted} ${localCur})`;
-        } else feeDisplay.textContent = `Consultation Fee: ${base}`;
-      }
-    }
-
-    async function loadCountries() {
-      const res = await fetch("https://restcountries.com/v3.1/all?fields=cca2,name");
-      const countries = await res.json();
-      countries.sort((a,b)=>a.name.common.localeCompare(b.name.common));
-      countries.forEach(c=>{
-        const opt=document.createElement("option");
-        opt.value=c.cca2; opt.textContent=c.name.common;
-        countrySelect.appendChild(opt);
-      });
-    }
-
-    window.addEventListener("DOMContentLoaded", async()=>{
-      await loadCountries(); await loadRates();
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      document.getElementById("timezoneDisplay").textContent = `⏰ Your timezone: ${tz}`;
-      countrySelect.value = "IN"; iti.setCountry("IN"); setFee("IN");
-      loadSlots(todayISO);
+    // Sync phone flag when user changes country manually
+    countrySelect.addEventListener("change", () => {
+      iti.setCountry(countrySelect.value);
+      setFee(countrySelect.value);
     });
 
-    countrySelect.addEventListener("change", ()=>setFee(countrySelect.value));
+  } catch (e) {
+    console.warn("Geo detection failed, defaulting to IN");
+    iti = window.intlTelInput(phoneInput, { initialCountry: "IN" });
+    countrySelect.value = "IN";
+    setFee("IN");
+  }
+}
 
-    // ✅ Slots (cache 24h)
-    async function loadSlots(date) {
-      slotContainer.innerHTML = "⏳ Loading slots...";
-      const cacheKey=`slots_${date}`, cacheTimeKey=`${cacheKey}_time`, now=Date.now();
-      const cached=localStorage.getItem(cacheKey), cacheTime=localStorage.getItem(cacheTimeKey);
-      if(cached && cacheTime && now-cacheTime<24*60*60*1000){
-        renderSlots(JSON.parse(cached)); return;
-      }
-      try{
-        const res=await fetch(`/api/doctor?path=slots&date=${date}`);
-        const data=await res.json();
-        if(!data.success||!data.slots?.length){slotContainer.innerHTML="<p>No slots available</p>";return;}
-        localStorage.setItem(cacheKey,JSON.stringify(data.slots));localStorage.setItem(cacheTimeKey,now);
-        renderSlots(data.slots);
-      }catch(e){slotContainer.innerHTML="<p>❌ Error loading slots</p>";}
+// 💱 Set consultation fee by country
+function setFee(code) {
+  if (code === "IN") {
+    amount = 10; currency = "INR"; feeDisplay.textContent = "Consultation Fee: ₹10 INR";
+  } else {
+    amount = 40; currency = "USD"; feeDisplay.textContent = "Consultation Fee: $40 USD";
+  }
+}
+
+// 🕒 Load slots
+async function loadSlots(date) {
+  slotContainer.innerHTML = "⏳ Loading slots...";
+  try {
+    const res = await fetch(`/api/doctor?path=slots&date=${date}`);
+    const data = await res.json();
+    if (!data.success || !data.slots?.length) {
+      slotContainer.innerHTML = "<p>No slots available</p>";
+      return;
     }
+    renderSlots(data.slots);
+  } catch (e) {
+    slotContainer.innerHTML = "<p>❌ Error loading slots</p>";
+  }
+}
 
-    function renderSlots(slots){
-      slotContainer.innerHTML="";
-      slots.forEach(s=>{
-        const btn=document.createElement("button");
-        btn.textContent=s.slot;btn.type="button";
-        btn.className=`slot-btn ${s.status.toLowerCase()}`;
-        if(s.status==="available"){
-          btn.onclick=()=>{document.querySelectorAll(".slot-btn.available").forEach(b=>b.classList.remove("selected"));
-          btn.classList.add("selected");slotInput.value=s.slot;validateForm();};
-        }else btn.disabled=true;
-        slotContainer.appendChild(btn);
-      });
-      validateForm();
-    }
+// 🎯 Render time slots
+function renderSlots(slots) {
+  slotContainer.innerHTML = "";
+  slots.forEach(s => {
+    const btn = document.createElement("button");
+    btn.textContent = s.slot;
+    btn.type = "button";
+    btn.className = `slot-btn ${s.status.toLowerCase()}`;
+    if (s.status === "available") {
+      btn.onclick = () => {
+        document.querySelectorAll(".slot-btn.available").forEach(b => b.classList.remove("selected"));
+        btn.classList.add("selected");
+        slotInput.value = s.slot;
+        validateForm();
+      };
+    } else btn.disabled = true;
+    slotContainer.appendChild(btn);
+  });
+  validateForm();
+}
 
-    function validateForm(){
-      const valid=["name","age","sex","phone","email","concern","date","slot"].every(id=>document.getElementById(id).value.trim());
-      if(valid){payBtn.disabled=false;payBtn.classList.add("active");successMsg.style.display="block";}
-      else{payBtn.disabled=true;payBtn.classList.remove("active");successMsg.style.display="none";}
-      return valid;
-    }
-    ["name","age","sex","phone","email","concern","date","slot"].forEach(id=>{
-      document.getElementById(id).addEventListener("input",validateForm);
-      document.getElementById(id).addEventListener("change",validateForm);
-    });
+// ✅ Form validation
+function validateForm() {
+  const valid = ["name","age","sex","phone","email","concern","date","slot"]
+    .every(id => document.getElementById(id).value.trim());
+  if(valid){payBtn.disabled=false;payBtn.classList.add("active");successMsg.style.display="block";}
+  else{payBtn.disabled=true;payBtn.classList.remove("active");successMsg.style.display="none";}
+  return valid;
+}
+["name","age","sex","phone","email","concern","date","slot"].forEach(id=>{
+  document.getElementById(id).addEventListener("input",validateForm);
+  document.getElementById(id).addEventListener("change",validateForm);
+});
+dateInput.addEventListener("change",()=>loadSlots(dateInput.value));
 
-    payBtn.addEventListener("click", async()=>{
-      if(!validateForm())return;
-      const name=name.value.trim(),email=email.value.trim(),phone=iti.getNumber(),
-            age=document.getElementById("age").value.trim(),sex=document.getElementById("sex").value,
-            concern=document.getElementById("concern").value.trim(),date=document.getElementById("date").value,
-            slot=document.getElementById("slot").value;
-      try{
-        const res=await fetch("/api/payment?path=create",{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({name,email,phone,amount,currency,date,slot,age,sex,concern})});
-        const data=await res.json();
-        if(!data.success)return alert("❌ Payment creation failed.");
-        const cashfree=new Cashfree({mode:"production"});
-        cashfree.checkout({paymentSessionId:data.payment_session_id,redirectTarget:"_self"});
-      }catch(err){alert("⚠️ Server error.");console.error(err);}
-    });
-  </script>
+// 💳 Payment button
+payBtn.addEventListener("click", async()=>{
+  if(!validateForm())return;
+  const name=document.getElementById("name").value.trim(),
+        email=document.getElementById("email").value.trim(),
+        phone=iti.getNumber(),
+        age=document.getElementById("age").value.trim(),
+        sex=document.getElementById("sex").value,
+        concern=document.getElementById("concern").value.trim(),
+        date=document.getElementById("date").value,
+        slot=document.getElementById("slot").value;
+  try{
+    const res=await fetch("/api/payment?path=create",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({name,email,phone,amount,currency,date,slot,age,sex,concern})});
+    const data=await res.json();
+    if(!data.success)return alert("❌ Payment creation failed.");
+    const cashfree=new Cashfree({mode:"production"});
+    cashfree.checkout({paymentSessionId:data.payment_session_id,redirectTarget:"_self"});
+  }catch(err){alert("⚠️ Server error.");console.error(err);}
+});
+
+// 🚀 Initialize all
+window.addEventListener("DOMContentLoaded", async()=>{
+  await loadCountries();
+  await initDetection();
+  await loadSlots(todayISO);
+});
+</script>
 </body>
 </html>
