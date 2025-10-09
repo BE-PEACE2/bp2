@@ -1,9 +1,10 @@
 // /api/payment.js
 import connectDB from "../db.js";
 import crypto from "crypto";
+import axios from "axios";
 
 export default async function handler(req, res) {
-  const { path } = req.query; // e.g. /api/payment?path=create
+  const { path } = req.query; // e.g., /api/payment?path=create
 
   try {
     const db = await connectDB();
@@ -11,130 +12,100 @@ export default async function handler(req, res) {
     const bookings = db.collection("bookings");
     const locks = db.collection("slotLocks");
 
-    // =====================================================
-    // 🟢 CREATE ORDER – called from frontend
-    // =====================================================
+    // ===== CREATE ORDER =====
     if (path === "create" && req.method === "POST") {
       const { name, email, phone, amount, currency, date, slot, age, sex, concern } = req.body;
+
       if (!date || !slot) return res.status(400).json({ error: "Date and slot required" });
 
       const now = new Date();
-      const expiry = new Date(now.getTime() + 5 * 60 * 1000); // 5-minute hold window
+      const expiry = new Date(now.getTime() + 5 * 60 * 1000); // 5-minute slot lock
 
-      // Clean expired locks
+      // 🧹 Clear expired locks
       await locks.deleteMany({ expiresAt: { $lt: now } });
 
-      // Prevent double-booking
+      // 🛑 Prevent double-booking or active lock
       const existingBooking = await bookings.findOne({ date, slot });
       const activeLock = await locks.findOne({ date, slot });
       if (existingBooking) return res.status(400).json({ error: "Slot already booked" });
-      if (activeLock) return res.status(400).json({ error: "Slot temporarily held, please try again soon" });
+      if (activeLock) return res.status(400).json({ error: "Slot temporarily held, please try again." });
 
-      // Lock slot temporarily
-      await locks.insertOne({ date, slot, heldBy: email, createdAt: now, expiresAt: expiry });
+      // 🟢 Lock slot temporarily
+      await locks.insertOne({
+        date,
+        slot,
+        heldBy: email,
+        createdAt: now,
+        expiresAt: expiry,
+      });
 
       const orderId = "ORDER_" + Date.now();
 
-      // 💳 Create order on Cashfree LIVE endpoint using fetch
-      const cfResponse = await fetch("https://api.cashfree.com/pg/orders", {
-        method: "POST",
-       headers: {
-        "x-client-id": process.env.CASHFREE_APP_ID,
-        "x-client-secret": process.env.CASHFREE_SECRET_KEY,
-       "x-api-version": "2022-09-01",
-       "Content-Type": "application/json",
-       },
-        body: JSON.stringify({
-          order_id: orderId,
-          order_amount: amount,
-          order_currency: currency,
-          order_note: `Consultation booking for ${name}`,
-          customer_details: {
-            customer_id: phone,
-            customer_name: name,
-            customer_email: email,
-            customer_phone: phone,
+      // 🧾 Sanitize identifiers
+      const cleanPhone = phone.replace(/\D/g, ""); // only digits
+      const cleanCustomerId = email.replace(/[^a-zA-Z0-9_-]/g, "_"); // safe ID
+
+      // 💳 Create Cashfree live order
+      try {
+        const response = await axios.post(
+          "https://api.cashfree.com/pg/orders",
+          {
+            order_id: orderId,
+            order_amount: Number(amount),
+            order_currency: currency || "INR",
+            customer_details: {
+              customer_id: cleanCustomerId,
+              customer_name: name,
+              customer_email: email,
+              customer_phone: cleanPhone,
+            },
+            order_meta: {
+              return_url: `https://bepeace.in/payment-success.html?order_id=${orderId}`,
+              notify_url: `https://bepeace.in/api/payment?path=webhook`,
+            },
           },
-          order_meta: {
-            return_url: `https://bepeace.in/payment-success.html?order_id=${orderId}`,
-            notify_url: `https://bepeace.in/api/payment?path=webhook`,
-          },
-        }),
-      });
+          {
+            headers: {
+              "x-client-id": process.env.CASHFREE_APP_ID,
+              "x-client-secret": process.env.CASHFREE_SECRET_KEY,
+              "x-api-version": "2023-08-01",
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
-      if (!cfResponse.ok) {
-        const errorText = await cfResponse.text();
-        console.error("💥 Cashfree order creation failed:", cfResponse.status, errorText);
-        return res.status(500).json({ error: "Cashfree order creation failed", details: errorText });
-      }
+        const { payment_session_id } = response.data;
 
-      const data = await cfResponse.json();
-      const { payment_session_id } = data;
-
-      if (!payment_session_id) {
-        console.error("❌ Cashfree response invalid:", data);
-        return res.status(500).json({ error: "Invalid Cashfree response", details: data });
-      }
-
-      // Save payment in DB
-      await payments.insertOne({
-        orderId,
-        name,
-        email,
-        phone,
-        amount,
-        currency,
-        date,
-        slot,
-        age,
-        sex,
-        concern,
-        status: "CREATED",
-        createdAt: now,
-      });
-
-      return res.status(200).json({
-        success: true,
-        orderId,
-        payment_session_id,
-      });
-    }
-
-    // =====================================================
-    // 🟢 VERIFY PAYMENT – called from payment-success.html
-    // =====================================================
-    if (path === "verify" && req.method === "POST") {
-      const { orderId } = req.body;
-      const payment = await payments.findOne({ orderId });
-      if (!payment) return res.status(404).json({ error: "Order not found" });
-
-      await payments.updateOne({ orderId }, { $set: { status: "PAID", verifiedAt: new Date() } });
-
-      const existingBooking = await bookings.findOne({ date: payment.date, slot: payment.slot });
-      if (!existingBooking) {
-        await bookings.insertOne({
-          date: payment.date,
-          slot: payment.slot,
-          name: payment.name,
-          email: payment.email,
-          phone: payment.phone,
-          concern: payment.concern,
-          createdAt: new Date(),
+        // Save payment record
+        await payments.insertOne({
+          orderId,
+          name,
+          email,
+          phone: cleanPhone,
+          amount,
+          currency,
+          date,
+          slot,
+          concern,
+          status: "CREATED",
+          createdAt: now,
         });
-      }
 
-      await locks.deleteOne({ date: payment.date, slot: payment.slot });
-      return res.status(200).json({ success: true, message: "Payment verified and slot booked" });
+        return res.status(200).json({
+          success: true,
+          orderId,
+          payment_session_id,
+        });
+      } catch (apiErr) {
+        const msg = apiErr.response?.data || apiErr.message || "Cashfree API error";
+        console.error("💥 Cashfree order creation failed:", msg);
+        return res.status(500).json({ success: false, error: msg });
+      }
     }
 
-    // =====================================================
-    // 🟢 WEBHOOK – Cashfree automatic notification
-    // =====================================================
+    // ===== WEBHOOK (Cashfree → your site) =====
     if (path === "webhook" && req.method === "POST") {
-      console.log("🔔 Cashfree Webhook Received:", req.body);
-
       const signature = req.headers["x-webhook-signature"];
-      if (!signature) return res.status(400).json({ error: "Missing signature" });
 
       const computed = crypto
         .createHmac("sha256", process.env.CASHFREE_SECRET_KEY)
@@ -143,9 +114,6 @@ export default async function handler(req, res) {
 
       if (signature !== computed)
         return res.status(400).json({ error: "Invalid signature" });
-
-      if (!req.body?.data)
-        return res.status(400).json({ error: "Invalid webhook data" });
 
       const { order_id, order_status } = req.body.data;
       const payment = await payments.findOne({ orderId: order_id });
@@ -156,6 +124,7 @@ export default async function handler(req, res) {
         { $set: { status: order_status, updatedAt: new Date() } }
       );
 
+      // Auto-book on payment success
       if (order_status === "PAID" || order_status === "SUCCESS") {
         const already = await bookings.findOne({ date: payment.date, slot: payment.slot });
         if (!already) {
@@ -169,35 +138,25 @@ export default async function handler(req, res) {
             createdAt: new Date(),
           });
         }
-      } else if (order_status === "FAILED" || order_status === "CANCELLED") {
-        await payments.updateOne(
-          { orderId: order_id },
-          { $set: { status: "FAILED", updatedAt: new Date() } }
-        );
       }
 
+      // Remove slot lock after payment
       await locks.deleteOne({ date: payment.date, slot: payment.slot });
+
       return res.status(200).json({ success: true });
     }
 
-    // =====================================================
-    // 🧹 CLEANUP – remove expired locks
-    // =====================================================
+    // ===== CLEANUP: Remove expired locks (optional GET route) =====
     if (path === "cleanup" && req.method === "GET") {
       const now = new Date();
       const result = await locks.deleteMany({ expiresAt: { $lt: now } });
       return res.status(200).json({ success: true, removed: result.deletedCount });
     }
 
-    // =====================================================
-    // ❌ INVALID PATH
-    // =====================================================
+    // ===== INVALID PATH =====
     return res.status(404).json({ error: "Invalid path" });
   } catch (err) {
     console.error("❌ Payment API error:", err);
-    return res.status(500).json({
-      error: "Server error",
-      details: err.message || err,
-    });
+    res.status(500).json({ error: "Server error" });
   }
 }
