@@ -7,202 +7,237 @@
 
   <!-- 🌍 SEO -->
   <meta name="description" content="Book your online pediatric or general health consultation with Dr. Mahesh Yadav at BE PEACE. Trusted video consultations for children and families worldwide." />
-  <meta name="keywords" content="online pediatric consultation, Dr Mahesh Yadav, BE PEACE, child doctor online, video doctor, pediatric teleconsultation, kids doctor online, baby health consultation" />
+  <meta name="keywords" content="BE PEACE, online pediatric consultation, Dr Mahesh Yadav, child doctor online, video consultation, baby health care" />
   <meta name="author" content="BE PEACE by Dr. Mahesh Yadav" />
   <link rel="canonical" href="https://bepeace.in/booking.html" />
 
-  <!-- 📱 Open Graph (Facebook, WhatsApp) -->
+  <!-- 📱 Social Sharing -->
   <meta property="og:title" content="Book Online Pediatric Consultation | BE PEACE" />
-  <meta property="og:description" content="Fast, secure, and caring video consultations for children. Trusted by families worldwide." />
+  <meta property="og:description" content="Fast, trusted, and caring video consultations with Dr. Mahesh Yadav – BE PEACE." />
   <meta property="og:image" content="https://bepeace.in/images/doctor-banner.jpg" />
   <meta property="og:url" content="https://bepeace.in/booking.html" />
   <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="BE PEACE" />
-
-  <!-- 🐦 Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Book Pediatric Consultation – BE PEACE" />
-  <meta name="twitter:description" content="Book your online consultation with BE PEACE. Expert care from Dr. Mahesh Yadav, trusted by families worldwide." />
-  <meta name="twitter:image" content="https://bepeace.in/images/doctor-banner.jpg" />
 
-  <!-- 📲 Apple / Mobile -->
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="theme-color" content="#c71585" />
+  <!-- 🧠 Favicon -->
+  <link rel="icon" href="/images/logo.svg" type="image/svg+xml" />
 
-  <!-- External Libraries -->
+  <!-- 🌐 External Libraries -->
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
-  <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-  <link rel="icon" href="/images/logo.svg" type="image/svg+xml" />
-
+  <!-- 💅 CSS -->
   <style>
     :root {
-      --bg-light: linear-gradient(135deg, #fce4ec, #e3f2fd);
-      --bg-dark: linear-gradient(135deg, #0d1117, #161b22);
-      --text-light: #333;
-      --text-dark: #eee;
-      --card-light: rgba(255,255,255,0.95);
-      --card-dark: rgba(30,30,30,0.95);
+      --peach: #c71585;
+      --aqua: #00bfa6;
+      --bg-light: #fdfdfd;
+      --bg-gradient: linear-gradient(135deg, #fce4ec, #e3f2fd);
     }
     body {
-      font-family: "Poppins", sans-serif;
-      background: var(--bg-light);
-      color: var(--text-light);
-      transition: all 0.5s ease;
       margin: 0;
+      font-family: "Poppins", sans-serif;
+      background: var(--bg-gradient);
+      color: #333;
+      scroll-behavior: smooth;
       display: flex;
       flex-direction: column;
       align-items: center;
-      min-height: 100vh;
     }
-    body.dark { background: var(--bg-dark); color: var(--text-dark); }
 
-    header { text-align: center; margin-top: 20px; position: relative; }
-    .theme-toggle {
-      position: absolute; right: 20px; top: 0; background: none;
-      border: none; cursor: pointer; font-size: 1.5rem; color: inherit;
+    /* HEADER */
+    header {
+      background: linear-gradient(90deg, #e1f5fe, #fce4ec);
+      width: 100%;
+      padding: 20px 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
     }
-    h1.peach-text { color: #c71585; font-weight: 700; }
-    h2 { text-align: center; margin: 25px 0 10px; font-size: 1.8rem; }
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-container img {
+      height: 45px;
+    }
+    .logo-container h1 {
+      color: var(--peach);
+      font-weight: 700;
+      font-size: 1.8rem;
+      margin: 0;
+    }
 
-    form, #successScreen {
-      background: var(--card-light);
-      border-radius: 20px;
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    /* MAIN HEADING */
+    h2 {
+      text-align: center;
+      margin: 25px 0 5px;
+      color: #222;
+      font-size: 1.9rem;
+    }
+    #timezoneDisplay {
+      text-align: center;
+      color: #777;
+      font-size: 14px;
+      margin-bottom: 15px;
+    }
+
+    /* FORM */
+    form {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 16px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
       padding: 30px;
       width: 90%;
       max-width: 700px;
       margin-bottom: 50px;
-      transition: background 0.5s ease;
-      animation: fadeIn 0.7s ease-in-out;
     }
-    body.dark form, body.dark #successScreen { background: var(--card-dark); }
-    @keyframes fadeIn { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
-
     label { font-weight: 600; display: block; margin: 12px 0 6px; }
     input, select, textarea {
-      width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ccc;
-      font-size: 1rem; background: #fff; transition: border-color 0.3s;
-    }
-    body.dark input, body.dark select, body.dark textarea {
-      background: #1e1e1e; color: #fff; border: 1px solid #444;
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+      box-sizing: border-box;
+      transition: border-color 0.3s;
     }
     input:focus, select:focus, textarea:focus {
-      border-color: #c71585; outline: none;
+      border-color: var(--peach);
+      outline: none;
       box-shadow: 0 0 5px rgba(199, 21, 133, 0.4);
     }
     textarea { min-height: 100px; resize: vertical; }
 
-    .select2-container--default .select2-selection--single {
-      border-radius: 10px; height: 46px; padding: 6px 12px;
-      font-size: 16px; border: 1px solid #ccc;
+    .fee {
+      background: #f3f4f6;
+      padding: 12px;
+      border-radius: 6px;
+      text-align: center;
+      margin: 15px 0 25px;
+      font-weight: bold;
+      color: #444;
     }
-    .fee { background: #f3f4f6; padding: 12px; border-radius: 8px;
-      text-align: center; margin: 15px 0 25px; font-weight: bold; }
 
-    .slots-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 15px; margin: 15px 0 25px; }
-    .slot-btn { padding: 14px; border-radius: 10px; border: none;
-      font-weight: 600; cursor: pointer; transition: all 0.25s; }
-    .slot-btn.available {
-      background: linear-gradient(145deg, #43a047, #2e7d32); color: #fff;
+    /* SLOTS */
+    .slots-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+      margin: 20px 0;
     }
+    .slot-btn {
+      border: none;
+      border-radius: 8px;
+      padding: 12px;
+      font-weight: 600;
+      transition: all 0.25s;
+      cursor: pointer;
+    }
+    .slot-btn.available { background: #43a047; color: #fff; }
     .slot-btn.booked { background: #dc3545; color: #fff; opacity: 0.8; cursor: not-allowed; }
     .slot-btn.past { background: #999; color: #fff; opacity: 0.8; cursor: not-allowed; }
-    .slot-btn.selected { background: linear-gradient(145deg, #007bff, #0056b3); color: #fff; }
+    .slot-btn.selected { background: var(--aqua); color: #fff; }
 
+    /* BUTTON */
     #payBtn {
-      background: #bbb; color: white; padding: 14px; width: 100%;
-      border-radius: 10px; border: none; font-size: 16px;
-      font-weight: 600; cursor: not-allowed; transition: all 0.3s;
+      background: #ccc;
+      color: #fff;
+      border: none;
+      padding: 14px;
+      border-radius: 8px;
+      width: 100%;
+      font-size: 16px;
+      font-weight: 600;
+      transition: all 0.3s;
+      cursor: not-allowed;
     }
     #payBtn.active {
-      background: linear-gradient(135deg, #43cea2, #185a9d); cursor: pointer;
+      background: linear-gradient(135deg, #43cea2, #185a9d);
+      cursor: pointer;
     }
     #payBtn.active:hover { transform: scale(1.03); }
 
-    .success { text-align: center; color: #28a745;
-      font-weight: bold; font-size: 15px; margin: 10px 0; }
+    .success { text-align: center; color: #28a745; margin: 10px 0; }
 
-    /* 🎉 Success screen */
-    #successScreen { display: none; text-align: center; }
-    #successScreen h2 { color: #28a745; font-size: 1.8rem; margin-bottom: 10px; }
-    #successScreen p { font-size: 1.1rem; line-height: 1.5; color: #333; }
-    #successScreen button {
-      margin-top: 15px; background: linear-gradient(135deg, #43cea2, #185a9d);
-      color: #fff; border: none; padding: 12px 18px; border-radius: 8px;
-      font-size: 1rem; cursor: pointer; transition: all 0.3s;
+    /* FOOTER */
+    footer {
+      background: linear-gradient(90deg, #fce4ec, #e1f5fe);
+      color: #444;
+      width: 100%;
+      text-align: center;
+      padding: 15px 10px;
+      font-size: 14px;
+      border-top: 2px solid #f8bbd0;
     }
-    #successScreen button:hover { transform: scale(1.05); }
-
-    footer { margin-top: auto; text-align: center; padding: 20px; font-size: 14px; color: #555; }
+    footer h1 {
+      margin: 5px 0;
+      color: var(--peach);
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
   </style>
 </head>
 
 <body>
+  <!-- HEADER -->
   <header>
-    <h1 class="peach-text">🌍 BE PEACE</h1>
-    <button class="theme-toggle" id="themeToggle" title="Toggle Dark Mode">🌙</button>
+    <div class="logo-container">
+      <img src="/images/logo.svg" alt="BE PEACE Logo">
+      <h1>BE PEACE</h1>
+    </div>
   </header>
 
-  <h2>🩺 Book Your Consultation</h2>
-  <p id="timezoneDisplay" style="text-align:center;">⏰ Detecting your timezone...</p>
+  <!-- MAIN -->
+  <main>
+    <h2>🩺 Book Your Consultation</h2>
+    <p id="timezoneDisplay">⏰ Detecting your timezone...</p>
 
-  <!-- Booking Form -->
-  <form id="bookingForm">
-    <label>Select Your Country:</label>
-    <select id="country" required></select>
-    <p class="fee" id="feeDisplay">Consultation Fee: --</p>
+    <form id="bookingForm">
+      <label>Select Your Country:</label>
+      <select id="country" required></select>
+      <p class="fee" id="feeDisplay">Consultation Fee: --</p>
 
-    <label>Name:</label><input type="text" id="name" required />
-    <label>Age:</label><input type="text" id="age" required />
-    <label>Sex:</label>
-    <select id="sex" required>
-      <option value="">Select</option>
-      <option>Male ♂</option><option>Female ♀</option><option>Other ⚧</option>
-    </select>
+      <label>Name:</label><input type="text" id="name" required />
+      <label>Age:</label><input type="text" id="age" required />
+      <label>Sex:</label>
+      <select id="sex" required>
+        <option value="">Select</option>
+        <option>Male ♂</option><option>Female ♀</option><option>Other ⚧</option>
+      </select>
 
-    <label>Phone:</label><input id="phone" type="tel" required />
-    <label>Email:</label><input type="email" id="email" required />
-    <label>Health Concern:</label><textarea id="concern" required></textarea>
+      <label>Phone:</label><input id="phone" type="tel" required />
+      <label>Email:</label><input type="email" id="email" required />
+      <label>Health Concern:</label><textarea id="concern" required></textarea>
 
-    <label>Choose Date:</label><input type="date" id="date" required />
-    <label>Choose Time Slot:</label>
-    <div id="slotContainer" class="slots-grid"></div>
-    <input type="hidden" id="slot" required />
+      <label>Choose Date:</label><input type="date" id="date" required />
+      <label>Choose Time Slot:</label>
+      <div id="slotContainer" class="slots-grid"></div>
+      <input type="hidden" id="slot" required />
 
-    <p id="successMsg" class="success" style="display:none;">✅ All good! Proceed to payment.</p>
-    <button type="button" id="payBtn" disabled>Proceed to Payment 💳</button>
-  </form>
+      <p id="successMsg" class="success" style="display:none;">✅ All good! Proceed to payment.</p>
+      <button type="button" id="payBtn" disabled>Proceed to Payment 💳</button>
+    </form>
+  </main>
 
-  <!-- 🎉 Success Screen -->
-  <section id="successScreen">
-    <h2>🎉 Booking Confirmed!</h2>
-    <p id="bookingSummary"></p>
-    <p>We’ve also sent a confirmation email with your consultation details.</p>
-    <button onclick="bookAgain()">🩺 Book Another Consultation</button>
-    <button onclick="goHome()">🏠 Back to Homepage</button>
-  </section>
-
-  <footer>© 2025 BE PEACE | Online Pediatric Consultation by Dr. Mahesh Yadav</footer>
+  <!-- FOOTER -->
+  <footer>
+    <h1>BE PEACE</h1>
+    <p>© 2025 BE PEACE | Online Pediatric Consultation by Dr. Mahesh Yadav</p>
+    <p><a href="index.html" style="color:#c71585;text-decoration:none;font-weight:600;">🏠 Back to Homepage</a></p>
+  </footer>
 
   <script>
-    // 🌙 Dark mode toggle
-    const themeBtn=document.getElementById("themeToggle");
-    if(localStorage.getItem("theme")==="dark"){document.body.classList.add("dark");themeBtn.textContent="☀️";}
-    themeBtn.onclick=()=>{document.body.classList.toggle("dark");
-      const dark=document.body.classList.contains("dark");
-      localStorage.setItem("theme",dark?"dark":"light");
-      themeBtn.textContent=dark?"☀️":"🌙";};
-
-    // 🌎 Phone + country
+    // 📞 Phone + country
     const phoneInput=document.querySelector("#phone");
     const iti=window.intlTelInput(phoneInput,{initialCountry:"auto",
       geoIpLookup:cb=>fetch("https://ipapi.co/json").then(r=>r.json()).then(d=>cb(d.country_code)).catch(()=>cb("IN"))});
+
     const countrySelect=document.getElementById("country");
     const dateInput=document.getElementById("date");
     const slotContainer=document.getElementById("slotContainer");
@@ -264,30 +299,9 @@
     });
     dateInput.addEventListener("change",()=>loadSlots(dateInput.value));
 
-    // 🎉 Confetti + Success Screen
-    function fireConfetti(){const end=Date.now()+1500;(function frame(){
-      confetti({particleCount:5,angle:60,spread:55,origin:{x:0}});
-      confetti({particleCount:5,angle:120,spread:55,origin:{x:1}});
-      if(Date.now()<end)requestAnimationFrame(frame);})();}
-
-    function showSuccessScreen(details){
-      document.getElementById("bookingForm").style.display="none";
-      document.getElementById("bookingSummary").innerHTML=
-        `<b>Name:</b> ${details.name}<br><b>Date:</b> ${details.date}<br><b>Time:</b> ${details.slot}<br><b>Country:</b> ${details.country||"N/A"}`;
-      document.getElementById("successScreen").style.display="block";
-      fireConfetti();
-    }
-    function bookAgain(){document.getElementById("successScreen").style.display="none";
-      document.getElementById("bookingForm").reset();document.getElementById("bookingForm").style.display="block";
-      loadSlots(dateInput.value);}
-    function goHome(){window.location.href="index.html";}
-
     payBtn.addEventListener("click",async()=>{
       if(!validateForm())return;
-      const details={name:name.value.trim(),email:email.value.trim(),
-        phone:iti.getNumber(),date:date.value,slot:slot.value,
-        country:countrySelect.value};
-      showSuccessScreen(details);
+      alert("✅ Booking confirmed! Payment integration pending.");
     });
 
     window.onload=()=>{loadCountries();loadSlots(todayISO);};
