@@ -3,71 +3,93 @@ import connectDB from "../db.js";
 import crypto from "crypto";
 
 export default async function handler(req, res) {
-  const { path } = req.query; // e.g. /api/payment?path=create
+  const { path } = req.query; // /api/payment?path=create
 
   try {
     const db = await connectDB();
     const payments = db.collection("payments");
     const bookings = db.collection("bookings");
+    const locks = db.collection("slotLocks");
 
     // ===== CREATE ORDER =====
     if (path === "create" && req.method === "POST") {
-      const { name, email, phone, amount, date, slot } = req.body;
-      if (!name || !email || !amount)
-        return res.status(400).json({ error: "Missing required fields" });
+      const { name, email, phone, amount, currency, date, slot, customer_age, customer_sex, concern } = req.body;
+      if (!date || !slot) return res.status(400).json({ error: "Date and slot required" });
+
+      const now = new Date();
+      const expiry = new Date(now.getTime() + 5 * 60 * 1000); // 5-minute hold window
+
+      // 🧹 1️⃣ Clear expired locks
+      await locks.deleteMany({ expiresAt: { $lt: now } });
+
+      // 🛑 2️⃣ Prevent double-booking or active lock
+      const existingBooking = await bookings.findOne({ date, slot });
+      const activeLock = await locks.findOne({ date, slot });
+      if (existingBooking) return res.status(400).json({ error: "Slot already booked" });
+      if (activeLock) return res.status(400).json({ error: "Slot temporarily held, please try again soon" });
+
+      // 🟢 3️⃣ Lock the slot
+      await locks.insertOne({
+        date,
+        slot,
+        heldBy: email,
+        createdAt: now,
+        expiresAt: expiry,
+      });
 
       const orderId = "ORDER_" + Date.now();
-
       await payments.insertOne({
         orderId,
         name,
         email,
         phone,
         amount,
+        currency,
         date,
         slot,
+        concern,
         status: "CREATED",
-        createdAt: new Date(),
+        createdAt: now,
       });
 
-      // Response goes to Cashfree front-end checkout
-      return res.status(200).json({ success: true, orderId });
+      // ✅ Return mock session for now (replace with Cashfree’s session ID in production)
+      return res.status(200).json({
+        success: true,
+        orderId,
+        payment_session_id: "mock_session_" + orderId,
+      });
     }
 
-    // ===== VERIFY PAYMENT (Manual verification after checkout) =====
+    // ===== VERIFY PAYMENT =====
     if (path === "verify" && req.method === "POST") {
       const { orderId } = req.body;
-      if (!orderId) return res.status(400).json({ error: "Order ID required" });
-
       const payment = await payments.findOne({ orderId });
       if (!payment) return res.status(404).json({ error: "Order not found" });
 
-      // Update status
-      await payments.updateOne(
-        { orderId },
-        { $set: { status: "PAID", verifiedAt: new Date() } }
-      );
+      // ✅ Mark payment success
+      await payments.updateOne({ orderId }, { $set: { status: "PAID", verifiedAt: new Date() } });
 
-      // Auto-create booking entry if not already present
-      const exists = await bookings.findOne({ orderId });
-      if (!exists) {
+      // 🟢 Create booking if not exists
+      const existingBooking = await bookings.findOne({ date: payment.date, slot: payment.slot });
+      if (!existingBooking) {
         await bookings.insertOne({
-          orderId,
+          date: payment.date,
+          slot: payment.slot,
           name: payment.name,
           email: payment.email,
           phone: payment.phone,
-          date: payment.date,
-          slot: payment.slot,
-          amount: payment.amount,
-          status: "PAID",
+          concern: payment.concern,
           createdAt: new Date(),
         });
       }
 
-      return res.status(200).json({ success: true, message: "Payment verified & booking saved" });
+      // 🧹 Remove lock
+      await locks.deleteOne({ date: payment.date, slot: payment.slot });
+
+      return res.status(200).json({ success: true, message: "Payment verified and slot booked" });
     }
 
-    // ===== CASHFREE WEBHOOK (Automatic Payment Update) =====
+    // ===== WEBHOOK (Cashfree) =====
     if (path === "webhook" && req.method === "POST") {
       const signature = req.headers["x-webhook-signature"];
       const computed = crypto
@@ -75,52 +97,48 @@ export default async function handler(req, res) {
         .update(JSON.stringify(req.body))
         .digest("base64");
 
-      if (signature !== computed)
-        return res.status(400).json({ error: "Invalid signature" });
+      if (signature !== computed) return res.status(400).json({ error: "Invalid signature" });
 
-      const data = req.body.data || {};
-      const { order_id, order_status, order_amount, customer_details } = data;
+      const { order_id, order_status } = req.body.data;
+      const payment = await payments.findOne({ orderId: order_id });
+      if (!payment) return res.status(404).json({ error: "Payment not found" });
 
-      // Update payment record
       await payments.updateOne(
         { orderId: order_id },
-        {
-          $set: {
-            status: order_status,
-            updatedAt: new Date(),
-            webhookReceived: true,
-          },
-        },
-        { upsert: true }
+        { $set: { status: order_status, updatedAt: new Date() } }
       );
 
-      // If success, also save booking
+      // ✅ Auto-book if payment succeeded
       if (order_status === "PAID" || order_status === "SUCCESS") {
-        const payment = await payments.findOne({ orderId: order_id });
-        if (payment) {
-          const exists = await bookings.findOne({ orderId: order_id });
-          if (!exists) {
-            await bookings.insertOne({
-              orderId: order_id,
-              name: payment.name || customer_details?.customer_name || "Unknown",
-              email: payment.email || customer_details?.customer_email,
-              phone: payment.phone || customer_details?.customer_phone,
-              date: payment.date || null,
-              slot: payment.slot || null,
-              amount: order_amount,
-              status: "PAID",
-              createdAt: new Date(),
-            });
-          }
+        const already = await bookings.findOne({ date: payment.date, slot: payment.slot });
+        if (!already) {
+          await bookings.insertOne({
+            date: payment.date,
+            slot: payment.slot,
+            name: payment.name,
+            email: payment.email,
+            phone: payment.phone,
+            concern: payment.concern,
+            createdAt: new Date(),
+          });
         }
       }
+
+      // 🧹 Remove lock after webhook
+      await locks.deleteOne({ date: payment.date, slot: payment.slot });
 
       return res.status(200).json({ success: true });
     }
 
+    // ===== CLEANUP: REMOVE EXPIRED LOCKS =====
+    if (path === "cleanup" && req.method === "GET") {
+      const now = new Date();
+      const result = await locks.deleteMany({ expiresAt: { $lt: now } });
+      return res.status(200).json({ success: true, removed: result.deletedCount });
+    }
+
     // ===== INVALID PATH =====
     return res.status(404).json({ error: "Invalid path" });
-
   } catch (err) {
     console.error("❌ Payment API error:", err);
     res.status(500).json({ error: "Server error" });
