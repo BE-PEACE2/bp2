@@ -55,29 +55,29 @@
   </footer>
 
   <script>
-    async function login() {
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value.trim();
-      const errorMsg = document.getElementById("errorMsg");
+  async function login() {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+    const errorMsg = document.getElementById("errorMsg");
 
-      try {
-        const res = await fetch("/api/doctor-login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password })
-        });
+    try {
+      const res = await fetch("/api/doctor?path=login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
 
-        const data = await res.json();
-        if (res.ok && data.token) {
-          localStorage.setItem("doctorToken", data.token);
-          window.location.href = "doctor.html";
-        } else {
-          errorMsg.textContent = data.error || "Login failed";
-        }
-      } catch (err) {
-        errorMsg.textContent = "Server error, try again later.";
+      const data = await res.json();
+      if (res.ok && data.token) {
+        localStorage.setItem("doctorToken", data.token);
+        window.location.href = "doctor.html";
+      } else {
+        errorMsg.textContent = data.error || "Login failed";
       }
+    } catch (err) {
+      errorMsg.textContent = "Server error, try again later.";
     }
-  </script>
+  }
+</script>
 </body>
 </html>

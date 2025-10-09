@@ -3,44 +3,79 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BePeace | Consultation Room</title>
+  <title>BE PEACE | Consultation Room</title>
   <link rel="stylesheet" href="/style.css" />
   <style>
-    body, html { margin: 0; height: 100%; }
-    main { height: 80vh; }
-    #meet { width: 100%; height: 100%; }
+    body, html { margin: 0; height: 100%; background: #f9f9f9; font-family: Arial, sans-serif; }
+    header, footer { text-align: center; padding: 10px 0; }
+    main { height: 80vh; display: flex; justify-content: center; align-items: center; }
+    #meet { width: 95%; height: 90%; border-radius: 10px; overflow: hidden; }
   </style>
 </head>
 <body>
-  <div id="header"></div>
+  <!-- HEADER -->
+  <header>
+    <div class="logo-container">
+      <div class="earth"></div>
+      <h1 class="peach-text">BE PEACE</h1>
+    </div>
+    <h2 style="color:#c71585;">Live Consultation Room</h2>
+  </header>
 
   <main>
-    <div id="meet"></div>
+    <div id="meet">Loading consultation room...</div>
   </main>
 
-  <div id="footer"></div>
+  <!-- FOOTER -->
+  <footer>
+    <p>© 2025 BE PEACE. All rights reserved.</p>
+  </footer>
 
-  <script>
-    async function loadPartials() {
-      const header = await fetch('/partials/header.html').then(r => r.text());
-      const footer = await fetch('/partials/footer.html').then(r => r.text());
-      document.getElementById('header').innerHTML = header;
-      document.getElementById('footer').innerHTML = footer;
-    }
-    loadPartials();
-  </script>
-
+  <!-- ✅ Jitsi Embed Script -->
   <script src="https://meet.jit.si/external_api.js"></script>
   <script>
-    const domain = 'meet.jit.si';
+    // ✅ Read room details from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomName = urlParams.get("room") || "BePeaceDefaultRoom";
+    const orderId = urlParams.get("orderId") || "";
+    const name = urlParams.get("name") || "Patient";
+
+    // ✅ Display room details in console for debugging
+    console.log("Joining Room:", roomName, "as", name);
+
+    // ✅ Setup Jitsi meeting
+    const domain = "meet.jit.si";
     const options = {
-      roomName: 'BePeaceConsultRoom1',
-      width: '100%',
-      height: '100%',
-      parentNode: document.querySelector('#meet'),
-      userInfo: { displayName: 'Patient' }
+      roomName: roomName,
+      width: "100%",
+      height: "100%",
+      parentNode: document.querySelector("#meet"),
+      userInfo: { displayName: name },
+      configOverwrite: {
+        prejoinPageEnabled: true,
+        disableModeratorIndicator: false,
+      },
+      interfaceConfigOverwrite: {
+        SHOW_JITSI_WATERMARK: false,
+        SHOW_BRAND_WATERMARK: false,
+        SHOW_WATERMARK_FOR_GUESTS: false,
+      }
     };
-    new JitsiMeetExternalAPI(domain, options);
+
+    const api = new JitsiMeetExternalAPI(domain, options);
+
+    // ✅ Optional: Notify backend when consultation ends
+    api.addEventListener("readyToClose", async () => {
+      if (orderId) {
+        await fetch("/api/waiting?path=end", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId })
+        });
+      }
+      alert("Consultation ended. Thank you for using BE PEACE.");
+      window.close();
+    });
   </script>
 </body>
 </html>
