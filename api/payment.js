@@ -4,7 +4,7 @@ import crypto from "crypto";
 import axios from "axios";
 
 export default async function handler(req, res) {
-  const { path } = req.query; // /api/payment?path=create
+  const { path } = req.query; // e.g. /api/payment?path=create
 
   try {
     const db = await connectDB();
@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     const locks = db.collection("slotLocks");
 
     // =====================================================
-    // 🟢 CREATE ORDER (called from frontend)
+    // 🟢 CREATE ORDER  –  called from frontend
     // =====================================================
     if (path === "create" && req.method === "POST") {
       const { name, email, phone, amount, currency, date, slot, age, sex, concern } = req.body;
@@ -22,35 +22,28 @@ export default async function handler(req, res) {
       const now = new Date();
       const expiry = new Date(now.getTime() + 5 * 60 * 1000); // 5-minute slot hold
 
-      // Clean expired locks
+      // remove expired locks
       await locks.deleteMany({ expiresAt: { $lt: now } });
 
-      // Prevent double-booking
+      // prevent duplicate bookings
       const existingBooking = await bookings.findOne({ date, slot });
       const activeLock = await locks.findOne({ date, slot });
       if (existingBooking) return res.status(400).json({ error: "Slot already booked" });
-      if (activeLock) return res.status(400).json({ error: "Slot temporarily held, please try again soon" });
+      if (activeLock) return res.status(400).json({ error: "Slot temporarily held, try again soon" });
 
-      // Lock slot
-      await locks.insertOne({
-        date,
-        slot,
-        heldBy: email,
-        createdAt: now,
-        expiresAt: expiry,
-      });
+      // lock slot temporarily
+      await locks.insertOne({ date, slot, heldBy: email, createdAt: now, expiresAt: expiry });
 
-      // Unique order
       const orderId = "ORDER_" + Date.now();
 
-      // 💳 Create LIVE Cashfree order
+      // 💳 create order on Cashfree LIVE endpoint
       const response = await axios.post(
         "https://api.cashfree.com/pg/orders",
         {
           order_id: orderId,
           order_amount: amount,
           order_currency: currency,
-          order_note: `Consultation booking for ${name} (${email})`,
+          order_note: `Consultation booking for ${name}`,
           customer_details: {
             customer_id: phone,
             customer_name: name,
@@ -89,15 +82,11 @@ export default async function handler(req, res) {
         createdAt: now,
       });
 
-      return res.status(200).json({
-        success: true,
-        orderId,
-        payment_session_id,
-      });
+      return res.status(200).json({ success: true, orderId, payment_session_id });
     }
 
     // =====================================================
-    // 🟢 VERIFY PAYMENT (manual verification after success)
+    // 🟢 VERIFY PAYMENT  –  called by payment-success.html
     // =====================================================
     if (path === "verify" && req.method === "POST") {
       const { orderId } = req.body;
@@ -127,11 +116,10 @@ export default async function handler(req, res) {
     }
 
     // =====================================================
-    // 🟢 WEBHOOK (Cashfree → auto payment confirmation)
+    // 🟢 WEBHOOK  –  Cashfree notification handler
     // =====================================================
     if (path === "webhook" && req.method === "POST") {
-      // Log for debugging
-      console.log("🔔 Cashfree Webhook Received:", req.body);
+      console.log("🔔 Cashfree Webhook:", req.body);
 
       const signature = req.headers["x-webhook-signature"];
       if (!signature) return res.status(400).json({ error: "Missing signature" });
@@ -156,7 +144,6 @@ export default async function handler(req, res) {
         { $set: { status: order_status, updatedAt: new Date() } }
       );
 
-      // Handle success
       if (order_status === "PAID" || order_status === "SUCCESS") {
         const already = await bookings.findOne({ date: payment.date, slot: payment.slot });
         if (!already) {
@@ -170,23 +157,19 @@ export default async function handler(req, res) {
             createdAt: new Date(),
           });
         }
-        await locks.deleteOne({ date: payment.date, slot: payment.slot });
-      }
-
-      // Handle failure or cancellation
-      else if (order_status === "FAILED" || order_status === "CANCELLED") {
+      } else if (order_status === "FAILED" || order_status === "CANCELLED") {
         await payments.updateOne(
           { orderId: order_id },
           { $set: { status: "FAILED", updatedAt: new Date() } }
         );
-        await locks.deleteOne({ date: payment.date, slot: payment.slot });
       }
 
+      await locks.deleteOne({ date: payment.date, slot: payment.slot });
       return res.status(200).json({ success: true });
     }
 
     // =====================================================
-    // 🟢 CLEANUP: Remove expired locks
+    // 🧹 CLEANUP  –  remove expired locks
     // =====================================================
     if (path === "cleanup" && req.method === "GET") {
       const now = new Date();

@@ -6,13 +6,11 @@
   <title>Payment Success - BE PEACE</title>
 
   <meta name="description" content="Your booking with BE PEACE was successful. Expect expert pediatric and general health advice from Dr. Mahesh Yadav.">
-
   <meta property="og:title" content="Booking Successful - BE PEACE">
   <meta property="og:description" content="Your consultation booking is confirmed. You will receive expert care from Dr. Mahesh Yadav.">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://bepeace.in/success.html">
+  <meta property="og:url" content="https://bepeace.in/payment-success.html">
   <meta property="og:image" content="https://bepeace.in/images/doctor.jpg">
-
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Booking Successful - BE PEACE">
   <meta name="twitter:description" content="Your consultation booking is confirmed with Dr. Mahesh Yadav.">
@@ -43,6 +41,7 @@
     .redirect-note { margin-top: 15px; font-size: 14px; color: #777; }
   </style>
 </head>
+
 <body>
   <!-- Header -->
   <header>
@@ -51,13 +50,6 @@
       <h1 class="peach-text">BE PEACE</h1>
     </div>
   </header>
-
-  <nav class="main-nav">
-    <a href="index.html#about">About</a>
-    <a href="index.html#services">Services</a>
-    <a href="index.html#modules">Modules</a>
-    <a href="index.html#contact">Contact</a>
-  </nav>
 
   <!-- Success Message -->
   <section class="success-message">
@@ -82,7 +74,6 @@
     <p class="redirect-note">⏳ Redirecting to homepage in <span id="countdown">15</span> seconds...</p>
   </section>
 
-  <!-- Footer -->
   <footer>
     <div class="footer-logo">
       <div class="earth slow"></div>
@@ -91,12 +82,10 @@
     <p>© 2025 BE PEACE. All rights reserved.</p>
   </footer>
 
-  <!-- ✅ Shared script -->
-  <script src="payment-status.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
   <script>
-    // Auto redirect after 15 seconds
+    // ⏳ Countdown Redirect
     let seconds = 15;
     const countdownEl = document.getElementById("countdown");
     const timer = setInterval(() => {
@@ -108,57 +97,77 @@
       }
     }, 1000);
 
-    // ✅ Download Receipt as PDF with Logo + Table
+    // ✅ Fetch and verify order
+    async function verifyPayment() {
+      const params = new URLSearchParams(window.location.search);
+      const orderId = params.get("order_id");
+      if (!orderId) {
+        document.querySelector(".success-message h2").textContent = "⚠️ Missing Order ID";
+        return;
+      }
+      document.getElementById("orderId").textContent = orderId;
+
+      try {
+        const res = await fetch("/api/payment?path=verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId })
+        });
+        const data = await res.json();
+        if (data.success) {
+          // Fill details (if returned or can fetch from localStorage)
+          document.getElementById("amount").textContent = "💰 Amount Paid: ₹10 or $40";
+          document.getElementById("name").textContent = "👤 Name: " + (localStorage.getItem("name") || "");
+          document.getElementById("email").textContent = "📧 Email: " + (localStorage.getItem("email") || "");
+          document.getElementById("phone").textContent = "📱 Phone: " + (localStorage.getItem("phone") || "");
+          document.getElementById("age").textContent = "🎂 Age: " + (localStorage.getItem("age") || "");
+          document.getElementById("sex").textContent = "⚧ Sex: " + (localStorage.getItem("sex") || "");
+        } else {
+          document.querySelector(".success-message h2").textContent = "⚠️ Payment Verification Failed";
+        }
+      } catch (err) {
+        console.error("Verification error:", err);
+        document.querySelector(".success-message h2").textContent = "⚠️ Server Verification Error";
+      }
+    }
+    verifyPayment();
+
+    // 🧾 Download Receipt as PDF
     document.getElementById("downloadBtn").addEventListener("click", () => {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
-
-      // Add BE PEACE logo (replace with earth logo base64 later if needed)
       const logoUrl = "https://bepeace.in/images/doctor.jpg";
       const img = new Image();
       img.crossOrigin = "Anonymous";
       img.src = logoUrl;
 
-      img.onload = function () {
-        doc.addImage(img, "JPEG", 160, 10, 40, 25); // x, y, w, h
-
-        // Title
+      img.onload = function() {
+        doc.addImage(img, "JPEG", 160, 10, 40, 25);
         doc.setFontSize(18);
         doc.text("BE PEACE - Consultation Receipt", 20, 20);
 
-        // Collect booking details
-        const name = document.getElementById("name").textContent || "";
-        const email = document.getElementById("email").textContent || "";
-        const phone = document.getElementById("phone").textContent || "";
-        const age = document.getElementById("age").textContent || "";
-        const sex = document.getElementById("sex").textContent || "";
-        const amount = document.getElementById("amount").textContent || "";
-        const orderId = document.getElementById("orderId").textContent || "";
+        const rows = [
+          ["Booking Reference", document.getElementById("orderId").textContent],
+          ["Name", document.getElementById("name").textContent],
+          ["Email", document.getElementById("email").textContent],
+          ["Phone", document.getElementById("phone").textContent],
+          ["Age", document.getElementById("age").textContent],
+          ["Sex", document.getElementById("sex").textContent],
+          ["Amount Paid", document.getElementById("amount").textContent],
+        ];
 
-        // Build table
         doc.autoTable({
           startY: 40,
           head: [["Field", "Details"]],
-          body: [
-            ["Booking Reference", orderId],
-            ["Name", name],
-            ["Email", email],
-            ["Phone", phone],
-            ["Age", age],
-            ["Sex", sex],
-            ["Amount Paid", amount],
-          ],
+          body: rows,
           theme: "grid",
           styles: { fontSize: 12, cellPadding: 5 },
           headStyles: { fillColor: [40, 167, 69] }
         });
 
-        // Footer timestamp
         const date = new Date().toLocaleString();
         doc.setFontSize(10);
         doc.text("Generated on: " + date, 20, doc.internal.pageSize.height - 10);
-
-        // Save PDF
         doc.save("BEPEACE_Receipt.pdf");
       };
     });
