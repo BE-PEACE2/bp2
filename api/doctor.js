@@ -1,34 +1,37 @@
-// /api/doctor.js
-import connectDB from "../db.js";
 import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
+import connectDB from "../db.js"; // keep this for bookings, slots, etc.
 
 export default async function handler(req, res) {
-  const { path } = req.query; // e.g. /api/doctor?path=slots
+  const { path } = req.query; // e.g. /api/doctor?path=login
 
   try {
     const db = await connectDB();
 
-    // ===== DOCTOR LOGIN =====
+    // ===== LOGIN (using .env credentials) =====
     if (path === "login" && req.method === "POST") {
       const { email, password } = req.body;
+
       if (!email || !password)
         return res.status(400).json({ error: "Email and password required" });
 
-      const doctor = await db.collection("doctors").findOne({ email });
-      if (!doctor) return res.status(404).json({ error: "Doctor not found" });
-
-      const match = await bcrypt.compare(password, doctor.passwordHash);
-      if (!match) return res.status(401).json({ error: "Invalid password" });
-
-      const token = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: "12h" });
-      return res.status(200).json({ success: true, token });
+      if (
+        email === process.env.DOCTOR_EMAIL &&
+        password === process.env.DOCTOR_PASSWORD
+      ) {
+        const token = jwt.sign({ email }, process.env.JWT_SECRET, {
+          expiresIn: "12h",
+        });
+        return res.status(200).json({ success: true, token });
+      } else {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
     }
 
     // ===== GET BOOKINGS =====
     if (path === "bookings" && req.method === "GET") {
       const authHeader = req.headers.authorization;
-      if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
+      if (!authHeader)
+        return res.status(401).json({ error: "Unauthorized" });
 
       const token = authHeader.split(" ")[1];
       jwt.verify(token, process.env.JWT_SECRET);
@@ -45,13 +48,12 @@ export default async function handler(req, res) {
     // ===== GET 24-HOUR SLOTS =====
     if (path === "slots" && req.method === "GET") {
       const { date } = req.query;
-      if (!date) return res.status(400).json({ error: "Date required" });
+      if (!date)
+        return res.status(400).json({ error: "Date required" });
 
-      // Convert current UTC time → IST
       const nowUTC = new Date();
       const istNow = new Date(nowUTC.getTime() + 5.5 * 60 * 60 * 1000);
 
-      // Fetch booked & unavailable slots
       const bookings = await db.collection("bookings").find({ date }).toArray();
       const unavailableDocs = await db.collection("unavailableSlots").find({ date }).toArray();
 
@@ -65,7 +67,6 @@ export default async function handler(req, res) {
           const period = h < 12 ? "AM" : "PM";
           const slot = `${hour12.toString().padStart(2, "0")}:${m === 0 ? "00" : "30"} ${period}`;
 
-          // Build date-time object for this slot (in IST)
           const [yyyy, mm, dd] = date.split("-");
           const slotIST = new Date(`${yyyy}-${mm}-${dd}T${h.toString().padStart(2, "0")}:${m === 0 ? "00" : "30"}:00+05:30`);
 
@@ -108,6 +109,7 @@ export default async function handler(req, res) {
 
     // ===== INVALID PATH =====
     return res.status(404).json({ error: "Invalid path" });
+
   } catch (err) {
     console.error("❌ Doctor API error:", err);
     res.status(500).json({ error: "Server error" });
