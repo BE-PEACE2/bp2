@@ -140,24 +140,22 @@ export default async function handler(req, res) {
           { $set: { status: order_status, updatedAt: new Date() } }
         );
 
-        // Auto-book on payment success
-        if (["PAID", "SUCCESS"].includes(order_status)) {
-          const already = await bookings.findOne({
-            date: payment.date,
-            slot: payment.slot,
-          });
-          if (!already) {
-            await bookings.insertOne({
-              date: payment.date,
-              slot: payment.slot,
-              name: payment.name,
-              email: payment.email,
-              phone: payment.phone,
-              concern: payment.concern,
-              createdAt: new Date(),
-            });
-          }
-        }
+        // Auto-book on payment success — always sync confirmed payments
+if (["PAID", "SUCCESS"].includes(order_status)) {
+  await bookings.updateOne(
+    { date: payment.date, slot: payment.slot },
+    {
+      $setOnInsert: {
+        name: payment.name,
+        email: payment.email,
+        phone: payment.phone,
+        concern: payment.concern,
+        createdAt: new Date(),
+      },
+    },
+    { upsert: true } // ✅ ensures one record per slot, no duplicates
+  );
+}
 
      // 💌 Send branded email with attached PDF receipt
 try {
