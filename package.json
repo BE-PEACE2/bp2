@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/BE-PEACE2/bp2#readme",
   "dependencies": {
+    "axios": "^1.12.2",
     "bcryptjs": "^3.0.2",
     "dotenv": "^16.4.5",
     "jsonwebtoken": "^9.0.2",
