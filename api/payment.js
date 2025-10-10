@@ -3,7 +3,8 @@ import connectDB from "../db.js";
 import crypto from "crypto";
 import axios from "axios";
 import sendEmail from "../utils/sendEmail.js";
-import { jsPDF } from "jspdf";
+import pkg from "jspdf";
+const { jsPDF } = pkg;
 import autoTable from "jspdf-autotable";
 
 export default async function handler(req, res) {
