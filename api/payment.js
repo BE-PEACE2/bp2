@@ -14,7 +14,6 @@ export default async function handler(req, res) {
     const db = await connectDB();
     const payments = db.collection("payments");
     const bookings = db.collection("bookings");
-    const locks = db.collection("slotLocks");
 
     // ===== CREATE ORDER =====
     if (path === "create" && req.method === "POST") {
@@ -23,30 +22,10 @@ export default async function handler(req, res) {
       if (!date || !slot)
         return res.status(400).json({ error: "Date and slot required" });
 
-      const now = new Date();
-      const expiry = new Date(now.getTime() + 5 * 60 * 1000); // 5-minute slot lock
-
-      // 🧹 Clear expired locks
-      await locks.deleteMany({ expiresAt: { $lt: now } });
-
-      // 🛑 Prevent double-booking or active lock
+      // 🛑 Prevent double-booking
       const existingBooking = await bookings.findOne({ date, slot });
-      const activeLock = await locks.findOne({ date, slot });
       if (existingBooking)
         return res.status(400).json({ error: "Slot already booked" });
-      if (activeLock)
-        return res
-          .status(400)
-          .json({ error: "Slot temporarily held, please try again." });
-
-      // 🟢 Lock slot temporarily
-      await locks.insertOne({
-        date,
-        slot,
-        heldBy: email,
-        createdAt: now,
-        expiresAt: expiry,
-      });
 
       const orderId = "ORDER_" + Date.now();
 
@@ -97,7 +76,7 @@ export default async function handler(req, res) {
           slot,
           concern,
           status: "CREATED",
-          createdAt: now,
+          createdAt: new Date(),
         });
 
         return res.status(200).json({
@@ -106,8 +85,7 @@ export default async function handler(req, res) {
           payment_session_id,
         });
       } catch (apiErr) {
-        const msg =
-          apiErr.response?.data || apiErr.message || "Cashfree API error";
+        const msg = apiErr.response?.data || apiErr.message || "Cashfree API error";
         console.error("💥 Cashfree order creation failed:", msg);
         return res.status(500).json({ success: false, error: msg });
       }
@@ -119,19 +97,18 @@ export default async function handler(req, res) {
       (path === "webhook" || req.headers["x-webhook-signature"])
     ) {
       try {
-        // ✅ Log webhook for debugging (you can comment this line later)
         console.log("📩 Cashfree webhook received:", req.body);
 
-        // ⚠️ Skip strict signature validation (safe under HTTPS)
-        // const signature = req.headers["x-webhook-signature"];
-        // const computed = crypto
-        //   .createHmac("sha256", process.env.CASHFREE_SECRET_KEY)
-        //   .update(JSON.stringify(req.body))
-        //   .digest("base64");
-        // if (signature !== computed)
-        //   return res.status(400).json({ error: "Invalid signature" });
+        // ✅ Handle Cashfree webhook data safely for both formats
+        const payload = req.body?.data || req.body;
+        const order_id = payload?.order?.order_id || payload?.order_id;
+        const order_status = payload?.payment?.payment_status || payload?.order_status;
 
-        const { order_id, order_status } = req.body.data;
+        console.log("🔍 Parsed webhook:", { order_id, order_status });
+
+        if (!order_id || !order_status)
+          return res.status(400).json({ error: "Invalid webhook data" });
+
         const payment = await payments.findOne({ orderId: order_id });
         if (!payment)
           return res.status(404).json({ error: "Payment not found" });
@@ -141,90 +118,92 @@ export default async function handler(req, res) {
           { $set: { status: order_status, updatedAt: new Date() } }
         );
 
-        // Auto-book on payment success — always sync confirmed payments
-if (["PAID", "SUCCESS"].includes(order_status)) {
-  await bookings.updateOne(
-    { date: payment.date, slot: payment.slot },
-    {
-      $setOnInsert: {
-        name: payment.name,
-        email: payment.email,
-        phone: payment.phone,
-        concern: payment.concern,
-        createdAt: new Date(),
-      },
-    },
-    { upsert: true } // ✅ ensures one record per slot, no duplicates
-  );
-}
+        // ✅ Auto-book if successful
+        if (["PAID", "SUCCESS"].includes(order_status)) {
+          await bookings.updateOne(
+            { date: payment.date, slot: payment.slot },
+            {
+              $setOnInsert: {
+                name: payment.name,
+                email: payment.email,
+                phone: payment.phone,
+                concern: payment.concern,
+                createdAt: new Date(),
+              },
+            },
+            { upsert: true }
+          );
+          console.log(`✅ Booking confirmed for ${payment.date} - ${payment.slot}`);
+        }
 
-     // 💌 Send branded email with attached PDF receipt
-try {
-  const receiptBuffer = await generateReceipt({
-    ...payment,
-    orderId: order_id,
-  });
+        // 💌 Send receipt email
+        try {
+          const receiptBuffer = await generateReceipt({
+            ...payment,
+            orderId: order_id,
+          });
 
-  const subject = "Your BE PEACE Consultation Receipt 💚";
-  const html = `
-    <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;background:#f9f9f9;padding:20px;border-radius:10px">
-      <div style="text-align:center;margin-bottom:20px">
-        <img src="https://bepeace.in/images/logo.svg" width="80" alt="BE PEACE"/>
-        <h2 style="color:#007b5e;margin:10px 0 0;">Consultation Confirmed</h2>
-        <p style="color:#555;margin:5px 0;">Worldwide Online Teleconsultation</p>
-      </div>
+          const subject = "Your BE PEACE Consultation Receipt 💚";
+          const html = `
+            <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;background:#f9f9f9;padding:20px;border-radius:10px">
+              <div style="text-align:center;margin-bottom:20px">
+                <img src="https://bepeace.in/images/logo.svg" width="80" alt="BE PEACE"/>
+                <h2 style="color:#007b5e;margin:10px 0 0;">Consultation Confirmed</h2>
+                <p style="color:#555;margin:5px 0;">Worldwide Online Teleconsultation</p>
+              </div>
 
-      <p>Dear ${payment.name},</p>
-      <p>Your consultation has been successfully booked and payment received.</p>
+              <p>Dear ${payment.name},</p>
+              <p>Your consultation has been successfully booked and payment received.</p>
 
-      <h3 style="color:#007b5e">Appointment Details</h3>
-      <p><b>Date:</b> ${payment.date}</p>
-      <p><b>Slot:</b> ${payment.slot}</p>
-      <p><b>Transaction ID:</b> ${order_id}</p>
+              <h3 style="color:#007b5e">Appointment Details</h3>
+              <p><b>Date:</b> ${payment.date}</p>
+              <p><b>Slot:</b> ${payment.slot}</p>
+              <p><b>Transaction ID:</b> ${order_id}</p>
 
-      <hr style="border:none;border-top:1px solid #ddd;margin:15px 0">
+              <hr style="border:none;border-top:1px solid #ddd;margin:15px 0">
 
-      <p style="text-align:center;color:#007b5e;font-weight:bold;">
-        💚 Thank you for trusting BE PEACE<br>Your health, Your peace.
-      </p>
+              <p style="text-align:center;color:#007b5e;font-weight:bold;">
+                💚 Thank you for trusting BE PEACE<br>Your health, Your peace.
+              </p>
 
-      <p style="text-align:center;margin-top:20px;">
-        <a href="https://bepeace.in/payment-success.html?order_id=${order_id}"
-           style="background:#007b5e;color:#fff;text-decoration:none;padding:10px 20px;border-radius:5px;font-weight:bold;">
-          View Online Receipt
-        </a>
-      </p>
+              <p style="text-align:center;margin-top:20px;">
+                <a href="https://bepeace.in/payment-success.html?order_id=${order_id}"
+                  style="background:#007b5e;color:#fff;text-decoration:none;padding:10px 20px;border-radius:5px;font-weight:bold;">
+                  View Online Receipt
+                </a>
+              </p>
 
-      <p style="font-size:13px;color:#888;text-align:center;margin-top:25px;">
-        Need help? Contact <a href="mailto:info@bepeace.in">info@bepeace.in</a>
-      </p>
-    </div>
-  `;
+              <p style="font-size:13px;color:#888;text-align:center;margin-top:25px;">
+                Need help? Contact <a href="mailto:info@bepeace.in">info@bepeace.in</a>
+              </p>
+            </div>
+          `;
 
-  // Send with PDF attachment
-  await sendEmail(payment.email, subject, html, [
-    {
-      filename: `BEPEACE_Receipt_${order_id}.pdf`,
-      content: Buffer.from(receiptBuffer),
-      contentType: "application/pdf",
-    },
-  ]);
+          await sendEmail(payment.email, subject, html, [
+            {
+              filename: `BEPEACE_Receipt_${order_id}.pdf`,
+              content: Buffer.from(receiptBuffer),
+              contentType: "application/pdf",
+            },
+          ]);
 
-  await sendEmail(process.env.ADMIN_EMAIL || process.env.EMAIL_USER, `New Booking - ${payment.name}`, html, [
-    {
-      filename: `BEPEACE_Receipt_${order_id}.pdf`,
-      content: Buffer.from(receiptBuffer),
-      contentType: "application/pdf",
-    },
-  ]);
+          await sendEmail(
+            process.env.ADMIN_EMAIL || process.env.EMAIL_USER,
+            `New Booking - ${payment.name}`,
+            html,
+            [
+              {
+                filename: `BEPEACE_Receipt_${order_id}.pdf`,
+                content: Buffer.from(receiptBuffer),
+                contentType: "application/pdf",
+              },
+            ]
+          );
 
-  console.log(`✅ Receipt emails sent to ${payment.email} and admin`);
-} catch (err) {
-  console.error("⚠️ Email with receipt failed:", err.message);
-}
-
-        // Remove slot lock after payment
-        await locks.deleteOne({ date: payment.date, slot: payment.slot });
+          console.log(`📧 Receipt emails sent to ${payment.email} and admin`);
+        } catch (err) {
+          console.error("⚠️ Email sending failed:", err.message);
+        }
 
         console.log("✅ Webhook processed successfully:", order_id);
         return res.status(200).json({ success: true });
@@ -234,16 +213,7 @@ try {
       }
     }
 
-    // ===== CLEANUP: Remove expired locks =====
-    if (path === "cleanup" && req.method === "GET") {
-      const now = new Date();
-      const result = await locks.deleteMany({ expiresAt: { $lt: now } });
-      return res
-        .status(200)
-        .json({ success: true, removed: result.deletedCount });
-    }
-    
-        // ===== VERIFY PAYMENT STATUS (used by payment-success.html) =====
+    // ===== VERIFY PAYMENT STATUS =====
     if (path === "verify" && req.method === "GET") {
       try {
         const { order_id } = req.query;
@@ -263,7 +233,6 @@ try {
 
         const data = await response.json();
 
-        // Also update DB if successful
         if (["PAID", "SUCCESS"].includes(data.order_status)) {
           await payments.updateOne(
             { orderId: order_id },
@@ -278,50 +247,16 @@ try {
       }
     }
 
-    // ===== MANUAL ADMIN SYNC (Safe) =====
-if (path === "sync-bookings" && req.method === "GET") {
-  try {
-    const paidPayments = await payments.find({ status: { $in: ["PAID", "SUCCESS"] } }).toArray();
-
-    let synced = 0;
-    for (const pay of paidPayments) {
-      const result = await bookings.updateOne(
-        { date: pay.date, slot: pay.slot },
-        {
-          $setOnInsert: {
-            name: pay.name,
-            email: pay.email,
-            phone: pay.phone,
-            concern: pay.concern,
-            createdAt: new Date(),
-          },
-        },
-        { upsert: true }
-      );
-
-      if (result.upsertedCount) synced++;
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: `✅ Synced ${synced} bookings successfully.`,
-    });
-  } catch (err) {
-    console.error("💥 Sync-bookings error:", err);
-    return res.status(500).json({ error: "Sync failed", details: err.message });
-  }
-}
-
     // ===== INVALID PATH =====
     return res.status(404).json({ error: "Invalid path" });
   } catch (err) {
     console.error("❌ Payment API error:", err);
     res.status(500).json({ error: "Server error" });
   }
-}  // ← keep this closing brace exactly as it is
+}
 
 // =====================================================
-// 🧾 Inline helper: generateReceipt()
+// 🧾 generateReceipt Helper
 // =====================================================
 async function generateReceipt(payment) {
   const doc = new jsPDF("p", "mm", "a4");
@@ -400,7 +335,7 @@ async function generateReceipt(payment) {
   return doc.output("arraybuffer");
 }
 
-// Helper to convert blob → base64
+// Helper: blob → base64
 function blobToBase64(blob) {
   return new Promise((resolve) => {
     const reader = new FileReader();

@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     }
 
     // =========================
-    //  GET ALL BOOKINGS
+    //  GET BOOKINGS BY DATE
     // =========================
     if (path === "bookings" && req.method === "GET") {
       const authHeader = req.headers.authorization;
@@ -40,13 +40,28 @@ export default async function handler(req, res) {
       const token = authHeader.split(" ")[1];
       jwt.verify(token, process.env.JWT_SECRET);
 
+      const { date } = req.query;
+      if (!date)
+        return res.status(400).json({ error: "Date required" });
+
       const bookings = await db
         .collection("bookings")
-        .find()
-        .sort({ date: 1, slot: 1 })
+        .find({ date })
+        .sort({ slot: 1 })
         .toArray();
 
-      return res.status(200).json({ success: true, bookings });
+      const payments = await db
+        .collection("payments")
+        .find({ date, status: { $in: ["PAID", "SUCCESS"] } })
+        .toArray();
+
+      // merge confirmed payments + direct bookings
+      const merged = [
+        ...bookings.map(b => ({ ...b, source: "booking" })),
+        ...payments.map(p => ({ ...p, source: "payment" }))
+      ];
+
+      return res.status(200).json({ success: true, bookings: merged });
     }
 
     // =========================
@@ -57,29 +72,25 @@ export default async function handler(req, res) {
       if (!date)
         return res.status(400).json({ error: "Date required" });
 
+      // current IST time (even when server runs UTC)
       const nowUTC = new Date();
       const istNow = new Date(nowUTC.getTime() + 5.5 * 60 * 60 * 1000);
 
-      // Fetch both bookings and successful payments
+      // pull all confirmed bookings + unavailable slots
       const payments = await db
         .collection("payments")
         .find({ date, status: { $in: ["PAID", "SUCCESS"] } })
         .toArray();
-
       const bookings = await db.collection("bookings").find({ date }).toArray();
       const unavailableDocs = await db.collection("unavailableSlots").find({ date }).toArray();
 
-      // Merge both (for real-time accurate availability)
       const allBooked = [...bookings, ...payments];
-
-      // Normalization helper
       const normalize = (s) => s.trim().replace(/\s+/g, "").toUpperCase();
       const bookedSlots = allBooked.map(b => normalize(b.slot));
       const unavailableSlots = unavailableDocs.map(s => normalize(s.slot));
 
       const slots = [];
 
-      // Generate exactly 24 hourly slots (12 AM → 11 PM)
       for (let h = 0; h < 24; h++) {
         const hour12 = h % 12 === 0 ? 12 : h % 12;
         const period = h < 12 ? "AM" : "PM";
