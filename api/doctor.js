@@ -57,8 +57,11 @@ if (path === "slots" && req.method === "GET") {
   const bookings = await db.collection("bookings").find({ date }).toArray();
   const unavailableDocs = await db.collection("unavailableSlots").find({ date }).toArray();
 
-  const bookedSlots = bookings.map(b => b.slot);
-  const unavailableSlots = unavailableDocs.map(s => s.slot);
+// Normalize slot strings to avoid mismatches like "9:00 AM" vs "09:00 AM"
+const normalize = (s) => s.trim().replace(/\s+/g, "").toUpperCase();
+
+const bookedSlots = bookings.map(b => normalize(b.slot));
+const unavailableSlots = unavailableDocs.map(s => normalize(s.slot));
 
   const slots = [];
 
@@ -72,8 +75,8 @@ if (path === "slots" && req.method === "GET") {
     const slotIST = new Date(`${yyyy}-${mm}-${dd}T${h.toString().padStart(2, "0")}:00:00+05:30`);
 
     let status = "available";
-    if (bookedSlots.includes(slot)) status = "booked";
-    else if (unavailableSlots.includes(slot)) status = "unavailable";
+    if (bookedSlots.includes(normalize(slot))) status = "booked";
+    else if (unavailableSlots.includes(normalize(slot))) status = "unavailable";
     else if (slotIST < istNow) status = "past";
 
     slots.push({ slot, status });
