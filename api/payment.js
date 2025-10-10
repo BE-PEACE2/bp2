@@ -2,6 +2,7 @@
 import connectDB from "../db.js";
 import crypto from "crypto";
 import axios from "axios";
+import sendEmail from "../utils/sendEmail.js";
 
 export default async function handler(req, res) {
   const { path } = req.query; // e.g., /api/payment?path=create
@@ -155,6 +156,56 @@ export default async function handler(req, res) {
             });
           }
         }
+
+      // 💌 Send confirmation emails to customer and admin
+try {
+  const subject = "Your BE PEACE Consultation Confirmation";
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;background:#f9f9f9;padding:20px;border-radius:10px">
+      <div style="text-align:center;margin-bottom:20px">
+        <img src="https://bepeace.in/images/logo.svg" width="80" alt="BE PEACE"/>
+        <h2 style="color:#007b5e;margin:10px 0 0;">BE PEACE Consultation Confirmed</h2>
+        <p style="color:#555;margin:5px 0;">Worldwide Online Teleconsultation</p>
+      </div>
+
+      <p>Dear ${payment.name},</p>
+      <p>We’ve successfully received your payment and confirmed your consultation.</p>
+
+      <h3 style="color:#007b5e">Consultation Details</h3>
+      <p><b>Date:</b> ${payment.date}</p>
+      <p><b>Slot:</b> ${payment.slot}</p>
+      <p><b>Concern:</b> ${payment.concern}</p>
+      <p><b>Transaction ID:</b> ${order_id}</p>
+
+      <hr style="border:none;border-top:1px solid #ddd;margin:15px 0">
+
+      <p style="margin-top:20px;color:#007b5e;font-weight:bold;text-align:center;">
+        💚 Thank you for trusting BE PEACE<br>Your health, Your peace.
+      </p>
+
+      <div style="text-align:center;margin-top:20px;">
+        <a href="https://bepeace.in/payment-success.html?order_id=${order_id}" 
+           style="background:#007b5e;color:#fff;text-decoration:none;padding:10px 20px;border-radius:5px;font-weight:bold;">
+          View Receipt
+        </a>
+      </div>
+
+      <p style="font-size:13px;color:#888;text-align:center;margin-top:25px;">
+        Need help? Contact us at <a href="mailto:info@bepeace.in">info@bepeace.in</a>
+      </p>
+    </div>
+  `;
+
+  // Send to customer
+  await sendEmail(payment.email, subject, html);
+
+  // Send copy to admin
+  await sendEmail(process.env.ADMIN_EMAIL || process.env.EMAIL_USER, `New Booking - ${payment.name}`, html);
+  
+  console.log(`✅ Emails sent successfully to ${payment.email} and admin`);
+} catch (err) {
+  console.error("⚠️ Email send error:", err.message);
+}
 
         // Remove slot lock after payment
         await locks.deleteOne({ date: payment.date, slot: payment.slot });

@@ -138,45 +138,119 @@ async function verifyPayment() {
 }
 verifyPayment();
 
-    // 🧾 Download Receipt as PDF
-    document.getElementById("downloadBtn").addEventListener("click", () => {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      const logoUrl = "https://bepeace.in/images/doctor.jpg";
-      const img = new Image();
-      img.crossOrigin = "Anonymous";
-      img.src = logoUrl;
+    // 💚 BE PEACE Receipt – With Faint Logo Watermark
+document.getElementById("downloadBtn").addEventListener("click", () => {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF("p", "mm", "a4");
 
-      img.onload = function() {
-        doc.addImage(img, "JPEG", 160, 10, 40, 25);
-        doc.setFontSize(18);
-        doc.text("BE PEACE - Consultation Receipt", 20, 20);
+  const logoUrl = "https://bepeace.in/images/logo.svg"; // Your official logo
+  const img = new Image();
+  img.crossOrigin = "Anonymous";
+  img.src = logoUrl;
 
-        const rows = [
-          ["Booking Reference", document.getElementById("orderId").textContent],
-          ["Name", document.getElementById("name").textContent],
-          ["Email", document.getElementById("email").textContent],
-          ["Phone", document.getElementById("phone").textContent],
-          ["Age", document.getElementById("age").textContent],
-          ["Sex", document.getElementById("sex").textContent],
-          ["Amount Paid", document.getElementById("amount").textContent],
-        ];
+  img.onload = function () {
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
 
-        doc.autoTable({
-          startY: 40,
-          head: [["Field", "Details"]],
-          body: rows,
-          theme: "grid",
-          styles: { fontSize: 12, cellPadding: 5 },
-          headStyles: { fillColor: [40, 167, 69] }
-        });
+    // 🌿 Add faint logo watermark in center
+    const watermarkSize = 90;
+    const watermarkX = (pageWidth - watermarkSize) / 2;
+    const watermarkY = (pageHeight - watermarkSize) / 2 - 10;
 
-        const date = new Date().toLocaleString();
-        doc.setFontSize(10);
-        doc.text("Generated on: " + date, 20, doc.internal.pageSize.height - 10);
-        doc.save("BEPEACE_Receipt.pdf");
-      };
+    doc.saveGraphicsState();
+    doc.setGState(new doc.GState({ opacity: 0.08 }));
+    doc.addImage(img, "PNG", watermarkX, watermarkY, watermarkSize, watermarkSize);
+    doc.restoreGraphicsState();
+
+    // 🌿 Add small shimmer "BE PEACE" text watermark
+    doc.saveGraphicsState();
+    doc.setFontSize(60);
+    doc.setTextColor(200, 240, 200);
+    doc.text("BE PEACE", pageWidth / 2, pageHeight / 2, {
+      align: "center",
+      angle: 45,
+      opacity: 0.05,
     });
+    doc.restoreGraphicsState();
+
+    // 🌿 Top Header Logo
+    const logoWidth = 45;
+    const logoX = (pageWidth - logoWidth) / 2;
+    doc.addImage(img, "PNG", logoX, 12, logoWidth, 35);
+
+    doc.setFontSize(18);
+    doc.setTextColor(0, 100, 0);
+    doc.text("BE PEACE", pageWidth / 2, 55, { align: "center" });
+
+    doc.setFontSize(12);
+    doc.setTextColor(70);
+    doc.text("Worldwide Online Teleconsultation", pageWidth / 2, 61, { align: "center" });
+    doc.text("www.bepeace.in", pageWidth / 2, 66, { align: "center" });
+
+    doc.setFontSize(14);
+    doc.setTextColor(0);
+    doc.text("Consultation Receipt", pageWidth / 2, 76, { align: "center" });
+
+    // 🧾 Table Data
+    const clean = (str) =>
+      (str || "").replace(/[^\x00-\x7F]/g, "").replace(/.*:\s*/, "");
+    const transactionId = localStorage.getItem("transaction_id") || "CF-" + Date.now();
+
+    const rows = [
+      ["Booking Reference", document.getElementById("orderId").textContent],
+      ["Name", clean(localStorage.getItem("name") || "—")],
+      ["Email", clean(localStorage.getItem("email") || "—")],
+      ["Phone", clean(localStorage.getItem("phone") || "—")],
+      ["Age", clean(localStorage.getItem("age") || "—")],
+      ["Sex", clean(localStorage.getItem("sex") || "—")],
+      ["Consultation Date", clean(localStorage.getItem("date") || "—")],
+      ["Consultation Slot", clean(localStorage.getItem("slot") || "—")],
+      ["Amount Paid", clean(document.getElementById("amount").textContent.replace(/[^\d₹]/g, ""))],
+      ["Transaction ID", transactionId],
+    ];
+
+    doc.autoTable({
+      startY: 82,
+      head: [["Field", "Details"]],
+      body: rows,
+      theme: "grid",
+      styles: { fontSize: 12, cellPadding: 5 },
+      headStyles: { fillColor: [0, 120, 80], textColor: 255 },
+      alternateRowStyles: { fillColor: [245, 250, 245] },
+    });
+
+    // 💚 Divider + Message
+    const msgY = doc.lastAutoTable.finalY + 12;
+    doc.setDrawColor(150, 220, 150);
+    doc.setLineWidth(0.4);
+    doc.line(40, msgY, pageWidth - 40, msgY);
+
+    const textY = msgY + 8;
+    doc.setFontSize(13);
+    doc.setTextColor(0, 100, 0);
+    doc.text("Thank you for trusting BE PEACE 💚", pageWidth / 2, textY, { align: "center" });
+    doc.setFontSize(12);
+    doc.setTextColor(60);
+    doc.text("Your health, Your peace.", pageWidth / 2, textY + 6, { align: "center" });
+
+    // 📅 Footer
+    const date = new Date().toLocaleString();
+    const footerY = pageHeight - 25;
+
+    doc.setDrawColor(0, 120, 80);
+    doc.line(20, footerY, pageWidth - 20, footerY);
+
+    doc.setFontSize(10);
+    doc.setTextColor(90);
+    doc.text(`Generated on: ${date}`, 20, footerY + 6);
+    doc.setTextColor(60);
+    doc.text("BE PEACE | Worldwide Online Teleconsultation", pageWidth / 2, footerY + 12, { align: "center" });
+    doc.text("Support: info@bepeace.in", pageWidth / 2, footerY + 17, { align: "center" });
+
+    // 💾 Save
+    doc.save("BEPEACE_Consultation_Receipt.pdf");
+  };
+});
   </script>
 </body>
 </html>
