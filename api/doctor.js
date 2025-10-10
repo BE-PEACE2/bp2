@@ -1,13 +1,15 @@
 import jwt from "jsonwebtoken";
-import connectDB from "../db.js"; // keep this for bookings, slots, etc.
+import connectDB from "../db.js"; // MongoDB connection
 
 export default async function handler(req, res) {
-  const { path } = req.query; // e.g. /api/doctor?path=login
+  const { path } = req.query; // e.g. /api/doctor?path=slots
 
   try {
     const db = await connectDB();
 
-    // ===== LOGIN (using .env credentials) =====
+    // =========================
+    //  LOGIN (doctor dashboard)
+    // =========================
     if (path === "login" && req.method === "POST") {
       const { email, password } = req.body;
 
@@ -27,7 +29,9 @@ export default async function handler(req, res) {
       }
     }
 
-    // ===== GET BOOKINGS =====
+    // =========================
+    //  GET ALL BOOKINGS
+    // =========================
     if (path === "bookings" && req.method === "GET") {
       const authHeader = req.headers.authorization;
       if (!authHeader)
@@ -45,47 +49,59 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, bookings });
     }
 
-   // ===== GET 24-HOUR SLOTS =====
-if (path === "slots" && req.method === "GET") {
-  const { date } = req.query;
-  if (!date)
-    return res.status(400).json({ error: "Date required" });
+    // =========================
+    //  GET 24-HOUR SLOTS
+    // =========================
+    if (path === "slots" && req.method === "GET") {
+      const { date } = req.query;
+      if (!date)
+        return res.status(400).json({ error: "Date required" });
 
-  const nowUTC = new Date();
-  const istNow = new Date(nowUTC.getTime() + 5.5 * 60 * 60 * 1000);
+      const nowUTC = new Date();
+      const istNow = new Date(nowUTC.getTime() + 5.5 * 60 * 60 * 1000);
 
-  const bookings = await db.collection("bookings").find({ date }).toArray();
-  const unavailableDocs = await db.collection("unavailableSlots").find({ date }).toArray();
+      // Fetch both bookings and successful payments
+      const payments = await db
+        .collection("payments")
+        .find({ date, status: { $in: ["PAID", "SUCCESS"] } })
+        .toArray();
 
-// Normalize slot strings to avoid mismatches like "9:00 AM" vs "09:00 AM"
-const normalize = (s) => s.trim().replace(/\s+/g, "").toUpperCase();
+      const bookings = await db.collection("bookings").find({ date }).toArray();
+      const unavailableDocs = await db.collection("unavailableSlots").find({ date }).toArray();
 
-const bookedSlots = bookings.map(b => normalize(b.slot));
-const unavailableSlots = unavailableDocs.map(s => normalize(s.slot));
+      // Merge both (for real-time accurate availability)
+      const allBooked = [...bookings, ...payments];
 
-  const slots = [];
+      // Normalization helper
+      const normalize = (s) => s.trim().replace(/\s+/g, "").toUpperCase();
+      const bookedSlots = allBooked.map(b => normalize(b.slot));
+      const unavailableSlots = unavailableDocs.map(s => normalize(s.slot));
 
-  // ✅ Generate exactly 24 hourly slots from 12 AM → 11 PM
-  for (let h = 0; h < 24; h++) {
-    const hour12 = h % 12 === 0 ? 12 : h % 12;
-    const period = h < 12 ? "AM" : "PM";
-    const slot = `${hour12.toString().padStart(2, "0")}:00 ${period}`;
+      const slots = [];
 
-    const [yyyy, mm, dd] = date.split("-");
-    const slotIST = new Date(`${yyyy}-${mm}-${dd}T${h.toString().padStart(2, "0")}:00:00+05:30`);
+      // Generate exactly 24 hourly slots (12 AM → 11 PM)
+      for (let h = 0; h < 24; h++) {
+        const hour12 = h % 12 === 0 ? 12 : h % 12;
+        const period = h < 12 ? "AM" : "PM";
+        const slot = `${hour12.toString().padStart(2, "0")}:00 ${period}`;
 
-    let status = "available";
-    if (bookedSlots.includes(normalize(slot))) status = "booked";
-    else if (unavailableSlots.includes(normalize(slot))) status = "unavailable";
-    else if (slotIST < istNow) status = "past";
+        const [yyyy, mm, dd] = date.split("-");
+        const slotIST = new Date(`${yyyy}-${mm}-${dd}T${h.toString().padStart(2, "0")}:00:00+05:30`);
 
-    slots.push({ slot, status });
-  }
+        let status = "available";
+        if (bookedSlots.includes(normalize(slot))) status = "booked";
+        else if (unavailableSlots.includes(normalize(slot))) status = "unavailable";
+        else if (slotIST < istNow) status = "past";
 
-  return res.status(200).json({ success: true, date, slots });
-}
+        slots.push({ slot, status });
+      }
 
-    // ===== MARK SLOT UNAVAILABLE =====
+      return res.status(200).json({ success: true, date, slots });
+    }
+
+    // =========================
+    //  MARK SLOT UNAVAILABLE
+    // =========================
     if (path === "set-unavailable" && req.method === "POST") {
       const { date, slot } = req.body;
       if (!date || !slot)
@@ -97,20 +113,28 @@ const unavailableSlots = unavailableDocs.map(s => normalize(s.slot));
         createdAt: new Date(),
       });
 
-      return res.status(200).json({ success: true, message: "Slot marked unavailable" });
+      return res
+        .status(200)
+        .json({ success: true, message: "Slot marked unavailable" });
     }
 
-    // ===== MAKE SLOT AVAILABLE AGAIN =====
+    // =========================
+    //  MAKE SLOT AVAILABLE AGAIN
+    // =========================
     if (path === "set-available" && req.method === "POST") {
       const { date, slot } = req.body;
       if (!date || !slot)
         return res.status(400).json({ error: "Date and slot required" });
 
       await db.collection("unavailableSlots").deleteOne({ date, slot });
-      return res.status(200).json({ success: true, message: "Slot made available again" });
+      return res
+        .status(200)
+        .json({ success: true, message: "Slot made available again" });
     }
 
-    // ===== INVALID PATH =====
+    // =========================
+    //  INVALID PATH
+    // =========================
     return res.status(404).json({ error: "Invalid path" });
 
   } catch (err) {
