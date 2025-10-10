@@ -45,42 +45,42 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, bookings });
     }
 
-    // ===== GET 24-HOUR SLOTS =====
-    if (path === "slots" && req.method === "GET") {
-      const { date } = req.query;
-      if (!date)
-        return res.status(400).json({ error: "Date required" });
+   // ===== GET 24-HOUR SLOTS =====
+if (path === "slots" && req.method === "GET") {
+  const { date } = req.query;
+  if (!date)
+    return res.status(400).json({ error: "Date required" });
 
-      const nowUTC = new Date();
-      const istNow = new Date(nowUTC.getTime() + 5.5 * 60 * 60 * 1000);
+  const nowUTC = new Date();
+  const istNow = new Date(nowUTC.getTime() + 5.5 * 60 * 60 * 1000);
 
-      const bookings = await db.collection("bookings").find({ date }).toArray();
-      const unavailableDocs = await db.collection("unavailableSlots").find({ date }).toArray();
+  const bookings = await db.collection("bookings").find({ date }).toArray();
+  const unavailableDocs = await db.collection("unavailableSlots").find({ date }).toArray();
 
-      const bookedSlots = bookings.map(b => b.slot);
-      const unavailableSlots = unavailableDocs.map(s => s.slot);
+  const bookedSlots = bookings.map(b => b.slot);
+  const unavailableSlots = unavailableDocs.map(s => s.slot);
 
-      const slots = [];
-      for (let h = 0; h < 24; h++) {
-        for (let m of [0, 30]) {
-          const hour12 = h % 12 === 0 ? 12 : h % 12;
-          const period = h < 12 ? "AM" : "PM";
-          const slot = `${hour12.toString().padStart(2, "0")}:${m === 0 ? "00" : "30"} ${period}`;
+  const slots = [];
 
-          const [yyyy, mm, dd] = date.split("-");
-          const slotIST = new Date(`${yyyy}-${mm}-${dd}T${h.toString().padStart(2, "0")}:${m === 0 ? "00" : "30"}:00+05:30`);
+  // ✅ Generate exactly 24 hourly slots from 12 AM → 11 PM
+  for (let h = 0; h < 24; h++) {
+    const hour12 = h % 12 === 0 ? 12 : h % 12;
+    const period = h < 12 ? "AM" : "PM";
+    const slot = `${hour12.toString().padStart(2, "0")}:00 ${period}`;
 
-          let status = "available";
-          if (bookedSlots.includes(slot)) status = "booked";
-          else if (unavailableSlots.includes(slot)) status = "unavailable";
-          else if (slotIST < istNow) status = "past";
+    const [yyyy, mm, dd] = date.split("-");
+    const slotIST = new Date(`${yyyy}-${mm}-${dd}T${h.toString().padStart(2, "0")}:00:00+05:30`);
 
-          slots.push({ slot, status });
-        }
-      }
+    let status = "available";
+    if (bookedSlots.includes(slot)) status = "booked";
+    else if (unavailableSlots.includes(slot)) status = "unavailable";
+    else if (slotIST < istNow) status = "past";
 
-      return res.status(200).json({ success: true, date, slots });
-    }
+    slots.push({ slot, status });
+  }
+
+  return res.status(200).json({ success: true, date, slots });
+}
 
     // ===== MARK SLOT UNAVAILABLE =====
     if (path === "set-unavailable" && req.method === "POST") {
