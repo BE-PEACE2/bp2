@@ -277,6 +277,40 @@ try {
       }
     }
 
+    // ===== MANUAL ADMIN SYNC (Safe) =====
+if (path === "sync-bookings" && req.method === "GET") {
+  try {
+    const paidPayments = await payments.find({ status: { $in: ["PAID", "SUCCESS"] } }).toArray();
+
+    let synced = 0;
+    for (const pay of paidPayments) {
+      const result = await bookings.updateOne(
+        { date: pay.date, slot: pay.slot },
+        {
+          $setOnInsert: {
+            name: pay.name,
+            email: pay.email,
+            phone: pay.phone,
+            concern: pay.concern,
+            createdAt: new Date(),
+          },
+        },
+        { upsert: true }
+      );
+
+      if (result.upsertedCount) synced++;
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `✅ Synced ${synced} bookings successfully.`,
+    });
+  } catch (err) {
+    console.error("💥 Sync-bookings error:", err);
+    return res.status(500).json({ error: "Sync failed", details: err.message });
+  }
+}
+
     // ===== INVALID PATH =====
     return res.status(404).json({ error: "Invalid path" });
   } catch (err) {
