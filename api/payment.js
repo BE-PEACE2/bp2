@@ -3,6 +3,8 @@ import connectDB from "../db.js";
 import crypto from "crypto";
 import axios from "axios";
 import sendEmail from "../utils/sendEmail.js";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default async function handler(req, res) {
   const { path } = req.query; // e.g., /api/payment?path=create
@@ -157,54 +159,69 @@ export default async function handler(req, res) {
           }
         }
 
-      // 💌 Send confirmation emails to customer and admin
+     // 💌 Send branded email with attached PDF receipt
 try {
-  const subject = "Your BE PEACE Consultation Confirmation";
+  const receiptBuffer = await generateReceipt({
+    ...payment,
+    orderId: order_id,
+  });
+
+  const subject = "Your BE PEACE Consultation Receipt 💚";
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;background:#f9f9f9;padding:20px;border-radius:10px">
       <div style="text-align:center;margin-bottom:20px">
         <img src="https://bepeace.in/images/logo.svg" width="80" alt="BE PEACE"/>
-        <h2 style="color:#007b5e;margin:10px 0 0;">BE PEACE Consultation Confirmed</h2>
+        <h2 style="color:#007b5e;margin:10px 0 0;">Consultation Confirmed</h2>
         <p style="color:#555;margin:5px 0;">Worldwide Online Teleconsultation</p>
       </div>
 
       <p>Dear ${payment.name},</p>
-      <p>We’ve successfully received your payment and confirmed your consultation.</p>
+      <p>Your consultation has been successfully booked and payment received.</p>
 
-      <h3 style="color:#007b5e">Consultation Details</h3>
+      <h3 style="color:#007b5e">Appointment Details</h3>
       <p><b>Date:</b> ${payment.date}</p>
       <p><b>Slot:</b> ${payment.slot}</p>
-      <p><b>Concern:</b> ${payment.concern}</p>
       <p><b>Transaction ID:</b> ${order_id}</p>
 
       <hr style="border:none;border-top:1px solid #ddd;margin:15px 0">
 
-      <p style="margin-top:20px;color:#007b5e;font-weight:bold;text-align:center;">
+      <p style="text-align:center;color:#007b5e;font-weight:bold;">
         💚 Thank you for trusting BE PEACE<br>Your health, Your peace.
       </p>
 
-      <div style="text-align:center;margin-top:20px;">
-        <a href="https://bepeace.in/payment-success.html?order_id=${order_id}" 
+      <p style="text-align:center;margin-top:20px;">
+        <a href="https://bepeace.in/payment-success.html?order_id=${order_id}"
            style="background:#007b5e;color:#fff;text-decoration:none;padding:10px 20px;border-radius:5px;font-weight:bold;">
-          View Receipt
+          View Online Receipt
         </a>
-      </div>
+      </p>
 
       <p style="font-size:13px;color:#888;text-align:center;margin-top:25px;">
-        Need help? Contact us at <a href="mailto:info@bepeace.in">info@bepeace.in</a>
+        Need help? Contact <a href="mailto:info@bepeace.in">info@bepeace.in</a>
       </p>
     </div>
   `;
 
-  // Send to customer
-  await sendEmail(payment.email, subject, html);
+  // Send with PDF attachment
+  await sendEmail(payment.email, subject, html, [
+    {
+      filename: `BEPEACE_Receipt_${order_id}.pdf`,
+      content: Buffer.from(receiptBuffer),
+      contentType: "application/pdf",
+    },
+  ]);
 
-  // Send copy to admin
-  await sendEmail(process.env.ADMIN_EMAIL || process.env.EMAIL_USER, `New Booking - ${payment.name}`, html);
-  
-  console.log(`✅ Emails sent successfully to ${payment.email} and admin`);
+  await sendEmail(process.env.ADMIN_EMAIL || process.env.EMAIL_USER, `New Booking - ${payment.name}`, html, [
+    {
+      filename: `BEPEACE_Receipt_${order_id}.pdf`,
+      content: Buffer.from(receiptBuffer),
+      contentType: "application/pdf",
+    },
+  ]);
+
+  console.log(`✅ Receipt emails sent to ${payment.email} and admin`);
 } catch (err) {
-  console.error("⚠️ Email send error:", err.message);
+  console.error("⚠️ Email with receipt failed:", err.message);
 }
 
         // Remove slot lock after payment
@@ -268,4 +285,93 @@ try {
     console.error("❌ Payment API error:", err);
     res.status(500).json({ error: "Server error" });
   }
+}  // ← keep this closing brace exactly as it is
+
+// =====================================================
+// 🧾 Inline helper: generateReceipt()
+// =====================================================
+async function generateReceipt(payment) {
+  const doc = new jsPDF("p", "mm", "a4");
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  // 💚 Watermark + Header
+  const logoUrl = "https://bepeace.in/images/logo.svg";
+  try {
+    const res = await fetch(logoUrl);
+    const blob = await res.blob();
+    const imgBase64 = await blobToBase64(blob);
+    const watermarkSize = 90;
+    const watermarkX = (pageWidth - watermarkSize) / 2;
+    const watermarkY = (pageHeight - watermarkSize) / 2 - 10;
+
+    doc.saveGraphicsState();
+    doc.setGState(new doc.GState({ opacity: 0.08 }));
+    doc.addImage(imgBase64, "PNG", watermarkX, watermarkY, watermarkSize, watermarkSize);
+    doc.restoreGraphicsState();
+
+    doc.addImage(imgBase64, "PNG", (pageWidth - 45) / 2, 10, 45, 35);
+  } catch (e) {
+    console.warn("⚠️ Logo load failed:", e.message);
+  }
+
+  doc.setFontSize(18);
+  doc.setTextColor(0, 100, 0);
+  doc.text("BE PEACE", pageWidth / 2, 55, { align: "center" });
+  doc.setFontSize(12);
+  doc.text("Worldwide Online Teleconsultation", pageWidth / 2, 61, { align: "center" });
+  doc.text("www.bepeace.in", pageWidth / 2, 66, { align: "center" });
+  doc.setFontSize(14);
+  doc.text("Consultation Receipt", pageWidth / 2, 76, { align: "center" });
+
+  const rows = [
+    ["Booking Reference", payment.orderId],
+    ["Name", payment.name],
+    ["Email", payment.email],
+    ["Phone", payment.phone],
+    ["Age", payment.age || "—"],
+    ["Sex", payment.sex || "—"],
+    ["Date", payment.date],
+    ["Slot", payment.slot],
+    ["Amount Paid", `₹${payment.amount}`],
+    ["Transaction ID", payment.orderId],
+  ];
+
+  autoTable(doc, {
+    startY: 82,
+    head: [["Field", "Details"]],
+    body: rows,
+    theme: "grid",
+    styles: { fontSize: 12, cellPadding: 5 },
+    headStyles: { fillColor: [0, 120, 80], textColor: 255 },
+    alternateRowStyles: { fillColor: [245, 250, 245] },
+  });
+
+  const msgY = doc.lastAutoTable.finalY + 10;
+  doc.setFontSize(13);
+  doc.setTextColor(0, 100, 0);
+  doc.text("Thank you for trusting BE PEACE 💚", pageWidth / 2, msgY, { align: "center" });
+  doc.setFontSize(11);
+  doc.setTextColor(60);
+  doc.text("Your health, Your peace.", pageWidth / 2, msgY + 6, { align: "center" });
+
+  const date = new Date().toLocaleString();
+  const footerY = pageHeight - 25;
+  doc.setDrawColor(0, 120, 80);
+  doc.line(20, footerY, pageWidth - 20, footerY);
+  doc.setFontSize(10);
+  doc.text(`Generated on: ${date}`, 20, footerY + 6);
+  doc.text("BE PEACE | Worldwide Online Teleconsultation", pageWidth / 2, footerY + 12, { align: "center" });
+  doc.text("Support: info@bepeace.in", pageWidth / 2, footerY + 17, { align: "center" });
+
+  return doc.output("arraybuffer");
+}
+
+// Helper to convert blob → base64
+function blobToBase64(blob) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.readAsDataURL(blob);
+  });
 }
