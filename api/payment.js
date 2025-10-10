@@ -175,6 +175,41 @@ export default async function handler(req, res) {
         .status(200)
         .json({ success: true, removed: result.deletedCount });
     }
+    
+        // ===== VERIFY PAYMENT STATUS (used by payment-success.html) =====
+    if (path === "verify" && req.method === "GET") {
+      try {
+        const { order_id } = req.query;
+        if (!order_id)
+          return res.status(400).json({ error: "Order ID required" });
+
+        const response = await fetch(
+          `https://api.cashfree.com/pg/orders/${order_id}`,
+          {
+            headers: {
+              "x-client-id": process.env.CASHFREE_APP_ID,
+              "x-client-secret": process.env.CASHFREE_SECRET_KEY,
+              "x-api-version": "2023-08-01",
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        // Also update DB if successful
+        if (["PAID", "SUCCESS"].includes(data.order_status)) {
+          await payments.updateOne(
+            { orderId: order_id },
+            { $set: { status: data.order_status, updatedAt: new Date() } }
+          );
+        }
+
+        return res.status(200).json(data);
+      } catch (err) {
+        console.error("💥 Verification error:", err.message);
+        return res.status(500).json({ error: "Verification failed" });
+      }
+    }
 
     // ===== INVALID PATH =====
     return res.status(404).json({ error: "Invalid path" });
