@@ -183,25 +183,30 @@ async function updateFeeDisplay(countryCode) {
   } else {
     amount = 25;
     currency = "USD";
-    feeDisplay.textContent = "Consultation Fee: $25 USD (calculating conversion...)";
+    feeDisplay.textContent = "Consultation Fee: $25 USD (fetching conversion...)";
 
     try {
-      // show approximate value in local currency
-      const res = await fetch("https://api.exchangerate.host/latest?base=USD");
+      // 🌎 Step 1: detect currency from country
+      const currencyData = await fetch(`https://restcountries.com/v3.1/alpha/${countryCode}`);
+      const countryInfo = await currencyData.json();
+      const currencyCode = Object.keys(countryInfo[0].currencies)[0]; // e.g. "EUR" for France
+
+      // 🌎 Step 2: fetch conversion rate
+      const res = await fetch(`https://api.exchangerate.host/latest?base=USD&symbols=${currencyCode}`);
       const data = await res.json();
-      const localRate = data.rates[countryCode] || null;
-      if (localRate) {
-        const converted = (25 * localRate).toFixed(2);
-        const symbol = new Intl.NumberFormat(undefined, {
+      const rate = data.rates[currencyCode];
+
+      if (rate) {
+        const converted = (25 * rate).toFixed(2);
+        feeDisplay.textContent = `Consultation Fee: $25 USD ≈ ${new Intl.NumberFormat(undefined, {
           style: "currency",
-          currency: countryCode
-        }).format(converted);
-        feeDisplay.textContent = `Consultation Fee: $25 USD ≈ ${symbol}`;
+          currency: currencyCode
+        }).format(converted)}`;
       } else {
         feeDisplay.textContent = "Consultation Fee: $25 USD";
       }
     } catch (err) {
-      console.warn("Currency conversion failed:", err);
+      console.warn("💱 Currency conversion failed:", err);
       feeDisplay.textContent = "Consultation Fee: $25 USD";
     }
   }
