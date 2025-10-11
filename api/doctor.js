@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import connectDB from "../db.js"; // MongoDB connection
+import moment from "moment-timezone"; // ✅ add this line
 
 export default async function handler(req, res) {
   const { path } = req.query; // e.g. /api/doctor?path=slots
@@ -72,9 +73,13 @@ if (path === "slots" && req.method === "GET") {
   if (!date)
     return res.status(400).json({ error: "Date required" });
 
-  // current time in user's timezone
-  const nowLocal = new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
-    console.log("🕒 [SLOTS]", { date, tz, nowLocal: nowLocal.toString() });
+// Get current local time in the user's timezone
+  const nowLocal = moment.tz(tz);
+  console.log("🕒 [SLOTS]", {
+    date,
+    tz,
+    nowLocal: nowLocal.format("YYYY-MM-DD hh:mm A"),
+  });
 
   // pull all confirmed bookings + unavailable slots
   const payments = await db
@@ -91,26 +96,17 @@ if (path === "slots" && req.method === "GET") {
 
   const slots = [];
 
+  // Generate slots for 24 hours
   for (let h = 0; h < 24; h++) {
-    const hour12 = h % 12 === 0 ? 12 : h % 12;
-    const period = h < 12 ? "AM" : "PM";
-    const slot = `${hour12.toString().padStart(2, "0")}:00 ${period}`;
-
-    const [yyyy, mm, dd] = date.split("-");
-    // construct slot time in the same timezone as user
-    const slotLocal = new Date(
-      new Date(`${yyyy}-${mm}-${dd}T${h.toString().padStart(2, "0")}:00:00`).toLocaleString(
-        "en-US",
-        { timeZone: tz }
-      )
-    );
+    const slotMoment = moment.tz(`${date} ${h}:00`, "YYYY-MM-DD H:mm", tz);
+    const slotLabel = slotMoment.format("hh:00 A");
 
     let status = "available";
-    if (bookedSlots.includes(normalize(slot))) status = "booked";
-    else if (unavailableSlots.includes(normalize(slot))) status = "unavailable";
-    else if (slotLocal < nowLocal) status = "past";
+    if (bookedSlots.includes(normalize(slotLabel))) status = "booked";
+    else if (unavailableSlots.includes(normalize(slotLabel))) status = "unavailable";
+    else if (slotMoment.isBefore(nowLocal, "hour")) status = "past";
 
-    slots.push({ slot, status });
+    slots.push({ slot: slotLabel, status });
   }
 
   return res.status(200).json({ success: true, date, tz, slots });
@@ -148,30 +144,23 @@ if (path === "slots" && req.method === "GET") {
         .status(200)
         .json({ success: true, message: "Slot made available again" });
     }
-
-    // =========================
-//  TEST TIMEZONE ENDPOINT
+    
+// =========================
+//  TEST TIMEZONE ENDPOINT (ACCURATE)
 // =========================
 if (path === "test-timezone" && req.method === "GET") {
   const { tz = "Asia/Kolkata" } = req.query;
-  
-  const nowUTC = new Date();
-  const nowLocal = new Date(nowUTC.toLocaleString("en-US", { timeZone: tz }));
 
-  // Calculate difference from UTC (hours and minutes)
-  const offsetMin = nowLocal.getTimezoneOffset();
-  const diffHours = Math.floor(Math.abs(offsetMin) / 60);
-  const diffMinutes = Math.abs(offsetMin) % 60;
-  const sign = offsetMin <= 0 ? "+" : "-";
-  const offsetString = `${sign}${diffHours}h ${diffMinutes}m`;
+  const nowUTC = moment.utc();
+  const nowLocal = nowUTC.clone().tz(tz);
 
   return res.status(200).json({
     success: true,
     timezone: tz,
-    utc_time: nowUTC.toISOString(),
-    local_time: nowLocal.toString(),
-    offset_from_utc: offsetString,
-    message: `Current local time in ${tz}`
+    utc_time: nowUTC.format(),
+    local_time: nowLocal.format("YYYY-MM-DD HH:mm:ss"),
+    offset_from_utc: nowLocal.format("Z"),
+    message: `Current local time in ${tz}`,
   });
 }
 
