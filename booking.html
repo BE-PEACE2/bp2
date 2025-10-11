@@ -101,7 +101,7 @@
     <p>© 2025 BE PEACE. All rights reserved.</p>
   </footer>
 
-  <script>
+<script>
 const payBtn = document.getElementById("payBtn");
 const countrySelect = document.getElementById("country");
 const dateInput = document.getElementById("date");
@@ -111,94 +111,136 @@ const feeDisplay = document.getElementById("feeDisplay");
 const successMsg = document.getElementById("successMsg");
 const phoneInput = document.querySelector("#phone");
 
-let amount = 10; 
-let currency = "INR"; // 💡 Force INR only for production
+let amount = 10;
+let currency = "INR";
 let iti;
+let userTimezone = "Asia/Kolkata";
+let userCountry = "IN";
 
 const todayISO = new Date().toISOString().split("T")[0];
 dateInput.setAttribute("min", todayISO);
 dateInput.value = todayISO;
 
-// 🌍 Load all countries for dropdown
+// 🌍 Load all countries
 async function loadCountries() {
   const res = await fetch("https://restcountries.com/v3.1/all?fields=cca2,name");
   const countries = await res.json();
   countries.sort((a,b)=>a.name.common.localeCompare(b.name.common));
   countries.forEach(c=>{
     const opt=document.createElement("option");
-    opt.value=c.cca2; opt.textContent=c.name.common;
+    opt.value=c.cca2;
+    opt.textContent=c.name.common;
     countrySelect.appendChild(opt);
   });
 }
 
-// 🌍 Detect user's country and timezone
+// 🌎 Detect location, timezone & currency
 async function initDetection() {
   try {
     const res = await fetch("https://ipapi.co/json");
     const data = await res.json();
+
     const timezone = data.timezone || "Asia/Kolkata";
-    const countryCode = data.country_code || "IN";
-    
-    // Calculate offset and formatted local time
-    const localTime = new Date();
-    const offsetMinutes = -localTime.getTimezoneOffset();
-    const offsetHours = Math.floor(offsetMinutes / 60);
-    const offsetMins = Math.abs(offsetMinutes % 60);
-    const offsetSign = offsetMinutes >= 0 ? "+" : "-";
-    const formattedOffset = `${offsetSign}${String(Math.abs(offsetHours)).padStart(2, "0")}:${String(offsetMins).padStart(2, "0")}`;
-    const formattedTime = localTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+    const countryCode = data.country_code?.toUpperCase() || "IN";
+    userTimezone = timezone;
+    userCountry = countryCode;
+    countrySelect.value = countryCode;
 
-   // 🧭 Show readable timezone info to user + live time update
-const tzDisplay = document.getElementById("timezoneDisplay");
+    // ✅ Initialize phone flag
+    iti = window.intlTelInput(phoneInput, {
+      initialCountry: countryCode.toLowerCase(),
+      preferredCountries: ["in", "us", "ae", "gb"],
+      utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
+    });
 
-function updateTime() {
-  const now = new Date();
-  const formattedTime = now.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true
-  });
-  tzDisplay.innerHTML = `
-    ⏰ Your timezone: <b>${timezone}</b> (UTC ${formattedOffset})<br>
-    🕓 Local time: <b>${formattedTime}</b>
-  `;
+    // 💰 Set consultation fee
+    await updateFeeDisplay(countryCode);
 
-  // 🕒 Update timezone label below slot grid + fade-in animation
-  const tzNote = document.getElementById("timezoneNote");
-  const tzLabel = document.getElementById("tzLabel");
-  if (tzLabel) tzLabel.textContent = `${timezone} (UTC ${formattedOffset})`;
-  if (tzNote) tzNote.style.opacity = "1"; // fade in when ready
+    // 🕓 Show real time for timezone
+    showLocalTime(timezone);
+
+  } catch (err) {
+    console.warn("Geo detection failed:", err);
+    userTimezone = "Asia/Kolkata";
+    userCountry = "IN";
+    await updateFeeDisplay("IN");
+    iti = window.intlTelInput(phoneInput, {
+      initialCountry: "in",
+      preferredCountries: ["in","us","ae","gb"],
+      utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
+    });
+    document.getElementById("timezoneDisplay").textContent =
+      "⏰ Default timezone: Asia/Kolkata (UTC +05:30)";
+  }
 }
 
-updateTime(); // Show immediately
-setInterval(updateTime, 1000); // Update every second
+// 💰 Update consultation fee dynamically
+async function updateFeeDisplay(countryCode) {
+  if (countryCode === "IN") {
+    amount = 10;
+    currency = "INR";
+    feeDisplay.textContent = "Consultation Fee: ₹10 INR";
+  } else {
+    amount = 25;
+    currency = "USD";
+    feeDisplay.textContent = "Consultation Fee: $25 USD (calculating conversion...)";
 
-    // Set default country
-    countrySelect.value = countryCode;
-  } catch (e) {
-    console.warn("Geo detection failed, defaulting to IN");
-    countrySelect.value = "IN";
-    document.getElementById("timezoneDisplay").textContent = "⏰ Default timezone: Asia/Kolkata (UTC +05:30)";
+    try {
+      // show approximate value in local currency
+      const res = await fetch("https://api.exchangerate.host/latest?base=USD");
+      const data = await res.json();
+      const localRate = data.rates[countryCode] || null;
+      if (localRate) {
+        const converted = (25 * localRate).toFixed(2);
+        const symbol = new Intl.NumberFormat(undefined, {
+          style: "currency",
+          currency: countryCode
+        }).format(converted);
+        feeDisplay.textContent = `Consultation Fee: $25 USD ≈ ${symbol}`;
+      } else {
+        feeDisplay.textContent = "Consultation Fee: $25 USD";
+      }
+    } catch (err) {
+      console.warn("Currency conversion failed:", err);
+      feeDisplay.textContent = "Consultation Fee: $25 USD";
+    }
+  }
+}
+
+// 🕓 Show real local time
+function showLocalTime(timezone) {
+  const tzDisplay = document.getElementById("timezoneDisplay");
+
+  function updateTime() {
+    const nowUtc = new Date();
+    const localTime = new Date(nowUtc.toLocaleString("en-US", { timeZone: timezone }));
+    const offsetMin = localTime.getTimezoneOffset();
+    const totalOffset = -offsetMin;
+    const hours = Math.floor(Math.abs(totalOffset) / 60);
+    const mins = Math.abs(totalOffset % 60);
+    const sign = totalOffset >= 0 ? "+" : "-";
+    const formattedOffset = `${sign}${String(hours).padStart(2,"0")}:${String(mins).padStart(2,"0")}`;
+    const timeStr = localTime.toLocaleTimeString("en-US", { hour12: true });
+
+    tzDisplay.innerHTML = `
+      ⏰ Your timezone: <b>${timezone}</b> (UTC ${formattedOffset})<br>
+      🕓 Local time: <b>${timeStr}</b>
+    `;
+    const tzNote = document.getElementById("timezoneNote");
+    const tzLabel = document.getElementById("tzLabel");
+    if (tzLabel) tzLabel.textContent = `${timezone} (UTC ${formattedOffset})`;
+    if (tzNote) tzNote.style.opacity = "1";
   }
 
-  // Initialize phone input
-  iti = window.intlTelInput(phoneInput, {
-    initialCountry: "IN",
-    preferredCountries: ["IN", "US", "AE", "GB"],
-    utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/utils.js"
-  });
+  updateTime();
+  setInterval(updateTime, 1000);
 }
 
-// 🕒 Load slots
+// 🕒 Load slots based on timezone
 async function loadSlots(date) {
   slotContainer.innerHTML = "⏳ Loading slots...";
   try {
-    // ✅ detect the user's local timezone
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    console.log("🌍 Detected timezone:", tz, "Current local time:", new Date().toString());
-
-    // ✅ send timezone to backend
+    const tz = userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
     const res = await fetch(`/api/doctor?path=slots&date=${date}&tz=${encodeURIComponent(tz)}`);
     const data = await res.json();
     if (!data.success || !data.slots?.length) {
@@ -211,7 +253,7 @@ async function loadSlots(date) {
   }
 }
 
-// 🎯 Render time slots
+// 🎯 Render slots
 function renderSlots(slots) {
   slotContainer.innerHTML = "";
   slots.forEach(s => {
@@ -246,7 +288,7 @@ function validateForm() {
 });
 dateInput.addEventListener("change",()=>loadSlots(dateInput.value));
 
-// 💳 Payment button
+// 💳 Payment (USD for foreign, INR for India)
 payBtn.addEventListener("click", async()=>{
   if(!validateForm())return;
   const name=document.getElementById("name").value.trim(),
@@ -258,16 +300,15 @@ payBtn.addEventListener("click", async()=>{
         date=document.getElementById("date").value,
         slot=document.getElementById("slot").value;
 
-      // 💾 Save booking details locally for success page & PDF receipt
-    localStorage.setItem("name", name);
-    localStorage.setItem("email", email);
-    localStorage.setItem("phone", phone);
-    localStorage.setItem("age", age);
-    localStorage.setItem("sex", sex);
-    localStorage.setItem("concern", concern);
-    localStorage.setItem("date", date);
-    localStorage.setItem("slot", slot);
-    
+  localStorage.setItem("name", name);
+  localStorage.setItem("email", email);
+  localStorage.setItem("phone", phone);
+  localStorage.setItem("age", age);
+  localStorage.setItem("sex", sex);
+  localStorage.setItem("concern", concern);
+  localStorage.setItem("date", date);
+  localStorage.setItem("slot", slot);
+
   try{
     const res=await fetch("/api/payment?path=create",{
       method:"POST",
@@ -277,12 +318,12 @@ payBtn.addEventListener("click", async()=>{
     const data=await res.json();
     if(!data.success){
       console.error("Cashfree API error:", data);
-      return alert("❌ Payment creation failed. Please try again or check your internet connection.");
+      return alert("❌ Payment creation failed. Please try again.");
     }
     const cashfree=new Cashfree({mode:"production"});
     cashfree.checkout({paymentSessionId:data.payment_session_id,redirectTarget:"_self"});
   }catch(err){
-    console.error("⚠️ Server error:", err);
+    console.error("⚠️ Payment error:", err);
     alert("⚠️ Server error while starting payment. Please retry.");
   }
 });
@@ -292,6 +333,7 @@ window.addEventListener("DOMContentLoaded", async()=>{
   await loadCountries();
   await initDetection();
   await loadSlots(todayISO);
+  setInterval(()=>loadSlots(dateInput.value), 60000);
 });
 </script>
 </body>
