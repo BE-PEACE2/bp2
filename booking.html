@@ -174,41 +174,74 @@ async function initDetection() {
   }
 }
 
-// 💰 Update consultation fee dynamically
+// 💰 Update consultation fee dynamically (with 24-hour cache)
 async function updateFeeDisplay(countryCode) {
+  const fallbackTimeout = setTimeout(() => {
+    feeDisplay.textContent = "Consultation Fee: $25 USD";
+  }, 4000);
+
   if (countryCode === "IN") {
+    clearTimeout(fallbackTimeout);
     amount = 10;
     currency = "INR";
     feeDisplay.textContent = "Consultation Fee: ₹10 INR";
-  } else {
-    amount = 25;
-    currency = "USD";
-    feeDisplay.textContent = "Consultation Fee: $25 USD (fetching conversion...)";
+    return;
+  }
 
-    try {
-      // 🌎 Step 1: detect currency from country
-      const currencyData = await fetch(`https://restcountries.com/v3.1/alpha/${countryCode}`);
-      const countryInfo = await currencyData.json();
-      const currencyCode = Object.keys(countryInfo[0].currencies)[0]; // e.g. "EUR" for France
+  amount = 25;
+  currency = "USD";
+  feeDisplay.textContent = "Consultation Fee: $25 USD (fetching conversion...)";
 
-      // 🌎 Step 2: fetch conversion rate
-      const res = await fetch(`https://api.exchangerate.host/latest?base=USD&symbols=${currencyCode}`);
-      const data = await res.json();
-      const rate = data.rates[currencyCode];
+  try {
+    // Step 1️⃣ — Get the local currency of the detected country
+    const countryRes = await fetch(`https://restcountries.com/v3.1/alpha/${countryCode}`);
+    const countryData = await countryRes.json();
+    const currencyCode = Object.keys(countryData[0].currencies)[0];
 
-      if (rate) {
-        const converted = (25 * rate).toFixed(2);
-        feeDisplay.textContent = `Consultation Fee: $25 USD ≈ ${new Intl.NumberFormat(undefined, {
-          style: "currency",
-          currency: currencyCode
-        }).format(converted)}`;
-      } else {
-        feeDisplay.textContent = "Consultation Fee: $25 USD";
-      }
-    } catch (err) {
-      console.warn("💱 Currency conversion failed:", err);
+    // Step 2️⃣ — Check localStorage cache
+    const cacheKey = "usd_rates_cache";
+    const cached = JSON.parse(localStorage.getItem(cacheKey) || "{}");
+    const now = Date.now();
+    const oneDay = 24 * 60 * 60 * 1000;
+
+    let rates;
+
+    if (cached.timestamp && now - cached.timestamp < oneDay && cached.data) {
+      // ✅ Use cached data if less than 24 hours old
+      rates = cached.data;
+      console.log("💾 Using cached conversion rates");
+    } else {
+      // 🌍 Fetch fresh rates if cache expired
+      const rateRes = await fetch("https://open.er-api.com/v6/latest/USD");
+      const rateData = await rateRes.json();
+      rates = rateData.rates;
+
+      // 💾 Save to cache
+      localStorage.setItem(cacheKey, JSON.stringify({
+        timestamp: now,
+        data: rates
+      }));
+      console.log("🌐 Fetched new conversion rates");
+    }
+
+    clearTimeout(fallbackTimeout);
+
+    const rate = rates?.[currencyCode];
+    if (rate) {
+      const converted = (25 * rate).toFixed(2);
+      const formatted = new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: currencyCode
+      }).format(converted);
+
+      feeDisplay.textContent = `Consultation Fee: $25 USD ≈ ${formatted}`;
+    } else {
       feeDisplay.textContent = "Consultation Fee: $25 USD";
     }
+  } catch (err) {
+    clearTimeout(fallbackTimeout);
+    console.warn("💱 Currency conversion failed:", err);
+    feeDisplay.textContent = "Consultation Fee: $25 USD";
   }
 }
 
