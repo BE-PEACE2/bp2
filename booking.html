@@ -18,6 +18,11 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/css/intlTelInput.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.19/js/intlTelInput.min.js"></script>
 
+  <!-- 🌎 Country flags + Select2 -->
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/6.6.6/css/flag-icons.min.css" />
+
   <style>
     body { font-family: Arial, sans-serif; background: #fff; margin: 0; padding: 0; }
     h2 { text-align: center; color: #c71585; margin: 25px 0; }
@@ -121,16 +126,32 @@ const todayISO = new Date().toISOString().split("T")[0];
 dateInput.setAttribute("min", todayISO);
 dateInput.value = todayISO;
 
-// 🌍 Load all countries
+// 🌍 Load all countries with flag icons
 async function loadCountries() {
   const res = await fetch("https://restcountries.com/v3.1/all?fields=cca2,name");
   const countries = await res.json();
-  countries.sort((a,b)=>a.name.common.localeCompare(b.name.common));
-  countries.forEach(c=>{
-    const opt=document.createElement("option");
-    opt.value=c.cca2;
-    opt.textContent=c.name.common;
+  countries.sort((a, b) => a.name.common.localeCompare(b.name.common));
+
+  countrySelect.innerHTML = "";
+  countries.forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c.cca2;
+    opt.textContent = c.name.common;
     countrySelect.appendChild(opt);
+  });
+
+  // Apply Select2 with flags
+  $(countrySelect).select2({
+    templateResult: function (state) {
+      if (!state.id) return state.text;
+      const code = state.id.toLowerCase();
+      return $(`<span class="fi fi-${code}" style="margin-right:8px;"></span>${state.text}`);
+    },
+    templateSelection: function (state) {
+      if (!state.id) return state.text;
+      const code = state.id.toLowerCase();
+      return $(`<span class="fi fi-${code}" style="margin-right:8px;"></span>${state.text}`);
+    }
   });
 }
 
