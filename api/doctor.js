@@ -65,50 +65,55 @@ export default async function handler(req, res) {
     }
 
     // =========================
-    //  GET 24-HOUR SLOTS
-    // =========================
-    if (path === "slots" && req.method === "GET") {
-      const { date } = req.query;
-      if (!date)
-        return res.status(400).json({ error: "Date required" });
+//  GET 24-HOUR SLOTS (TIMEZONE SAFE)
+// =========================
+if (path === "slots" && req.method === "GET") {
+  const { date, tz = "Asia/Kolkata" } = req.query; // allow timezone param (default IST)
+  if (!date)
+    return res.status(400).json({ error: "Date required" });
 
-      // current IST time (even when server runs UTC)
-      const nowUTC = new Date();
-      const istNow = new Date(nowUTC.getTime() + 5.5 * 60 * 60 * 1000);
+  // current time in user's timezone
+  const nowLocal = new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
 
-      // pull all confirmed bookings + unavailable slots
-      const payments = await db
-        .collection("payments")
-        .find({ date, status: { $in: ["PAID", "SUCCESS"] } })
-        .toArray();
-      const bookings = await db.collection("bookings").find({ date }).toArray();
-      const unavailableDocs = await db.collection("unavailableSlots").find({ date }).toArray();
+  // pull all confirmed bookings + unavailable slots
+  const payments = await db
+    .collection("payments")
+    .find({ date, status: { $in: ["PAID", "SUCCESS"] } })
+    .toArray();
+  const bookings = await db.collection("bookings").find({ date }).toArray();
+  const unavailableDocs = await db.collection("unavailableSlots").find({ date }).toArray();
 
-      const allBooked = [...bookings, ...payments];
-      const normalize = (s) => s.trim().replace(/\s+/g, "").toUpperCase();
-      const bookedSlots = allBooked.map(b => normalize(b.slot));
-      const unavailableSlots = unavailableDocs.map(s => normalize(s.slot));
+  const allBooked = [...bookings, ...payments];
+  const normalize = (s) => s.trim().replace(/\s+/g, "").toUpperCase();
+  const bookedSlots = allBooked.map(b => normalize(b.slot));
+  const unavailableSlots = unavailableDocs.map(s => normalize(s.slot));
 
-      const slots = [];
+  const slots = [];
 
-      for (let h = 0; h < 24; h++) {
-        const hour12 = h % 12 === 0 ? 12 : h % 12;
-        const period = h < 12 ? "AM" : "PM";
-        const slot = `${hour12.toString().padStart(2, "0")}:00 ${period}`;
+  for (let h = 0; h < 24; h++) {
+    const hour12 = h % 12 === 0 ? 12 : h % 12;
+    const period = h < 12 ? "AM" : "PM";
+    const slot = `${hour12.toString().padStart(2, "0")}:00 ${period}`;
 
-        const [yyyy, mm, dd] = date.split("-");
-        const slotIST = new Date(`${yyyy}-${mm}-${dd}T${h.toString().padStart(2, "0")}:00:00+05:30`);
+    const [yyyy, mm, dd] = date.split("-");
+    // construct slot time in the same timezone as user
+    const slotLocal = new Date(
+      new Date(`${yyyy}-${mm}-${dd}T${h.toString().padStart(2, "0")}:00:00`).toLocaleString(
+        "en-US",
+        { timeZone: tz }
+      )
+    );
 
-        let status = "available";
-        if (bookedSlots.includes(normalize(slot))) status = "booked";
-        else if (unavailableSlots.includes(normalize(slot))) status = "unavailable";
-        else if (slotIST < istNow) status = "past";
+    let status = "available";
+    if (bookedSlots.includes(normalize(slot))) status = "booked";
+    else if (unavailableSlots.includes(normalize(slot))) status = "unavailable";
+    else if (slotLocal < nowLocal) status = "past";
 
-        slots.push({ slot, status });
-      }
+    slots.push({ slot, status });
+  }
 
-      return res.status(200).json({ success: true, date, slots });
-    }
+  return res.status(200).json({ success: true, date, tz, slots });
+}
 
     // =========================
     //  MARK SLOT UNAVAILABLE

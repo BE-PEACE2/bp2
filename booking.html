@@ -151,7 +151,11 @@ async function initDetection() {
 async function loadSlots(date) {
   slotContainer.innerHTML = "⏳ Loading slots...";
   try {
-    const res = await fetch(`/api/doctor?path=slots&date=${date}`);
+    // ✅ detect the user's local timezone
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+console.log("🌍 Detected timezone:", tz, "Current local time:", new Date().toString());
+    // ✅ send timezone to backend
+    const res = await fetch(`/api/doctor?path=slots&date=${date}&tz=${encodeURIComponent(tz)}`);
     const data = await res.json();
     if (!data.success || !data.slots?.length) {
       slotContainer.innerHTML = "<p>No slots available</p>";
