@@ -74,6 +74,7 @@ if (path === "slots" && req.method === "GET") {
 
   // current time in user's timezone
   const nowLocal = new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
+    console.log("🕒 [SLOTS]", { date, tz, nowLocal: nowLocal.toString() });
 
   // pull all confirmed bookings + unavailable slots
   const payments = await db
@@ -147,6 +148,32 @@ if (path === "slots" && req.method === "GET") {
         .status(200)
         .json({ success: true, message: "Slot made available again" });
     }
+
+    // =========================
+//  TEST TIMEZONE ENDPOINT
+// =========================
+if (path === "test-timezone" && req.method === "GET") {
+  const { tz = "Asia/Kolkata" } = req.query;
+  
+  const nowUTC = new Date();
+  const nowLocal = new Date(nowUTC.toLocaleString("en-US", { timeZone: tz }));
+
+  // Calculate difference from UTC (hours and minutes)
+  const offsetMin = nowLocal.getTimezoneOffset();
+  const diffHours = Math.floor(Math.abs(offsetMin) / 60);
+  const diffMinutes = Math.abs(offsetMin) % 60;
+  const sign = offsetMin <= 0 ? "+" : "-";
+  const offsetString = `${sign}${diffHours}h ${diffMinutes}m`;
+
+  return res.status(200).json({
+    success: true,
+    timezone: tz,
+    utc_time: nowUTC.toISOString(),
+    local_time: nowLocal.toString(),
+    offset_from_utc: offsetString,
+    message: `Current local time in ${tz}`
+  });
+}
 
     // =========================
     //  INVALID PATH

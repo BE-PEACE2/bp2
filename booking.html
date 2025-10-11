@@ -77,6 +77,10 @@
     <label>Choose Time Slot:</label>
     <div id="slotContainer" class="slots-grid"></div>
     <input type="hidden" id="slot" required />
+<!-- Show user's timezone under slot grid -->
+<p id="timezoneNote" style="text-align:center; color:#777; font-size:13px; margin-top:-10px; margin-bottom:15px; opacity:0; transition:opacity 1s ease;">
+  🕒 All time slots shown in your local timezone (<span id="tzLabel"></span>)
+</p>
 
     <div class="legend">
       <span class="legend-item available">Available</span>
@@ -133,13 +137,52 @@ async function initDetection() {
     const res = await fetch("https://ipapi.co/json");
     const data = await res.json();
     const timezone = data.timezone || "Asia/Kolkata";
-    document.getElementById("timezoneDisplay").textContent = `⏰ Your timezone: ${timezone}`;
-    countrySelect.value = data.country_code || "IN";
+    const countryCode = data.country_code || "IN";
+    
+    // Calculate offset and formatted local time
+    const localTime = new Date();
+    const offsetMinutes = -localTime.getTimezoneOffset();
+    const offsetHours = Math.floor(offsetMinutes / 60);
+    const offsetMins = Math.abs(offsetMinutes % 60);
+    const offsetSign = offsetMinutes >= 0 ? "+" : "-";
+    const formattedOffset = `${offsetSign}${String(Math.abs(offsetHours)).padStart(2, "0")}:${String(offsetMins).padStart(2, "0")}`;
+    const formattedTime = localTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+
+   // 🧭 Show readable timezone info to user + live time update
+const tzDisplay = document.getElementById("timezoneDisplay");
+
+function updateTime() {
+  const now = new Date();
+  const formattedTime = now.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true
+  });
+  tzDisplay.innerHTML = `
+    ⏰ Your timezone: <b>${timezone}</b> (UTC ${formattedOffset})<br>
+    🕓 Local time: <b>${formattedTime}</b>
+  `;
+
+  // 🕒 Update timezone label below slot grid + fade-in animation
+  const tzNote = document.getElementById("timezoneNote");
+  const tzLabel = document.getElementById("tzLabel");
+  if (tzLabel) tzLabel.textContent = `${timezone} (UTC ${formattedOffset})`;
+  if (tzNote) tzNote.style.opacity = "1"; // fade in when ready
+}
+
+updateTime(); // Show immediately
+setInterval(updateTime, 1000); // Update every second
+
+    // Set default country
+    countrySelect.value = countryCode;
   } catch (e) {
     console.warn("Geo detection failed, defaulting to IN");
     countrySelect.value = "IN";
+    document.getElementById("timezoneDisplay").textContent = "⏰ Default timezone: Asia/Kolkata (UTC +05:30)";
   }
 
+  // Initialize phone input
   iti = window.intlTelInput(phoneInput, {
     initialCountry: "IN",
     preferredCountries: ["IN", "US", "AE", "GB"],
@@ -153,7 +196,8 @@ async function loadSlots(date) {
   try {
     // ✅ detect the user's local timezone
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-console.log("🌍 Detected timezone:", tz, "Current local time:", new Date().toString());
+    console.log("🌍 Detected timezone:", tz, "Current local time:", new Date().toString());
+
     // ✅ send timezone to backend
     const res = await fetch(`/api/doctor?path=slots&date=${date}&tz=${encodeURIComponent(tz)}`);
     const data = await res.json();
