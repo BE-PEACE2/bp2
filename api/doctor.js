@@ -104,7 +104,7 @@ if (path === "slots" && req.method === "GET") {
     let status = "available";
     if (bookedSlots.includes(normalize(slotLabel))) status = "booked";
     else if (unavailableSlots.includes(normalize(slotLabel))) status = "unavailable";
-    else if (slotMoment.isBefore(nowLocal, "hour")) status = "past";
+    else if (slotMoment.isBefore(nowLocal)) status = "past";
 
     slots.push({ slot: slotLabel, status });
   }
