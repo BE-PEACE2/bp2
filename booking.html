@@ -46,6 +46,11 @@
     .legend-item.available::before { background: #28a745; }
     .legend-item.booked::before { background: #dc3545; }
     .legend-item.past::before { background: #6c757d; }
+    .select2-selection__rendered {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+}
   </style>
 </head>
 
@@ -141,22 +146,31 @@ async function loadCountries() {
     countrySelect.appendChild(opt);
   });
 
-  // ✅ Enhanced Select2 with flags
-  $(document).ready(() => {
-    $(countrySelect).select2({
-      width: "100%",
-      placeholder: "Select Your Country",
-      templateResult: function (state) {
-        if (!state.id) return state.text;
-        const code = state.id.toLowerCase();
-        return $(`<span class="fi fi-${code}" style="margin-right:8px;"></span>${state.text}`);
-      },
-      templateSelection: function (state) {
-        if (!state.id) return state.text;
-        const code = state.id.toLowerCase();
-        return $(`<span class="fi fi-${code}" style="margin-right:8px;"></span>${state.text}`);
-      }
-    });
+  // ✅ Enhanced Select2 with flag + name
+  $(countrySelect).select2({
+    width: "100%",
+    placeholder: "Select Your Country",
+    templateResult: function (state) {
+      if (!state.id) return state.text;
+      const code = state.id.toLowerCase();
+      return $(
+        `<span style="display:flex;align-items:center;gap:8px;">
+          <span class="fi fi-${code}"></span>
+          <span>${state.text}</span>
+        </span>`
+      );
+    },
+    templateSelection: function (state) {
+      if (!state.id) return state.text;
+      const code = state.id.toLowerCase();
+      // ✅ Show both flag + country name even after selection
+      return $(
+        `<span style="display:flex;align-items:center;gap:8px;">
+          <span class="fi fi-${code}"></span>
+          <span>${state.text}</span>
+        </span>`
+      );
+    }
   });
 }
 
@@ -393,12 +407,14 @@ payBtn.addEventListener("click", async()=>{
   }
 });
 
-// 🚀 Initialize
-window.addEventListener("DOMContentLoaded", async()=>{
+// 🚀 Initialize (delayed to ensure Select2 loads first)
+window.addEventListener("DOMContentLoaded", async () => {
   await loadCountries();
-  await initDetection();
-  await loadSlots(todayISO);
-  setInterval(()=>loadSlots(dateInput.value), 60000);
+  setTimeout(async () => {
+    await initDetection();
+    await loadSlots(todayISO);
+    setInterval(() => loadSlots(dateInput.value), 60000);
+  }, 700);
 });
 </script>
 </body>
