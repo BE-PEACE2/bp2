@@ -1817,4 +1817,53 @@ footer {
   transform: scale(1.1);
 }
 
+/* 🌿 Join Consultation Button - Pulsing Green */
+.join-btn {
+  display: inline-block;
+  background: linear-gradient(135deg, #43a047, #2e7d32);
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: bold;
+  padding: 14px 28px;
+  border-radius: 30px;
+  text-decoration: none;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+
+  /* 🌟 Soft pulse animation */
+  animation: joinPulse 2s infinite ease-in-out;
+}
+
+/* Hover → brighter + slightly lifted */
+.join-btn:hover {
+  transform: translateY(-3px) scale(1.05);
+  background: linear-gradient(135deg, #4caf50, #2e7d32);
+  box-shadow: 0 12px 25px rgba(46, 125, 50, 0.4);
+  animation: none; /* stop pulse on hover */
+}
+
+/* Active (click) → pressed effect */
+.join-btn:active {
+  transform: scale(0.95);
+  box-shadow: 0 4px 10px rgba(46, 125, 50, 0.3);
+}
+
+/* ✨ Pulse animation keyframes */
+@keyframes joinPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.5);
+  }
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 25px rgba(76, 175, 80, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+  }
+}
 
