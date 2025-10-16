@@ -1867,3 +1867,23 @@ footer {
   }
 }
 
+/* 🧩 Stack "Join Consultation" below "Book a Consultation" */
+#hero .btn,
+#hero .join-btn {
+  display: block;          /* each button takes full line */
+  width: fit-content;      /* adjusts to text width */
+  margin: 15px auto;       /* centers horizontally with space between */
+  text-align: center;
+}
+/* Optional: Animate Join button entry slightly after Book button */
+#hero .join-btn {
+  animation: fadeInUp 1s ease forwards;
+  animation-delay: 0.4s;
+  opacity: 0;
+}
+
+/* Fade-up animation */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
