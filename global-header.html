@@ -1,20 +1,21 @@
-<!-- 🌐 BePeace Floating Global Language Selector (Working Version) -->
+<!-- 🌐 BePeace Floating Language Selector (Final Version - Fully Working) -->
 <style>
+  /* 🌐 Floating Language Button */
   #lang-toggle {
     position: fixed;
     bottom: 80px;
     right: 25px;
-    width: 50px;
-    height: 50px;
+    width: 52px;
+    height: 52px;
     border-radius: 50%;
     background: linear-gradient(135deg, #ff91ae, #ffb6c1);
-    color: white;
+    color: #fff;
     border: none;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    font-size: 24px;
     cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     z-index: 99999;
     transition: all 0.3s ease;
-    font-size: 22px;
     animation: pulseGlow 3.5s infinite ease-in-out;
   }
 
@@ -25,15 +26,21 @@
   }
 
   #lang-toggle:hover {
-    transform: scale(1.15);
+    transform: scale(1.1);
     animation: none;
   }
 
+  /* 🌍 Dropdown container */
   #google_translate_container {
     position: fixed;
     bottom: 140px;
     right: 25px;
     z-index: 99998;
+    background: #fff;
+    border: 1px solid #ffb6c1;
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.25);
     opacity: 0;
     visibility: hidden;
     transform: translateY(10px);
@@ -44,14 +51,6 @@
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
-  }
-
-  #google_translate_element {
-    background: #fff;
-    border: 1px solid #ffb6c1;
-    border-radius: 12px;
-    padding: 10px;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.2);
   }
 
   .goog-te-combo {
@@ -67,10 +66,10 @@
   body { top: 0px !important; }
 </style>
 
-<!-- 🌐 Floating Globe Button -->
+<!-- 🌐 Floating Button -->
 <button id="lang-toggle" title="Choose Language">🌐</button>
 
-<!-- Hidden Dropdown -->
+<!-- Hidden Dropdown Container -->
 <div id="google_translate_container">
   <div id="google_translate_element"></div>
 </div>
@@ -80,38 +79,32 @@ document.addEventListener("DOMContentLoaded", () => {
   const toggle = document.getElementById("lang-toggle");
   const container = document.getElementById("google_translate_container");
 
-  // Flag icons
-  const flags = {
-    en: "🌐", hi: "🇮🇳", fr: "🇫🇷", es: "🇪🇸", de: "🇩🇪", it: "🇮🇹",
-    ar: "🇸🇦", ru: "🇷🇺", zh: "🇨🇳", ja: "🇯🇵", ko: "🇰🇷", pt: "🇵🇹",
-    ur: "🇵🇰", ta: "🇮🇳", te: "🇮🇳", th: "🇹🇭", vi: "🇻🇳"
-  };
-
-  // Toggle dropdown
+  // 🌍 Toggle dropdown open/close
   toggle.addEventListener("click", (e) => {
     e.stopPropagation();
     container.classList.toggle("active");
   });
 
-  // Close if clicking outside
+  // Close dropdown if clicked outside
   document.addEventListener("click", (e) => {
     if (!container.contains(e.target) && !toggle.contains(e.target)) {
       container.classList.remove("active");
     }
   });
 
-  // Cookie helpers
+  // 🌎 Save language preference in cookie
   function setCookie(name, value, days) {
     const d = new Date();
-    d.setTime(d.getTime() + (days*24*60*60*1000));
+    d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
     document.cookie = `${name}=${value};expires=${d.toUTCString()};path=/`;
   }
+
   function getCookie(name) {
     const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
     return v ? v[2] : null;
   }
 
-  // Check when Translate dropdown appears
+  // 🧠 Watch for Translate Dropdown
   const observer = new MutationObserver(() => {
     const select = document.querySelector(".goog-te-combo");
     if (select) {
@@ -119,12 +112,10 @@ document.addEventListener("DOMContentLoaded", () => {
       if (savedLang && savedLang !== "en") {
         select.value = savedLang;
         select.dispatchEvent(new Event("change"));
-        toggle.textContent = flags[savedLang] || "🌐";
       }
 
       select.addEventListener("change", () => {
         const lang = select.value.split('-')[0];
-        toggle.textContent = flags[lang] || "🌐";
         setCookie("bepeace_lang", lang, 30);
       });
     }
@@ -134,13 +125,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // ✅ Google Translate Init
 function googleTranslateElementInit() {
+  console.log("✅ Google Translate Loaded");
   new google.translate.TranslateElement({
     pageLanguage: 'en',
     includedLanguages: 'af,sq,am,ar,hy,az,eu,be,bn,bg,ca,ceb,zh-CN,zh-TW,hr,cs,da,nl,en,et,fi,fr,de,el,gu,he,hi,hu,id,it,ja,kn,ko,ml,mr,my,ne,no,pa,pl,pt,ro,ru,si,sk,sl,so,es,sw,sv,ta,te,th,tr,uk,ur,vi,zh,zu',
     layout: google.translate.TranslateElement.InlineLayout.SIMPLE
   }, 'google_translate_element');
 }
+
+// 🔁 Auto-retry if Google is slow
+let retryCount = 0;
+function waitForGoogle() {
+  if (window.google && google.translate && google.translate.TranslateElement) {
+    googleTranslateElementInit();
+  } else if (retryCount < 10) {
+    retryCount++;
+    setTimeout(waitForGoogle, 1000);
+  } else {
+    console.error("❌ Google Translate failed to load.");
+  }
+}
+waitForGoogle();
 </script>
 
-<!-- ✅ Make sure Google Script loads over HTTPS -->
+<!-- ✅ Always load Google script safely -->
 <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async defer></script>
