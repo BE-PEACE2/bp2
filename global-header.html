@@ -1,4 +1,4 @@
-<!-- 🌐 BE PEACE Global Translator (Auto-Detect + Popup Style) -->
+<!-- 🌐 BE PEACE Global Auto Translator (Auto-Detect + Popup Style + Mint Theme) -->
 <div id="translator-wrapper">
   <button id="translate-btn">🌐 Translate ▼</button>
   <div id="translator-box">
@@ -19,79 +19,107 @@
 
   /* 🌐 Button */
   #translate-btn {
-    background: linear-gradient(135deg, #ff80ab, #ff4081);
-    color: #fff;
+    background: linear-gradient(135deg, #b8fff4, #96e8d8);
+    color: #ff4081;
     font-family: "Poppins", sans-serif;
-    border: none;
+    border: 2px solid #ff80ab;
     border-radius: 10px;
     padding: 7px 14px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 3px 10px rgba(255, 64, 129, 0.3);
+    box-shadow: 0 3px 10px rgba(184, 255, 244, 0.4);
     transition: all 0.3s ease;
   }
 
   #translate-btn:hover {
     transform: scale(1.05);
-    box-shadow: 0 5px 15px rgba(255, 64, 129, 0.4);
+    box-shadow: 0 5px 15px rgba(255, 64, 129, 0.3);
   }
 
   /* 🌸 Dropdown popup */
   #translator-box {
     display: none;
     position: absolute;
-    top: 40px;
+    top: 42px;
     right: 0;
-    background: #fff;
-    border: 2px solid #ff80ab;
+    background: #ffffff;
+    border: 2px solid #b8fff4;
     border-radius: 10px;
-    padding: 8px;
-    box-shadow: 0 6px 20px rgba(255, 64, 129, 0.25);
-    width: 180px;
+    padding: 10px;
+    box-shadow: 0 6px 20px rgba(184, 255, 244, 0.4);
+    width: 190px;
   }
-
-  #translator-box.active {
-    display: block;
-  }
+  #translator-box.active { display: block; }
 
   /* Hide Microsoft watermark */
-  .mt-icon {
-    display: none !important;
-  }
+  .mt-icon { display: none !important; }
 
   /* Dropdown select styling */
   .mt-dropdown {
     width: 100% !important;
-    border: 1px solid #ffb6c1 !important;
+    border: 1px solid #b8fff4 !important;
     border-radius: 6px !important;
     color: #333 !important;
     font-family: "Poppins", sans-serif !important;
+    background: #f9ffff !important;
   }
 
-  /* Mobile */
   @media (max-width: 600px) {
-    #translator-wrapper {
-      right: 10px;
-      top: 12px;
-    }
-    #translate-btn {
-      font-size: 12px;
-      padding: 6px 10px;
-    }
+    #translator-wrapper { right: 10px; top: 10px; }
+    #translate-btn { font-size: 12px; padding: 6px 10px; }
   }
 </style>
 
 <script>
-  // Load Microsoft Translator
-  setTimeout(() => {
-    const s = document.createElement("script");
-    s.type = "text/javascript";
-    s.src = "//www.microsofttranslator.com/Ajax/V3/WidgetV3.js";
-    s.charset = "UTF-8";
-    document.body.appendChild(s);
-  }, 1000);
+  // ✅ Securely load Microsoft Translator after page is ready
+  window.addEventListener("load", () => {
+    console.log("🌐 Loading Microsoft Translator securely...");
+    const script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src = "https://www.microsofttranslator.com/Ajax/V3/WidgetV3.js";
+    script.charset = "UTF-8";
+    script.onload = () => {
+      console.log("✅ Microsoft Translator loaded successfully");
+      autoDetectAndTranslate(); // start auto detection after load
+    };
+    script.onerror = () => console.error("❌ Failed to load Translator");
+    document.body.appendChild(script);
+  });
 
+  // 🌍 Auto-detect visitor’s country + language and translate if not English
+  async function autoDetectAndTranslate() {
+    try {
+      const res = await fetch("https://ipapi.co/json/");
+      const data = await res.json();
+      const country = data.country_code;
+      const lang = data.languages ? data.languages.split(",")[0].split("-")[0] : "en";
+      console.log("📍 Visitor:", country, "| Language:", lang);
+
+      if (country === "IN" || lang === "en") return; // stay English for India/English
+
+      const interval = setInterval(() => {
+        const select = document.querySelector(".mt-dropdown");
+        if (select) {
+          clearInterval(interval);
+          const match = Array.from(select.options).find((opt) =>
+            opt.text.toLowerCase().includes(lang)
+          );
+          if (match) {
+            select.value = match.value;
+            select.dispatchEvent(new Event("change"));
+            console.log("🌐 Auto-translated to:", match.text);
+          } else {
+            console.log("⚠️ No direct match for", lang, "— keeping English");
+          }
+        }
+      }, 1200);
+    } catch (err) {
+      console.warn("🌐 Auto-detection failed:", err);
+    }
+  }
+
+  // 🌈 Popup dropdown toggle
   document.addEventListener("DOMContentLoaded", () => {
     const btn = document.getElementById("translate-btn");
     const box = document.getElementById("translator-box");
@@ -100,51 +128,10 @@
       e.stopPropagation();
       box.classList.toggle("active");
     });
-
     document.addEventListener("click", (e) => {
       if (!box.contains(e.target) && !btn.contains(e.target)) {
         box.classList.remove("active");
       }
     });
-  });
-
-  // 🌍 Auto-detect user country/language
-  async function detectAndTranslate() {
-    try {
-      const res = await fetch("https://ipapi.co/json/");
-      const data = await res.json();
-      const country = data.country_code;
-      const lang = data.languages ? data.languages.split(",")[0].split("-")[0] : "en";
-      console.log("📍 Visitor:", country, "| Language:", lang);
-
-      // Skip for India
-      if (country === "IN" || lang === "en") return;
-
-      // Wait until Microsoft widget loads
-      const interval = setInterval(() => {
-        const selects = document.querySelectorAll("select");
-        const translatorSelect = Array.from(selects).find(
-          (s) => s.classList.contains("mt-dropdown")
-        );
-        if (translatorSelect) {
-          clearInterval(interval);
-          const match = Array.from(translatorSelect.options).find((opt) =>
-            opt.text.toLowerCase().includes(lang)
-          );
-          if (match) {
-            translatorSelect.value = match.value;
-            translatorSelect.dispatchEvent(new Event("change"));
-            console.log("🌐 Auto-selected:", match.text);
-          }
-        }
-      }, 1200);
-    } catch (err) {
-      console.warn("🌐 Auto-language detection failed:", err);
-    }
-  }
-
-  // Run detection once after load
-  window.addEventListener("load", () => {
-    setTimeout(detectAndTranslate, 4000);
   });
 </script>
