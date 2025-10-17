@@ -8,7 +8,6 @@
 </div>
 
 <style>
-  /* 🌍 Position top-right */
   #google_translate_wrapper {
     position: fixed;
     top: 12px;
@@ -20,7 +19,6 @@
     font-family: system-ui, sans-serif;
   }
 
-  /* 🔹 Language button */
   .lang-label {
     display: flex;
     align-items: center;
@@ -42,7 +40,6 @@
     transform: scale(1.05);
   }
 
-  /* 🌎 Spinning globe animation */
   .globe {
     display: inline-block;
     animation: spin 1.3s linear infinite;
@@ -53,12 +50,10 @@
     to { transform: rotate(360deg); }
   }
 
-  /* Stop spinning once ready */
   .lang-label.ready .globe {
     animation: none;
   }
 
-  /* Dropdown */
   #google_translate_element {
     display: none;
     margin-top: 8px;
@@ -80,7 +75,6 @@
     pointer-events: auto;
   }
 
-  /* Dropdown select style */
   #google_translate_element select.goog-te-combo {
     border-radius: 8px;
     padding: 7px 10px;
@@ -98,15 +92,8 @@
     background-color: #fff0f6;
   }
 
-  /* Hide Google banner */
   .goog-te-banner-frame.skiptranslate { display: none !important; }
   body { top: 0px !important; }
-
-  /* 🌫️ Transparency effect on scroll */
-  .lang-label.scrolled {
-    opacity: 0.8;
-    box-shadow: 0 1px 6px rgba(255, 145, 174, 0.2);
-  }
 </style>
 
 <script>
@@ -118,7 +105,7 @@
 
   console.log("🕓 Initializing translator loader...");
 
-  // 🔹 Step 1 — Define callback globally before script loads
+  // 🔹 Define callback before script loads
   window.googleTranslateElementInit = function () {
     console.log("⚙️ Google callback fired — initializing...");
     new google.translate.TranslateElement(
@@ -131,24 +118,23 @@
       "google_translate_element"
     );
 
-    // Wait until dropdown appears
+    // Wait for dropdown to appear
     const interval = setInterval(() => {
       const select = document.querySelector(".goog-te-combo");
       if (select) {
         clearInterval(interval);
         console.log("✅ Translator dropdown detected!");
-        box.classList.add("ready");
-        box.style.display = "block";
         label.classList.add("ready");
         globe.textContent = "🌐";
         langText.textContent = "English ▼";
         detectAndSetLanguage();
         attachLanguageChange();
+        forceVisible(); // ensure it displays
       }
-    }, 500);
+    }, 600);
   };
 
-  // 🔹 Step 2 — Load Google Translate script with guaranteed delay
+  // Load Google script safely
   setTimeout(() => {
     console.log("📥 Loading Google Translate script...");
     const script = document.createElement("script");
@@ -159,7 +145,6 @@
     document.head.appendChild(script);
   }, 1000);
 
-  // 🌎 Step 3 — Auto-detect user country
   async function detectAndSetLanguage() {
     try {
       console.log("🌍 Detecting user location...");
@@ -197,32 +182,28 @@
     }
   }
 
-  // 🔁 Step 4 — Watch manual language changes
   function attachLanguageChange() {
     const select = document.querySelector(".goog-te-combo");
     if (!select) return;
     select.addEventListener("change", () => {
-      const flag = label.textContent.split(" ")[0] || "🌐";
       const name = select.options[select.selectedIndex].text;
-      updateLabel(flag, name);
+      updateLabel("🌐", name);
       box.classList.remove("active");
     });
   }
 
-  // ✨ Step 5 — Update label text
   function updateLabel(flag, name) {
     globe.textContent = flag;
     langText.textContent = `${name} ▼`;
     label.classList.add("ready");
   }
 
-  // 🌐 Toggle dropdown
   label.addEventListener("click", (e) => {
     e.stopPropagation();
-    if (box.classList.contains("ready")) {
+    if (document.querySelector(".goog-te-combo")) {
       box.classList.toggle("active");
     } else {
-      console.warn("⏳ Still loading translator...");
+      console.warn("⏳ Translator not ready yet");
     }
   });
 
@@ -231,5 +212,19 @@
       box.classList.remove("active");
     }
   });
+
+  // ✅ Force dropdown visible when ready
+  function forceVisible() {
+    const check = setInterval(() => {
+      const select = document.querySelector(".goog-te-combo");
+      if (select) {
+        clearInterval(check);
+        box.style.display = "block";
+        box.style.opacity = "1";
+        box.style.pointerEvents = "auto";
+        console.log("🌐 Translator visible and ready!");
+      }
+    }, 1000);
+  }
 })();
 </script>
