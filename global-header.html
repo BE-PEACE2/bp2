@@ -1,20 +1,176 @@
-<!-- 🌍 Global Google Translate Dropdown -->
-<p style="position:fixed;top:12px;right:210px;font-size:14px;color:#333;z-index:9999;">
-  🌐 Choose Language:
-</p>
+<!-- 🌐 Animated + Flag-Switching + Remembering Language Selector -->
+<style>
+  #lang-toggle {
+    position: fixed;
+    bottom: 80px;
+    right: 25px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ff91ae, #ffb6c1);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    cursor: pointer;
+    z-index: 9999;
+    transition: all 0.3s ease;
+    font-size: 22px;
+    animation: pulseGlow 3.5s infinite ease-in-out;
+  }
 
-<div id="google_translate_element" style="position:fixed;top:10px;right:10px;z-index:9999;"></div>
+  @keyframes pulseGlow {
+    0% { box-shadow: 0 0 0 0 rgba(255,145,174,0.6); transform: scale(1); }
+    50% { box-shadow: 0 0 20px 8px rgba(255,145,174,0.4); transform: scale(1.05); }
+    100% { box-shadow: 0 0 0 0 rgba(255,145,174,0.6); transform: scale(1); }
+  }
+
+  #lang-toggle:hover {
+    transform: scale(1.15) rotate(6deg);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+    animation: none;
+  }
+
+  #google_translate_container {
+    position: fixed;
+    bottom: 140px;
+    right: 25px;
+    z-index: 9998;
+    opacity: 0;
+    transform: translateY(10px);
+    visibility: hidden;
+    transition: all 0.4s ease-in-out;
+  }
+
+  #google_translate_container.active {
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+  }
+
+  #google_translate_element {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+    border: 1px solid #ffb6c1;
+    animation: fadeUp 0.4s ease forwards;
+  }
+
+  .goog-te-combo {
+    border-radius: 8px;
+    padding: 6px 10px;
+    border: 1px solid #ff91ae;
+    background-color: #fff0f6;
+    color: #333;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.25s ease-in-out;
+  }
+
+  .goog-te-combo:hover {
+    background-color: #ffb6c1;
+    color: #fff;
+  }
+
+  .goog-te-banner-frame.skiptranslate { display: none !important; }
+  body { top: 0px !important; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 600px) {
+    #lang-toggle {
+      width: 45px;
+      height: 45px;
+      font-size: 20px;
+      bottom: 70px;
+      right: 20px;
+    }
+    #google_translate_container { right: 15px; }
+  }
+</style>
+
+<!-- 🌐 Button + Hidden Dropdown -->
+<button id="lang-toggle" title="Choose Language">🌐</button>
+
+<div id="google_translate_container">
+  <div id="google_translate_element"></div>
+</div>
 
 <!-- ✅ Google Translate Integration -->
 <script type="text/javascript">
-  function googleTranslateElementInit() {
-    new google.translate.TranslateElement({
-      pageLanguage: 'en',
-      includedLanguages: 'af,sq,am,ar,hy,az,eu,be,bn,bg,ca,ceb,zh-CN,zh-TW,co,hr,cs,da,nl,en,eo,et,fi,fr,fy,gl,ka,de,el,gu,ht,ha,haw,he,hi,hmn,hu,is,ig,id,ga,it,ja,jw,kn,kk,km,ko,ku,ky,lo,la,lv,lt,lb,mg,ms,ml,mt,mi,mk,mn,my,ne,no,ny,or,ps,fa,pl,pt,pa,ro,ru,sm,gd,sr,st,si,sk,sl,so,es,su,sw,sv,tg,ta,te,th,tr,uk,ur,uz,vi,cy,xh,yi,yo,zu',
-      layout: google.translate.TranslateElement.InlineLayout.SIMPLE
-    }, 'google_translate_element');
+document.addEventListener("DOMContentLoaded", () => {
+  const toggle = document.getElementById("lang-toggle");
+  const container = document.getElementById("google_translate_container");
+
+  // 🌎 Language → Flag Map
+  const flags = {
+    en: "🌐", hi: "🇮🇳", fr: "🇫🇷", es: "🇪🇸", de: "🇩🇪", it: "🇮🇹",
+    ar: "🇸🇦", ru: "🇷🇺", zh: "🇨🇳", ja: "🇯🇵", ko: "🇰🇷", pt: "🇵🇹",
+    ur: "🇵🇰", ta: "🇮🇳", te: "🇮🇳", th: "🇹🇭", vi: "🇻🇳", fa: "🇮🇷",
+    bn: "🇧🇩", tr: "🇹🇷", nl: "🇳🇱", pl: "🇵🇱"
+  };
+
+  // 🌐 Toggle dropdown
+  toggle.addEventListener("click", (e) => {
+    e.stopPropagation();
+    container.classList.toggle("active");
+  });
+
+  // 🧭 Auto close on outside click
+  document.addEventListener("click", (e) => {
+    if (!container.contains(e.target) && !toggle.contains(e.target)) {
+      container.classList.remove("active");
+    }
+  });
+
+  // 🍪 Save Language Choice in Cookie
+  function setCookie(name, value, days) {
+    const d = new Date();
+    d.setTime(d.getTime() + (days*24*60*60*1000));
+    document.cookie = `${name}=${value};expires=${d.toUTCString()};path=/`;
   }
+
+  function getCookie(name) {
+    const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+    return v ? v[2] : null;
+  }
+
+  // 👂 Observe Google Translate dropdown creation
+  const observer = new MutationObserver(() => {
+    const select = document.querySelector(".goog-te-combo");
+    if (select) {
+      // Restore previous language
+      const savedLang = getCookie("bepeace_lang");
+      if (savedLang && savedLang !== "en") {
+        select.value = savedLang;
+        select.dispatchEvent(new Event("change"));
+        toggle.textContent = flags[savedLang] || "🌐";
+      }
+
+      // When user changes language
+      select.addEventListener("change", () => {
+        const lang = select.value.split('-')[0];
+        toggle.textContent = flags[lang] || "🌐";
+        setCookie("bepeace_lang", lang, 30); // save for 30 days
+      });
+    }
+  });
+
+  observer.observe(document.body, { childList: true, subtree: true });
+});
+
+// 🧠 Google Translate Initialization
+function googleTranslateElementInit() {
+  new google.translate.TranslateElement({
+    pageLanguage: 'en',
+    includedLanguages: 'af,sq,am,ar,hy,az,eu,be,bn,bg,ca,ceb,zh-CN,zh-TW,co,hr,cs,da,nl,en,eo,et,fi,fr,fy,gl,ka,de,el,gu,ht,ha,haw,he,hi,hmn,hu,is,ig,id,ga,it,ja,jw,kn,kk,km,ko,ku,ky,lo,la,lv,lt,lb,mg,ms,ml,mt,mi,mk,mn,my,ne,no,ny,or,ps,fa,pl,pt,pa,ro,ru,sm,gd,sr,st,si,sk,sl,so,es,su,sw,sv,tg,ta,te,th,tr,uk,ur,uz,vi,cy,xh,yi,yo,zu',
+    layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+  }, 'google_translate_element');
+}
 </script>
 
-<!-- ✅ Google Translate Script Source -->
+<!-- ✅ Google Translate Script -->
 <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
