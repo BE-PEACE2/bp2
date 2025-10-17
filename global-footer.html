@@ -1,4 +1,4 @@
-<!-- 🌍 Auto Language Detection -->
+<!-- 🌍 Auto Language Detection Script -->
 <script>
 document.addEventListener("DOMContentLoaded", function() {
   const userLang = navigator.language || navigator.userLanguage;
@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
   const lang = userLang.split('-')[0];
 
+  // Wait until Google Translate loads, then trigger the correct translation
   const interval = setInterval(() => {
     const selector = document.querySelector('.goog-te-combo');
     if (selector && supported.includes(lang) && lang !== 'en') {
