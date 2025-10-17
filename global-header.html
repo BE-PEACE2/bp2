@@ -1,5 +1,3 @@
-
-
 <!-- 🌐 BePeace Global Language Selector -->
 <div id="google_translate_container" class="lang-inline">
   <span class="lang-label">🌐 English ▼</span>
@@ -7,15 +5,20 @@
 </div>
 
 <style>
-  /* 🌍 Inline placement beside Contact */
-  .lang-inline {
-    display: inline-block;
-    margin-left: 18px;
-    position: relative;
-    vertical-align: middle;
+  /* 🌍 Container placed below header */
+  #google_translate_container {
+    position: absolute;
+    top: 100%;
+    right: 30px;
+    margin-top: 10px;
+    z-index: 9999;
   }
 
-  /* Label (click to open) */
+  .lang-inline {
+    position: relative;
+    display: inline-block;
+  }
+
   .lang-label {
     color: #ff4081;
     font-weight: 600;
@@ -30,7 +33,7 @@
     text-shadow: 0 0 6px rgba(255,105,180,0.5);
   }
 
-  /* ✨ Pink Glow Animation when changing */
+  /* ✨ Glowing animation */
   .lang-label.glow {
     color: #ff91ae;
     text-shadow: 0 0 8px #ff91ae, 0 0 15px #ff69b4;
@@ -43,25 +46,24 @@
     100% { opacity: 1; text-shadow: none; }
   }
 
-  /* 🩷 Dropdown Container */
+  /* Dropdown styling */
   #google_translate_element {
     display: none;
     position: absolute;
-    top: 28px;
+    top: 25px;
     right: 0;
     background: #fff;
     border: 1px solid #ffc6d6;
     border-radius: 10px;
     padding: 10px;
     box-shadow: 0 6px 15px rgba(255, 145, 174, 0.4);
-    z-index: 9999;
     transform: translateY(-10px);
     opacity: 0;
     pointer-events: none;
     transition: all 0.3s ease-in-out;
   }
 
-  /* Active dropdown (visible with fade + slide) */
+  /* Active (visible with fade + slide) */
   #google_translate_element.active {
     display: block;
     transform: translateY(0);
@@ -69,7 +71,7 @@
     pointer-events: auto;
   }
 
-  /* Dropdown style */
+  /* Dropdown select box */
   #google_translate_element select.goog-te-combo {
     border-radius: 8px;
     padding: 7px 10px;
@@ -87,7 +89,7 @@
     background-color: #fff0f6;
   }
 
-  /* Hide Google Translate default bar */
+  /* Hide Google Banner */
   .goog-te-banner-frame.skiptranslate { display: none !important; }
   body { top: 0px !important; }
 </style>
@@ -97,7 +99,7 @@ document.addEventListener("DOMContentLoaded", function() {
   const langLabel = document.querySelector(".lang-label");
   const langBox = document.getElementById("google_translate_element");
 
-  // 🌐 Toggle dropdown with fade + slide animation
+  // 🌐 Toggle dropdown open/close
   langLabel.addEventListener("click", (e) => {
     e.stopPropagation();
     langBox.classList.toggle("active");
@@ -110,14 +112,12 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   });
 
-  // Load Google Translate dynamically
-  function loadTranslateScript() {
-    const script = document.createElement("script");
-    script.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
-    document.body.appendChild(script);
-  }
+  // Load Google Translate script dynamically
+  const script = document.createElement("script");
+  script.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+  document.body.appendChild(script);
 
-  // Initialize Google Translate (130+ languages)
+  // Initialize Google Translate
   window.googleTranslateElementInit = function() {
     new google.translate.TranslateElement({
       pageLanguage: 'en',
@@ -129,9 +129,7 @@ document.addEventListener("DOMContentLoaded", function() {
     watchForLanguageChange();
   };
 
-  loadTranslateScript();
-
-  // 🌍 Auto detect country & set language
+  // 🌎 Detect location & auto-language
   async function detectCountryAndSetLanguage() {
     try {
       const res = await fetch("https://ipapi.co/json/");
@@ -140,8 +138,7 @@ document.addEventListener("DOMContentLoaded", function() {
       const language = data.languages ? data.languages.split(",")[0].split("-")[0] : "en";
       console.log("Visitor:", country, "Lang:", language);
 
-      // 🇮🇳 India stays in English
-      if (country === "IN") return;
+      if (country === "IN") return; // India = English
 
       const select = document.querySelector(".goog-te-combo");
       if (!select) return;
@@ -157,20 +154,19 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   }
 
-  // Watch for manual language change
+  // Update language label on selection
   function watchForLanguageChange() {
     const observer = new MutationObserver(() => {
       const select = document.querySelector(".goog-te-combo");
       if (!select) return;
       select.addEventListener("change", () => {
         updateLabel(select.value);
-        langBox.classList.remove("active"); // close after change
+        langBox.classList.remove("active");
       });
     });
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
-  // Update Label Text + Glow Effect
   function updateLabel(code) {
     const lang = code.split('-')[0];
     const name = new Intl.DisplayNames(['en'], { type: 'language' }).of(lang) || "English";
