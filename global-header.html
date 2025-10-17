@@ -1,69 +1,55 @@
-<!-- 🌐 BePeace Global Language Selector -->
-<div id="google_translate_container" class="lang-inline">
-  <span class="lang-label">🌐 English ▼</span>
+<!-- 🌐 BE PEACE Global Language Selector (Fixed and Polished) -->
+<div id="google_translate_wrapper">
+  <div class="lang-label">🌐 English ▼</div>
   <div id="google_translate_element"></div>
 </div>
 
 <style>
-  /* 🌍 Container placed below header */
-  #google_translate_container {
+  /* 🌍 Position: right below the header bar */
+  #google_translate_wrapper {
     position: absolute;
-    top: 100%;
+    top: 65px; /* Adjust if your header height differs */
     right: 30px;
-    margin-top: 10px;
     z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
   }
 
-  .lang-inline {
-    position: relative;
-    display: inline-block;
-  }
-
+  /* 🌐 Button */
   .lang-label {
     color: #ff4081;
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
     user-select: none;
-    transition: color 0.4s ease, text-shadow 0.4s ease;
+    background: #fff;
+    border-radius: 6px;
+    padding: 5px 10px;
+    box-shadow: 0 2px 8px rgba(255, 145, 174, 0.3);
+    transition: all 0.3s ease;
   }
 
   .lang-label:hover {
     color: #ff69b4;
-    text-shadow: 0 0 6px rgba(255,105,180,0.5);
+    transform: scale(1.05);
   }
 
-  /* ✨ Glowing animation */
-  .lang-label.glow {
-    color: #ff91ae;
-    text-shadow: 0 0 8px #ff91ae, 0 0 15px #ff69b4;
-    animation: glowFade 1.4s ease-out;
-  }
-
-  @keyframes glowFade {
-    0% { opacity: 1; text-shadow: 0 0 15px #ff91ae; }
-    50% { opacity: 1; text-shadow: 0 0 25px #ff69b4; }
-    100% { opacity: 1; text-shadow: none; }
-  }
-
-  /* Dropdown styling */
+  /* Dropdown Box */
   #google_translate_element {
     display: none;
-    position: absolute;
-    top: 25px;
-    right: 0;
+    margin-top: 8px;
     background: #fff;
     border: 1px solid #ffc6d6;
     border-radius: 10px;
-    padding: 10px;
-    box-shadow: 0 6px 15px rgba(255, 145, 174, 0.4);
+    padding: 8px;
+    box-shadow: 0 4px 15px rgba(255, 145, 174, 0.4);
     transform: translateY(-10px);
     opacity: 0;
     pointer-events: none;
-    transition: all 0.3s ease-in-out;
+    transition: all 0.3s ease;
   }
 
-  /* Active (visible with fade + slide) */
   #google_translate_element.active {
     display: block;
     transform: translateY(0);
@@ -71,7 +57,7 @@
     pointer-events: auto;
   }
 
-  /* Dropdown select box */
+  /* Dropdown Select Style */
   #google_translate_element select.goog-te-combo {
     border-radius: 8px;
     padding: 7px 10px;
@@ -99,7 +85,7 @@ document.addEventListener("DOMContentLoaded", function() {
   const langLabel = document.querySelector(".lang-label");
   const langBox = document.getElementById("google_translate_element");
 
-  // 🌐 Toggle dropdown open/close
+  // ✅ Toggle dropdown open/close
   langLabel.addEventListener("click", (e) => {
     e.stopPropagation();
     langBox.classList.toggle("active");
@@ -112,12 +98,12 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   });
 
-  // Load Google Translate script dynamically
+  // ✅ Load Google Translate
   const script = document.createElement("script");
   script.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
   document.body.appendChild(script);
 
-  // Initialize Google Translate
+  // ✅ Initialize Translate + Auto Detection
   window.googleTranslateElementInit = function() {
     new google.translate.TranslateElement({
       pageLanguage: 'en',
@@ -125,37 +111,38 @@ document.addEventListener("DOMContentLoaded", function() {
       layout: google.translate.TranslateElement.InlineLayout.SIMPLE
     }, 'google_translate_element');
 
-    detectCountryAndSetLanguage();
-    watchForLanguageChange();
+    autoDetectVisitorLanguage();
+    observeLanguageChange();
   };
 
-  // 🌎 Detect location & auto-language
-  async function detectCountryAndSetLanguage() {
+  // 🌎 Detect Visitor Country
+  async function autoDetectVisitorLanguage() {
     try {
       const res = await fetch("https://ipapi.co/json/");
       const data = await res.json();
       const country = data.country_code;
-      const language = data.languages ? data.languages.split(",")[0].split("-")[0] : "en";
-      console.log("Visitor:", country, "Lang:", language);
+      const lang = data.languages ? data.languages.split(",")[0].split("-")[0] : "en";
+      console.log("Detected Country:", country, "Language:", lang);
 
-      if (country === "IN") return; // India = English
+      // 🇮🇳 Keep English for Indian users
+      if (country === "IN") return;
 
       const select = document.querySelector(".goog-te-combo");
       if (!select) return;
 
-      const matchLang = Array.from(select.options).find(opt => opt.value.startsWith(language));
-      if (matchLang && select.value !== matchLang.value) {
-        select.value = matchLang.value;
+      const found = Array.from(select.options).find(opt => opt.value.startsWith(lang));
+      if (found && select.value !== found.value) {
+        select.value = found.value;
         select.dispatchEvent(new Event("change"));
-        updateLabel(matchLang.value);
+        updateLabel(found.value);
       }
     } catch (err) {
-      console.warn("🌐 Language detection failed:", err);
+      console.warn("Language detection failed:", err);
     }
   }
 
-  // Update language label on selection
-  function watchForLanguageChange() {
+  // 🔄 Watch for user language change
+  function observeLanguageChange() {
     const observer = new MutationObserver(() => {
       const select = document.querySelector(".goog-te-combo");
       if (!select) return;
@@ -167,14 +154,12 @@ document.addEventListener("DOMContentLoaded", function() {
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
+  // ✨ Update label to selected language
   function updateLabel(code) {
     const lang = code.split('-')[0];
     const name = new Intl.DisplayNames(['en'], { type: 'language' }).of(lang) || "English";
-    const capitalized = name.charAt(0).toUpperCase() + name.slice(1);
-    langLabel.textContent = `🌐 ${capitalized} ▼`;
-
-    langLabel.classList.add("glow");
-    setTimeout(() => langLabel.classList.remove("glow"), 1500);
+    const formatted = name.charAt(0).toUpperCase() + name.slice(1);
+    langLabel.textContent = `🌐 ${formatted} ▼`;
   }
 });
 </script>
