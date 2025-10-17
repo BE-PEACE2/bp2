@@ -51,6 +51,25 @@
   </script>
 
   <link rel="stylesheet" href="style.css">
+
+  <!-- 🌍 Google Translate Dropdown -->
+<p style="position:fixed;top:12px;right:170px;font-size:14px;color:#333;z-index:9999;">
+  🌐 Choose Language:
+</p>
+
+<div id="google_translate_element" style="position:fixed;top:10px;right:10px;z-index:9999;"></div>
+
+<script type="text/javascript">
+  function googleTranslateElementInit() {
+    new google.translate.TranslateElement({
+      pageLanguage: 'en',
+      includedLanguages: 'en,hi,fr,es,de,ru,ar,bn,zh-CN,ja,pt',
+      layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+    }, 'google_translate_element');
+  }
+</script>
+<script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
 </head>
 <body>
   <!-- Header -->
@@ -260,6 +279,22 @@
 
   <!-- Overlay -->
   <div id="overlay"></div>
+
+  <script>
+document.addEventListener("DOMContentLoaded", () => {
+  const lang = navigator.language || navigator.userLanguage;
+  const joinBtn = document.querySelector(".join-btn");
+  if (!joinBtn) return;
+
+  // Change button text based on browser language
+  if (lang.startsWith("hi")) joinBtn.innerText = "परामर्श में शामिल हों"; // Hindi
+  else if (lang.startsWith("fr")) joinBtn.innerText = "Rejoindre la consultation"; // French
+  else if (lang.startsWith("es")) joinBtn.innerText = "Unirse a la consulta"; // Spanish
+  else if (lang.startsWith("ar")) joinBtn.innerText = "انضم إلى الاستشارة"; // Arabic
+  else if (lang.startsWith("zh")) joinBtn.innerText = "加入咨询"; // Chinese
+  else joinBtn.innerText = "Join Consultation"; // Default English
+});
+</script>
 
   <!-- JS -->
   <script src="script.js" defer></script>
