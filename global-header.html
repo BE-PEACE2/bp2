@@ -110,83 +110,64 @@
 </style>
 
 <script>
-document.addEventListener("DOMContentLoaded", function () {
+(function () {
   const label = document.querySelector(".lang-label");
   const globe = label.querySelector(".globe");
   const langText = label.querySelector(".lang-text");
   const box = document.getElementById("google_translate_element");
 
-  console.log("🕓 Waiting for Google Translate script to load...");
+  console.log("🕓 Initializing translator loader...");
 
-  // 🌫️ Fade effect when scrolling
-  window.addEventListener("scroll", () => {
-    if (window.scrollY > 50) label.classList.add("scrolled");
-    else label.classList.remove("scrolled");
-  });
-
-  // 🌐 Toggle dropdown
-  label.addEventListener("click", (e) => {
-    e.stopPropagation();
-    if (box.classList.contains("ready")) {
-      box.classList.toggle("active");
-      console.log("🪟 Toggled dropdown:", box.classList.contains("active") ? "OPEN" : "CLOSED");
-    } else {
-      console.warn("⏳ Translator not ready yet.");
-    }
-  });
-
-  document.addEventListener("click", (e) => {
-    if (!box.contains(e.target) && !label.contains(e.target)) {
-      box.classList.remove("active");
-    }
-  });
-
-  // ✅ Load Google Translate script dynamically
-  const gscript = document.createElement("script");
-  gscript.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
-  gscript.async = true;
-  gscript.onload = () => console.log("✅ Google Translate script loaded.");
-  gscript.onerror = () => console.error("❌ Failed to load Google Translate script!");
-  document.head.appendChild(gscript);
-
-  // ✅ Initialize after load
+  // 🔹 Step 1 — Define callback globally before script loads
   window.googleTranslateElementInit = function () {
-    console.log("⚙️ Initializing Google Translate Element...");
+    console.log("⚙️ Google callback fired — initializing...");
     new google.translate.TranslateElement(
       {
         pageLanguage: "en",
         includedLanguages:
           "af,sq,am,ar,hy,az,eu,be,bn,bg,ca,ceb,zh-CN,zh-TW,co,hr,cs,da,nl,en,eo,et,fi,fr,fy,gl,ka,de,el,gu,ht,ha,haw,he,hi,hmn,hu,is,ig,id,ga,it,ja,jw,kn,kk,km,ko,ku,ky,lo,la,lv,lt,lb,mg,ms,ml,mt,mi,mk,mn,my,ne,no,ny,or,ps,fa,pl,pt,pa,ro,ru,sm,gd,sr,st,si,sk,sl,so,es,su,sw,sv,tg,ta,te,th,tr,uk,ur,uz,vi,cy,xh,yi,yo,zu",
-        layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+        layout: google.translate.TranslateElement.InlineLayout.SIMPLE
       },
       "google_translate_element"
     );
 
-    const checkInterval = setInterval(() => {
+    // Wait until dropdown appears
+    const interval = setInterval(() => {
       const select = document.querySelector(".goog-te-combo");
       if (select) {
-        clearInterval(checkInterval);
-        console.log("✅ Translator ready — dropdown detected.");
+        clearInterval(interval);
+        console.log("✅ Translator dropdown detected!");
         box.classList.add("ready");
         box.style.display = "block";
         label.classList.add("ready");
         globe.textContent = "🌐";
         langText.textContent = "English ▼";
-        detectCountryAndSetLanguage();
-        watchChange();
+        detectAndSetLanguage();
+        attachLanguageChange();
       }
-    }, 800);
+    }, 500);
   };
 
-  // 🌍 Auto-detect user country
-  async function detectCountryAndSetLanguage() {
+  // 🔹 Step 2 — Load Google Translate script with guaranteed delay
+  setTimeout(() => {
+    console.log("📥 Loading Google Translate script...");
+    const script = document.createElement("script");
+    script.src =
+      "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+    script.async = true;
+    script.onerror = () => console.error("❌ Failed to load Google Translate script!");
+    document.head.appendChild(script);
+  }, 1000);
+
+  // 🌎 Step 3 — Auto-detect user country
+  async function detectAndSetLanguage() {
     try {
-      console.log("🌎 Detecting location...");
+      console.log("🌍 Detecting user location...");
       const res = await fetch("https://ipapi.co/json/");
       const data = await res.json();
       const country = data.country_code;
       const lang = data.languages ? data.languages.split(",")[0].split("-")[0] : "en";
-      console.log("📍 Country:", country, "| Language:", lang);
+      console.log("📍 Detected:", country, "| Lang:", lang);
 
       const flag = country
         ? String.fromCodePoint(...[...country.toUpperCase()].map((c) => 127397 + c.charCodeAt()))
@@ -196,45 +177,59 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!select) return;
 
       if (country === "IN" || lang === "en") {
-        console.log("🇮🇳 Default to English for India.");
+        console.log("🇮🇳 Defaulting to English for India");
         updateLabel(flag, "English");
         return;
       }
 
       const match = Array.from(select.options).find((o) => o.value.startsWith(lang));
       if (match) {
-        console.log("✅ Auto-selected:", match.textContent);
+        console.log("✅ Auto-selecting:", match.textContent);
         select.value = match.value;
         select.dispatchEvent(new Event("change"));
         updateLabel(flag, match.textContent);
       } else {
-        console.warn("❌ No match found, keeping English.");
         updateLabel(flag, "English");
       }
-    } catch (err) {
-      console.error("🌐 Detection failed:", err);
+    } catch (e) {
+      console.error("🌐 Language detection failed:", e);
       updateLabel("🌐", "English");
     }
   }
 
-  // 🔁 Manual user change
-  function watchChange() {
+  // 🔁 Step 4 — Watch manual language changes
+  function attachLanguageChange() {
     const select = document.querySelector(".goog-te-combo");
     if (!select) return;
     select.addEventListener("change", () => {
       const flag = label.textContent.split(" ")[0] || "🌐";
       const name = select.options[select.selectedIndex].text;
-      console.log("🔄 User switched language:", name);
       updateLabel(flag, name);
       box.classList.remove("active");
     });
   }
 
-  // ✨ Update label
+  // ✨ Step 5 — Update label text
   function updateLabel(flag, name) {
     globe.textContent = flag;
     langText.textContent = `${name} ▼`;
     label.classList.add("ready");
   }
-});
+
+  // 🌐 Toggle dropdown
+  label.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (box.classList.contains("ready")) {
+      box.classList.toggle("active");
+    } else {
+      console.warn("⏳ Still loading translator...");
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!box.contains(e.target) && !label.contains(e.target)) {
+      box.classList.remove("active");
+    }
+  });
+})();
 </script>
