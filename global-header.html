@@ -1,193 +1,192 @@
-<!-- 🌐 BE PEACE Global Language Selector (Fixed and Polished) -->
-<div id="google_translate_wrapper">
-  <div class="lang-label">🌐 English ▼</div>
-  <div id="google_translate_element"></div>
-</div>
+<header>
+  <div class="logo-container">
+    <div class="earth"></div>
+    <h1 class="peach-text">BE PEACE</h1>
+  </div>
 
-<style>
-  /* 🌍 Position: right below the header bar */
-  #google_translate_wrapper {
-    position: absolute;
-    top: 65px; /* Adjust if your header height differs */
-    right: 30px;
-    z-index: 9999;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-  }
+  <!-- 🌐 BE PEACE Global Language Selector (with Flags & Auto Detection) -->
+  <div id="google_translate_wrapper">
+    <div class="lang-label">🌐 English ▼</div>
+    <div id="google_translate_element"></div>
+  </div>
 
-  /* 🌐 Button */
-  .lang-label {
-    color: #ff4081;
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    user-select: none;
-    background: #fff;
-    border-radius: 6px;
-    padding: 5px 10px;
-    box-shadow: 0 2px 8px rgba(255, 145, 174, 0.3);
-    transition: all 0.3s ease;
-  }
-
-  .lang-label:hover {
-    color: #ff69b4;
-    transform: scale(1.05);
-  }
-
-  /* Dropdown Box */
-  #google_translate_element {
-    display: none;
-    margin-top: 8px;
-    background: #fff;
-    border: 1px solid #ffc6d6;
-    border-radius: 10px;
-    padding: 8px;
-    box-shadow: 0 4px 15px rgba(255, 145, 174, 0.4);
-    transform: translateY(-10px);
-    opacity: 0;
-    pointer-events: none;
-    transition: all 0.3s ease;
-  }
-
-  #google_translate_element.active {
-    display: block;
-    transform: translateY(0);
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  /* Dropdown Select Style */
-  #google_translate_element select.goog-te-combo {
-    border-radius: 8px;
-    padding: 7px 10px;
-    border: 1px solid #ff91ae;
-    background-color: #fff;
-    color: #333;
-    font-size: 13px;
-    outline: none;
-    cursor: pointer;
-    transition: 0.3s ease;
-  }
-
-  #google_translate_element select.goog-te-combo:hover {
-    border-color: #ff69b4;
-    background-color: #fff0f6;
-  }
-
-  /* Hide Google Banner */
-  .goog-te-banner-frame.skiptranslate { display: none !important; }
-  body { top: 0px !important; }
-</style>
-
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-  const langLabel = document.querySelector(".lang-label");
-  const langBox = document.getElementById("google_translate_element");
-
-  // 🌐 Toggle open/close
-  langLabel.addEventListener("click", (e) => {
-    e.stopPropagation();
-    if (langBox.classList.contains("active")) {
-      langBox.classList.remove("active");
-    } else if (document.querySelector(".goog-te-combo")) {
-      langBox.classList.add("active");
-    } else {
-      langLabel.textContent = "🌐 Loading…";
-      setTimeout(() => {
-        if (document.querySelector(".goog-te-combo")) langBox.classList.add("active");
-        langLabel.textContent = "🌐 English ▼";
-      }, 2000);
+  <style>
+    /* 🌍 Language Selector: top-right, just below header */
+    #google_translate_wrapper {
+      position: absolute;
+      top: 65px; /* Adjust to fit your header height */
+      right: 30px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
     }
-  });
 
-  // Close when clicking outside
-  document.addEventListener("click", (e) => {
-    if (!langBox.contains(e.target) && !langLabel.contains(e.target)) {
-      langBox.classList.remove("active");
+    /* 🌐 Button styling */
+    .lang-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #ff4081;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      user-select: none;
+      background: #fff;
+      border-radius: 8px;
+      padding: 6px 12px;
+      box-shadow: 0 2px 8px rgba(255, 145, 174, 0.3);
+      transition: all 0.3s ease;
     }
-  });
 
-  // ✅ Load Google Translate script dynamically
-  const script = document.createElement("script");
-  script.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
-  document.body.appendChild(script);
-
-  // ✅ Google Translate initialization
-  window.googleTranslateElementInit = function() {
-    new google.translate.TranslateElement({
-      pageLanguage: 'en',
-      includedLanguages: 'af,sq,am,ar,hy,az,eu,be,bn,bg,ca,ceb,zh-CN,zh-TW,co,hr,cs,da,nl,en,eo,et,fi,fr,fy,gl,ka,de,el,gu,ht,ha,haw,he,hi,hmn,hu,is,ig,id,ga,it,ja,jw,kn,kk,km,ko,ku,ky,lo,la,lv,lt,lb,mg,ms,ml,mt,mi,mk,mn,my,ne,no,ny,or,ps,fa,pl,pt,pa,ro,ru,sm,gd,sr,st,si,sk,sl,so,es,su,sw,sv,tg,ta,te,th,tr,uk,ur,uz,vi,cy,xh,yi,yo,zu',
-      layout: google.translate.TranslateElement.InlineLayout.SIMPLE
-    }, 'google_translate_element');
-
-    waitForTranslateDropdown();
-  };
-
-  // 🕒 Wait until the Google dropdown is ready
-  function waitForTranslateDropdown() {
-    const interval = setInterval(() => {
-      const select = document.querySelector(".goog-te-combo");
-      if (select) {
-        clearInterval(interval);
-        autoDetectVisitorLanguage();
-        observeLanguageChange();
-      }
-    }, 800);
-  }
-
-  // 🌍 Detect visitor country & switch language automatically
-  async function autoDetectVisitorLanguage() {
-    try {
-      const res = await fetch("https://ipapi.co/json/");
-      const data = await res.json();
-      const country = data.country_code;
-      const lang = data.languages ? data.languages.split(",")[0].split("-")[0] : "en";
-      console.log("🌎 Detected Country:", country, "→ Language:", lang);
-
-      const select = document.querySelector(".goog-te-combo");
-      if (!select) return;
-
-      // 🇮🇳 India → Always English
-      if (country === "IN" || lang === "en") {
-        updateLabel("en");
-        return;
-      }
-
-      // 🌐 For other countries → Auto switch
-      const match = Array.from(select.options).find(opt => opt.value.startsWith(lang));
-      if (match) {
-        select.value = match.value;
-        select.dispatchEvent(new Event("change"));
-        updateLabel(match.value);
-      } else {
-        updateLabel("en");
-      }
-    } catch (err) {
-      console.warn("🌐 Language detection failed:", err);
-      updateLabel("en");
+    .lang-label:hover {
+      color: #ff69b4;
+      transform: scale(1.05);
     }
-  }
 
-  // 🪄 Observe dropdown changes
-  function observeLanguageChange() {
-    const observer = new MutationObserver(() => {
-      const select = document.querySelector(".goog-te-combo");
-      if (!select) return;
-      select.addEventListener("change", () => {
-        updateLabel(select.value);
-        langBox.classList.remove("active");
-      });
+    /* Dropdown */
+    #google_translate_element {
+      display: none;
+      margin-top: 10px;
+      background: #fff;
+      border: 1px solid #ffc6d6;
+      border-radius: 10px;
+      padding: 8px;
+      box-shadow: 0 4px 15px rgba(255, 145, 174, 0.4);
+      transition: all 0.3s ease;
+    }
+
+    #google_translate_element.active {
+      display: block;
+    }
+
+    /* Dropdown select box */
+    #google_translate_element select.goog-te-combo {
+      border-radius: 8px;
+      padding: 7px 10px;
+      border: 1px solid #ff91ae;
+      background-color: #fff;
+      color: #333;
+      font-size: 13px;
+      outline: none;
+      cursor: pointer;
+      transition: 0.3s ease;
+    }
+
+    #google_translate_element select.goog-te-combo:hover {
+      border-color: #ff69b4;
+      background-color: #fff0f6;
+    }
+
+    /* Hide Google banner */
+    .goog-te-banner-frame.skiptranslate { display: none !important; }
+    body { top: 0px !important; }
+  </style>
+
+  <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const label = document.querySelector(".lang-label");
+    const box = document.getElementById("google_translate_element");
+
+    // 🌐 Toggle dropdown
+    label.addEventListener("click", (e) => {
+      e.stopPropagation();
+      box.classList.toggle("active");
     });
-    observer.observe(document.body, { childList: true, subtree: true });
-  }
 
-  // ✨ Update label text
-  function updateLabel(code) {
-    const lang = code.split('-')[0];
-    const name = new Intl.DisplayNames(['en'], { type: 'language' }).of(lang) || "English";
-    const capitalized = name.charAt(0).toUpperCase() + name.slice(1);
-    langLabel.textContent = `🌐 ${capitalized} ▼`;
-  }
-});
-</script>
+    // Close dropdown when clicking outside
+    document.addEventListener("click", (e) => {
+      if (!box.contains(e.target) && !label.contains(e.target)) {
+        box.classList.remove("active");
+      }
+    });
+
+    // ✅ Load Google Translate
+    const script = document.createElement("script");
+    script.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+    document.body.appendChild(script);
+
+    window.googleTranslateElementInit = function() {
+      new google.translate.TranslateElement({
+        pageLanguage: 'en',
+        includedLanguages: 'af,sq,am,ar,hy,az,eu,be,bn,bg,ca,ceb,zh-CN,zh-TW,co,hr,cs,da,nl,en,eo,et,fi,fr,fy,gl,ka,de,el,gu,ht,ha,haw,he,hi,hmn,hu,is,ig,id,ga,it,ja,jw,kn,kk,km,ko,ku,ky,lo,la,lv,lt,lb,mg,ms,ml,mt,mi,mk,mn,my,ne,no,ny,or,ps,fa,pl,pt,pa,ro,ru,sm,gd,sr,st,si,sk,sl,so,es,su,sw,sv,tg,ta,te,th,tr,uk,ur,uz,vi,cy,xh,yi,yo,zu',
+        layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+      }, 'google_translate_element');
+
+      waitForDropdown();
+    };
+
+    // 🕒 Wait for Google Translate dropdown to be ready
+    function waitForDropdown() {
+      const interval = setInterval(() => {
+        const select = document.querySelector(".goog-te-combo");
+        if (select) {
+          clearInterval(interval);
+          detectCountryAndSetLanguage();
+          attachChangeListener();
+        }
+      }, 800);
+    }
+
+    // 🌍 Auto-detect visitor country & set language
+    async function detectCountryAndSetLanguage() {
+      try {
+        const res = await fetch("https://ipapi.co/json/");
+        const data = await res.json();
+        const country = data.country_code;
+        const lang = data.languages ? data.languages.split(",")[0].split("-")[0] : "en";
+
+        // 🌐 Create flag emoji from country code
+        const flag = country
+          ? String.fromCodePoint(...[...country.toUpperCase()].map(c => 127397 + c.charCodeAt()))
+          : "🌐";
+
+        console.log("🌎 Detected Country:", country, "Lang:", lang);
+
+        const select = document.querySelector(".goog-te-combo");
+        if (!select) return;
+
+        // 🇮🇳 India → English only
+        if (country === "IN" || lang === "en") {
+          updateLabel(flag, "English");
+          return;
+        }
+
+        // Try to match language
+        const match = Array.from(select.options).find(opt => opt.value.startsWith(lang));
+        if (match) {
+          select.value = match.value;
+          select.dispatchEvent(new Event("change"));
+          updateLabel(flag, match.textContent);
+        } else {
+          updateLabel(flag, "English");
+        }
+      } catch (err) {
+        console.warn("🌐 Language detection failed:", err);
+        updateLabel("🌐", "English");
+      }
+    }
+
+    // 🔄 Update label when language changes
+    function attachChangeListener() {
+      const observer = new MutationObserver(() => {
+        const select = document.querySelector(".goog-te-combo");
+        if (select) {
+          select.addEventListener("change", () => {
+            const countryFlag = label.textContent.split(" ")[0] || "🌐";
+            const selectedLang = select.options[select.selectedIndex].text;
+            updateLabel(countryFlag, selectedLang);
+            box.classList.remove("active");
+          });
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
+
+    // ✨ Update button text
+    function updateLabel(flag, langName) {
+      label.textContent = `${flag} ${langName} ▼`;
+    }
+  });
+  </script>
+</header>

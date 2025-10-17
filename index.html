@@ -55,15 +55,35 @@
 </head>
 <body>
 
-   <!-- Include Global Header -->
-  <div id="header-include"></div>
-  <script>
-  fetch("global-header.html")
-    .then(res => res.text())
-    .then(data => {
-      document.getElementById("header-include").innerHTML = data;
-    });
-  </script>
+<!-- Include Global Header -->
+<div id="header-include"></div>
+
+<script>
+(async function () {
+  try {
+    const res = await fetch("global-header.html");
+    const html = await res.text();
+    const container = document.getElementById("header-include");
+    container.innerHTML = html;
+
+    // ✅ Run any <script> tags inside the header
+    const scripts = container.querySelectorAll("script");
+    for (const oldScript of scripts) {
+      const newScript = document.createElement("script");
+      if (oldScript.src) {
+        newScript.src = oldScript.src;
+      } else {
+        newScript.textContent = oldScript.textContent;
+      }
+      document.body.appendChild(newScript);
+    }
+
+    console.log("✅ Global header loaded successfully");
+  } catch (err) {
+    console.error("❌ Failed to load global-header.html:", err);
+  }
+})();
+</script>
 
   <!-- Header -->
 <header>
