@@ -1,230 +1,89 @@
-<!-- 🌐 BE PEACE Global Language Selector -->
-<div id="google_translate_wrapper">
-  <div class="lang-label loading">
-    <span class="globe">🌎</span>
-    <span class="lang-text">Loading…</span>
-  </div>
-  <div id="google_translate_element"></div>
+<!-- 🌐 BE PEACE Global Translator (Microsoft) -->
+<div id="translator-wrapper">
+  <div id="MicrosoftTranslatorWidget" class="Dark"></div>
 </div>
 
 <style>
-  #google_translate_wrapper {
+  /* 🌍 Floating placement top-right */
+  #translator-wrapper {
     position: fixed;
-    top: 12px;
+    top: 15px;
     right: 30px;
     z-index: 9999;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    font-family: system-ui, sans-serif;
   }
 
-  .lang-label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(255, 255, 255, 0.95);
-    border: 1px solid #ffc6d6;
-    border-radius: 8px;
-    padding: 6px 12px;
-    cursor: pointer;
+  /* 🌐 Translator appearance (BE PEACE theme) */
+  #MicrosoftTranslatorWidget {
+    background: linear-gradient(135deg, #ff80ab, #ff4081);
+    color: #fff !important;
+    font-family: 'Poppins', system-ui, sans-serif;
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 14px;
     font-weight: 600;
-    color: #ff4081;
-    box-shadow: 0 2px 8px rgba(255, 145, 174, 0.3);
+    box-shadow: 0 3px 12px rgba(255, 64, 129, 0.3);
     transition: all 0.3s ease;
-    backdrop-filter: blur(5px);
+    cursor: pointer;
   }
 
-  .lang-label:hover {
-    background: rgba(255, 240, 246, 0.95);
+  #MicrosoftTranslatorWidget:hover {
     transform: scale(1.05);
+    box-shadow: 0 5px 16px rgba(255, 64, 129, 0.45);
   }
 
-  .globe {
-    display: inline-block;
-    animation: spin 1.3s linear infinite;
+  /* 🫧 Optional: add floating glass effect */
+  /* Uncomment below if you want softer pink bubble look */
+  /*
+  #MicrosoftTranslatorWidget {
+    background: rgba(255, 64, 129, 0.9);
+    backdrop-filter: blur(6px);
   }
+  */
 
+  /* 🌎 Earth animation */
   @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
   }
 
-  .lang-label.ready .globe {
-    animation: none;
+  /* Hide Microsoft watermark & simplify dropdown */
+  .mt-icon { display: none !important; }
+  .mt-dropdown {
+    background-color: #fff !important;
+    border-radius: 6px;
+    color: #333 !important;
   }
 
-  #google_translate_element {
-    display: none;
-    margin-top: 8px;
-    background: #fff;
-    border: 1px solid #ffc6d6;
-    border-radius: 10px;
-    padding: 8px;
-    box-shadow: 0 4px 15px rgba(255, 145, 174, 0.4);
-    transform: translateY(-10px);
+  /* 🌐 Auto-hide when scrolling down, reappear on scroll up */
+  #translator-wrapper.hidden {
     opacity: 0;
+    transform: translateY(-20px);
     pointer-events: none;
-    transition: all 0.3s ease;
+    transition: all 0.4s ease;
   }
-
-  #google_translate_element.active {
-    display: block;
-    transform: translateY(0);
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  #google_translate_element select.goog-te-combo {
-    border-radius: 8px;
-    padding: 7px 10px;
-    border: 1px solid #ff91ae;
-    background-color: #fff;
-    color: #333;
-    font-size: 13px;
-    outline: none;
-    cursor: pointer;
-    transition: 0.3s ease;
-  }
-
-  #google_translate_element select.goog-te-combo:hover {
-    border-color: #ff69b4;
-    background-color: #fff0f6;
-  }
-
-  .goog-te-banner-frame.skiptranslate { display: none !important; }
-  body { top: 0px !important; }
 </style>
 
 <script>
-(function () {
-  const label = document.querySelector(".lang-label");
-  const globe = label.querySelector(".globe");
-  const langText = label.querySelector(".lang-text");
-  const box = document.getElementById("google_translate_element");
+  // 💫 Load Microsoft Translator script
+  setTimeout(function () {
+    const s = document.createElement("script");
+    s.type = "text/javascript";
+    s.src = "//www.microsofttranslator.com/Ajax/V3/WidgetV3.js";
+    s.charset = "UTF-8";
+    document.body.appendChild(s);
+  }, 800);
 
-  console.log("🕓 Initializing translator loader...");
+  // 🧠 Smart scroll behavior (hide on scroll down, show on scroll up)
+  let lastScroll = 0;
+  window.addEventListener("scroll", () => {
+    const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+    const wrapper = document.getElementById("translator-wrapper");
 
-  // 🔹 Define callback before script loads
-  window.googleTranslateElementInit = function () {
-    console.log("⚙️ Google callback fired — initializing...");
-    new google.translate.TranslateElement(
-      {
-        pageLanguage: "en",
-        includedLanguages:
-          "af,sq,am,ar,hy,az,eu,be,bn,bg,ca,ceb,zh-CN,zh-TW,co,hr,cs,da,nl,en,eo,et,fi,fr,fy,gl,ka,de,el,gu,ht,ha,haw,he,hi,hmn,hu,is,ig,id,ga,it,ja,jw,kn,kk,km,ko,ku,ky,lo,la,lv,lt,lb,mg,ms,ml,mt,mi,mk,mn,my,ne,no,ny,or,ps,fa,pl,pt,pa,ro,ru,sm,gd,sr,st,si,sk,sl,so,es,su,sw,sv,tg,ta,te,th,tr,uk,ur,uz,vi,cy,xh,yi,yo,zu",
-        layout: google.translate.TranslateElement.InlineLayout.SIMPLE
-      },
-      "google_translate_element"
-    );
-
-    // Wait for dropdown to appear
-    const interval = setInterval(() => {
-      const select = document.querySelector(".goog-te-combo");
-      if (select) {
-        clearInterval(interval);
-        console.log("✅ Translator dropdown detected!");
-        label.classList.add("ready");
-        globe.textContent = "🌐";
-        langText.textContent = "English ▼";
-        detectAndSetLanguage();
-        attachLanguageChange();
-        forceVisible(); // ensure it displays
-      }
-    }, 600);
-  };
-
-  // Load Google script safely
-  setTimeout(() => {
-    console.log("📥 Loading Google Translate script...");
-    const script = document.createElement("script");
-    script.src =
-      "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
-    script.async = true;
-    script.onerror = () => console.error("❌ Failed to load Google Translate script!");
-    document.head.appendChild(script);
-  }, 1000);
-
-  async function detectAndSetLanguage() {
-    try {
-      console.log("🌍 Detecting user location...");
-      const res = await fetch("https://ipapi.co/json/");
-      const data = await res.json();
-      const country = data.country_code;
-      const lang = data.languages ? data.languages.split(",")[0].split("-")[0] : "en";
-      console.log("📍 Detected:", country, "| Lang:", lang);
-
-      const flag = country
-        ? String.fromCodePoint(...[...country.toUpperCase()].map((c) => 127397 + c.charCodeAt()))
-        : "🌐";
-
-      const select = document.querySelector(".goog-te-combo");
-      if (!select) return;
-
-      if (country === "IN" || lang === "en") {
-        console.log("🇮🇳 Defaulting to English for India");
-        updateLabel(flag, "English");
-        return;
-      }
-
-      const match = Array.from(select.options).find((o) => o.value.startsWith(lang));
-      if (match) {
-        console.log("✅ Auto-selecting:", match.textContent);
-        select.value = match.value;
-        select.dispatchEvent(new Event("change"));
-        updateLabel(flag, match.textContent);
-      } else {
-        updateLabel(flag, "English");
-      }
-    } catch (e) {
-      console.error("🌐 Language detection failed:", e);
-      updateLabel("🌐", "English");
-    }
-  }
-
-  function attachLanguageChange() {
-    const select = document.querySelector(".goog-te-combo");
-    if (!select) return;
-    select.addEventListener("change", () => {
-      const name = select.options[select.selectedIndex].text;
-      updateLabel("🌐", name);
-      box.classList.remove("active");
-    });
-  }
-
-  function updateLabel(flag, name) {
-    globe.textContent = flag;
-    langText.textContent = `${name} ▼`;
-    label.classList.add("ready");
-  }
-
-  label.addEventListener("click", (e) => {
-    e.stopPropagation();
-    if (document.querySelector(".goog-te-combo")) {
-      box.classList.toggle("active");
+    if (currentScroll > lastScroll && currentScroll > 100) {
+      wrapper.classList.add("hidden");
     } else {
-      console.warn("⏳ Translator not ready yet");
+      wrapper.classList.remove("hidden");
     }
+    lastScroll = currentScroll <= 0 ? 0 : currentScroll;
   });
-
-  document.addEventListener("click", (e) => {
-    if (!box.contains(e.target) && !label.contains(e.target)) {
-      box.classList.remove("active");
-    }
-  });
-
-  // ✅ Force dropdown visible when ready
-  function forceVisible() {
-    const check = setInterval(() => {
-      const select = document.querySelector(".goog-te-combo");
-      if (select) {
-        clearInterval(check);
-        box.style.display = "block";
-        box.style.opacity = "1";
-        box.style.pointerEvents = "auto";
-        console.log("🌐 Translator visible and ready!");
-      }
-    }, 1000);
-  }
-})();
 </script>
