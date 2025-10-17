@@ -85,10 +85,20 @@ document.addEventListener("DOMContentLoaded", function() {
   const langLabel = document.querySelector(".lang-label");
   const langBox = document.getElementById("google_translate_element");
 
-  // ✅ Toggle dropdown open/close
+  // 🌐 Toggle open/close
   langLabel.addEventListener("click", (e) => {
     e.stopPropagation();
-    langBox.classList.toggle("active");
+    if (langBox.classList.contains("active")) {
+      langBox.classList.remove("active");
+    } else if (document.querySelector(".goog-te-combo")) {
+      langBox.classList.add("active");
+    } else {
+      langLabel.textContent = "🌐 Loading…";
+      setTimeout(() => {
+        if (document.querySelector(".goog-te-combo")) langBox.classList.add("active");
+        langLabel.textContent = "🌐 English ▼";
+      }, 2000);
+    }
   });
 
   // Close when clicking outside
@@ -98,12 +108,12 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   });
 
-  // ✅ Load Google Translate
+  // ✅ Load Google Translate script dynamically
   const script = document.createElement("script");
   script.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
   document.body.appendChild(script);
 
-  // ✅ Initialize Translate + Auto Detection
+  // ✅ Google Translate initialization
   window.googleTranslateElementInit = function() {
     new google.translate.TranslateElement({
       pageLanguage: 'en',
@@ -111,37 +121,55 @@ document.addEventListener("DOMContentLoaded", function() {
       layout: google.translate.TranslateElement.InlineLayout.SIMPLE
     }, 'google_translate_element');
 
-    autoDetectVisitorLanguage();
-    observeLanguageChange();
+    waitForTranslateDropdown();
   };
 
-  // 🌎 Detect Visitor Country
+  // 🕒 Wait until the Google dropdown is ready
+  function waitForTranslateDropdown() {
+    const interval = setInterval(() => {
+      const select = document.querySelector(".goog-te-combo");
+      if (select) {
+        clearInterval(interval);
+        autoDetectVisitorLanguage();
+        observeLanguageChange();
+      }
+    }, 800);
+  }
+
+  // 🌍 Detect visitor country & switch language automatically
   async function autoDetectVisitorLanguage() {
     try {
       const res = await fetch("https://ipapi.co/json/");
       const data = await res.json();
       const country = data.country_code;
       const lang = data.languages ? data.languages.split(",")[0].split("-")[0] : "en";
-      console.log("Detected Country:", country, "Language:", lang);
-
-      // 🇮🇳 Keep English for Indian users
-      if (country === "IN") return;
+      console.log("🌎 Detected Country:", country, "→ Language:", lang);
 
       const select = document.querySelector(".goog-te-combo");
       if (!select) return;
 
-      const found = Array.from(select.options).find(opt => opt.value.startsWith(lang));
-      if (found && select.value !== found.value) {
-        select.value = found.value;
+      // 🇮🇳 India → Always English
+      if (country === "IN" || lang === "en") {
+        updateLabel("en");
+        return;
+      }
+
+      // 🌐 For other countries → Auto switch
+      const match = Array.from(select.options).find(opt => opt.value.startsWith(lang));
+      if (match) {
+        select.value = match.value;
         select.dispatchEvent(new Event("change"));
-        updateLabel(found.value);
+        updateLabel(match.value);
+      } else {
+        updateLabel("en");
       }
     } catch (err) {
-      console.warn("Language detection failed:", err);
+      console.warn("🌐 Language detection failed:", err);
+      updateLabel("en");
     }
   }
 
-  // 🔄 Watch for user language change
+  // 🪄 Observe dropdown changes
   function observeLanguageChange() {
     const observer = new MutationObserver(() => {
       const select = document.querySelector(".goog-te-combo");
@@ -154,12 +182,12 @@ document.addEventListener("DOMContentLoaded", function() {
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
-  // ✨ Update label to selected language
+  // ✨ Update label text
   function updateLabel(code) {
     const lang = code.split('-')[0];
     const name = new Intl.DisplayNames(['en'], { type: 'language' }).of(lang) || "English";
-    const formatted = name.charAt(0).toUpperCase() + name.slice(1);
-    langLabel.textContent = `🌐 ${formatted} ▼`;
+    const capitalized = name.charAt(0).toUpperCase() + name.slice(1);
+    langLabel.textContent = `🌐 ${capitalized} ▼`;
   }
 });
 </script>
