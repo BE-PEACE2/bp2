@@ -721,20 +721,52 @@ window.addEventListener("DOMContentLoaded", () => {
     indicator.classList.remove("pulse-anim");
   });
 
-  // 🔁 Auto VPN recheck
-  setInterval(async () => {
-    try {
-      const res = await fetch(`/api/lang?nocache=${Date.now()}`);
-      const data = await res.json();
-      if (!localStorage.getItem("bepeace_lang") && data.detectedLang !== userLang) {
-        userLang = data.detectedLang;
-        indicator.textContent = `${data.flag||"🌐"} ${userLang.toUpperCase()} ▼`;
-        translatePage(userLang);
-      }
-    } catch (err) {
-      console.warn("VPN recheck failed:", err);
+// 🔁 Auto VPN recheck + live IP detection (every 10s, smarter)
+let lastIP = "";
+
+async function vpnRecheck() {
+  try {
+    const res = await fetch(`/api/lang?nocache=${Date.now()}`, {
+      headers: { "Cache-Control": "no-store" }
+    });
+    const data = await res.json();
+
+    // 🆕 When VPN IP / language changes
+    if (data && (data.detectedLang !== userLang || data.country_code !== lastIP)) {
+      console.log("🌍 VPN or location changed →", data.country, data.detectedLang);
+      userLang = data.detectedLang;
+      lastIP = data.country_code;
+      indicator.textContent = `${data.flag || "🌐"} ${userLang.toUpperCase()} ▼`;
+      localStorage.removeItem("bepeace_lang"); // reset manual override
+      await translatePage(userLang);
+      showVPNDetected(data.country);
     }
-  }, 15000);
+  } catch (err) {
+    console.warn("VPN recheck failed:", err);
+  }
+}
+
+// Run more often when tab is active, less when idle
+let vpnInterval = setInterval(vpnRecheck, 10000);
+document.addEventListener("visibilitychange", () => {
+  clearInterval(vpnInterval);
+  if (!document.hidden) vpnInterval = setInterval(vpnRecheck, 10000);
+});
+
+// 🌍 Small notice when VPN is detected
+function showVPNDetected(country) {
+  const tip = document.createElement("div");
+  tip.textContent = `🌎 Detected new location: ${country}`;
+  tip.style.cssText = `
+    position:fixed;top:65px;right:25px;background:${accentColor};
+    color:white;padding:6px 10px;border-radius:8px;font-size:12px;
+    box-shadow:0 4px 8px rgba(0,0,0,0.15);opacity:0;transition:opacity 0.4s ease;
+    z-index:99999;
+  `;
+  document.body.appendChild(tip);
+  setTimeout(()=>tip.style.opacity=1,50);
+  setTimeout(()=>{ tip.style.opacity=0; tip.remove(); },2500);
+}
 
   // 🧹 Reset saved language (Ctrl+Shift+R)
   document.addEventListener("keydown", (e) => {

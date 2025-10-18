@@ -4,25 +4,39 @@
 const cache = new Map();
 
 export default async function handler(req, res) {
-  const { text, target, force } = req.query; // 👈 added `force`
+  const { text, target, force } = req.query;
 
   try {
-    // 🗺️ STEP 1: Get client IP safely
-    const ip =
-      req.headers["x-forwarded-for"]?.split(",")[0] ||
+    // 🗺️ STEP 1: Get client IP safely (works with Vercel + Cloudflare + VPN)
+    let ip =
+      req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+      req.headers["cf-connecting-ip"] ||
       req.headers["x-real-ip"] ||
-      req.socket.remoteAddress ||
-      "unknown";
+      req.socket?.remoteAddress ||
+      "auto";
 
-    // 🕐 STEP 2: Use cached data if available (1 hour)
+    // Clean up internal/local IPs
+    if (
+      ip === "::1" ||
+      ip.startsWith("10.") ||
+      ip.startsWith("192.168") ||
+      ip.startsWith("172.") ||
+      ip === "127.0.0.1"
+    ) {
+      ip = "auto"; // fallback to public auto detection
+    }
+    if (ip.startsWith("::ffff:")) ip = ip.replace("::ffff:", "");
+
+    console.log("🧭 Incoming IP:", ip, "| Headers:", req.headers["x-forwarded-for"]);
+
+    // 🕐 STEP 2: Cached data (unless forced)
     const cached = cache.get(ip);
-    // 👇 Skip cache if user forces re-detect (e.g. VPN test)
     if (!force && cached && Date.now() - cached.timestamp < 60 * 60 * 1000) {
       console.log(`⚡ Using cached location for ${ip}`);
       return handleResponse(req, res, cached.data);
     }
 
-    // 🧭 STEP 3: Detect location using fallback APIs
+    // 🧭 STEP 3: Detect location using external APIs
     const locationData = await detectLocation(ip);
 
     // 🏳️ Extract values
@@ -32,11 +46,10 @@ export default async function handler(req, res) {
     const countryCode = locationData.country_code || "IN";
     const flag = getFlagEmoji(countryCode);
 
-    // 💾 Save in cache
     const data = { detectedLang, country, countryCode, flag };
     cache.set(ip, { data, timestamp: Date.now() });
 
-    // 🧩 STEP 4: Handle translation or detection-only
+    // 🧩 STEP 4: Return result
     return handleResponse(req, res, data);
   } catch (err) {
     console.error("❌ Translation error:", err);
@@ -48,27 +61,25 @@ export default async function handler(req, res) {
 }
 
 // =============================
-// 🌍 LOCATION DETECTION SECTION
+// 🌍 LOCATION DETECTION
 // =============================
 async function detectLocation(ip) {
-  const sources = [
-    `https://ipapi.co/${ip}/json/`,       // 👈 Use IP-based endpoint
-    `https://ipwho.is/${ip}`,
-    `https://ipapi.com/ip_api.php?ip=${ip}&format=json`
+  const urls = [
+    ip === "auto" ? "https://ipapi.co/json/" : `https://ipapi.co/${ip}/json/`,
+    ip === "auto" ? "https://ipwho.is/" : `https://ipwho.is/${ip}`,
+    "https://freeipapi.com/api/json",
+    "https://ipinfo.io/json?token=demo" // optional free fallback
   ];
 
-  for (const url of sources) {
+  for (const url of urls) {
     try {
       const res = await fetch(url);
       const text = await res.text();
-      try {
-        const json = JSON.parse(text);
-        if (json && (json.country_name || json.country)) {
-          console.log(`✅ Location source: ${url}`);
-          return normalizeLocation(json);
-        }
-      } catch {
-        console.warn(`⚠️ ${url} returned invalid JSON`);
+      const json = JSON.parse(text);
+
+      if (json && (json.country_name || json.country)) {
+        console.log(`✅ Location source: ${url}`);
+        return normalizeLocation(json);
       }
     } catch (err) {
       console.warn(`⚠️ Failed ${url}: ${err.message}`);
@@ -79,7 +90,6 @@ async function detectLocation(ip) {
   return { country_name: "India", country_code: "IN", languages: "en" };
 }
 
-// Normalize fields across APIs
 function normalizeLocation(data) {
   return {
     country_name:
@@ -105,7 +115,6 @@ async function handleResponse(req, res, locationData) {
   const { text, target } = req.query;
   const { detectedLang, country, countryCode, flag } = locationData;
 
-  // Only detection (no text)
   if (!text) {
     return res.status(200).json({
       detectedLang,
@@ -117,7 +126,6 @@ async function handleResponse(req, res, locationData) {
     });
   }
 
-  // Translation case
   const tl = target || detectedLang || "en";
   const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${tl}&dt=t&q=${encodeURIComponent(
     text
@@ -152,7 +160,9 @@ async function handleResponse(req, res, locationData) {
 // =============================
 function getFlagEmoji(code = "IN") {
   try {
-    return String.fromCodePoint(...[...code.toUpperCase()].map(c => 127397 + c.charCodeAt()));
+    return String.fromCodePoint(
+      ...[...code.toUpperCase()].map(c => 127397 + c.charCodeAt())
+    );
   } catch {
     return "🌐";
   }
