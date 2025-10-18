@@ -479,3 +479,228 @@ window.addEventListener("DOMContentLoaded", () => {
     console.log("ℹ️ Not on booking page — skipping slot load.");
   }
 });
+
+// ================= 🌍 BE PEACE Global Translator (200+ Languages + Dual Pulse Animation) =================
+(async function () {
+  console.log("🌍 Initializing BE PEACE Translator...");
+
+  const mainColor = "#ff4081";
+  const accentColor = "#ff80ab";
+
+  // 🌐 Floating container
+  const container = document.createElement("div");
+  container.style.cssText = `
+    position:fixed;top:15px;right:25px;display:flex;align-items:center;
+    gap:6px;z-index:9999;transition:opacity 0.3s ease;
+  `;
+
+  // 🌐 Language Indicator
+  const indicator = document.createElement("div");
+  indicator.id = "lang-indicator";
+  indicator.style.cssText = `
+    background:${mainColor};color:white;padding:7px 12px;border-radius:12px;
+    font-family:'Poppins',sans-serif;font-weight:600;font-size:13px;
+    display:flex;align-items:center;gap:6px;cursor:pointer;
+    box-shadow:0 4px 10px rgba(255,64,129,0.25);
+    backdrop-filter:blur(10px);transition:all 0.3s ease;
+  `;
+  indicator.textContent = "🌐 Detecting...";
+
+  // 🔁 Refresh button (hidden until hover)
+  const refreshBtn = document.createElement("button");
+  refreshBtn.innerHTML = "🔁";
+  refreshBtn.title = "Refresh Translation";
+  refreshBtn.style.cssText = `
+    background:${accentColor};color:white;border:none;
+    border-radius:10px;padding:6px 8px;cursor:pointer;
+    font-size:13px;font-weight:bold;opacity:0;
+    transform:scale(0.8);transition:all 0.3s ease;
+    box-shadow:0 2px 5px rgba(255,128,171,0.3);
+  `;
+
+  container.appendChild(indicator);
+  container.appendChild(refreshBtn);
+  document.body.appendChild(container);
+
+  // 🪄 Hover Animation: show refresh on hover
+  container.addEventListener("mouseenter", () => {
+    refreshBtn.style.opacity = "1";
+    refreshBtn.style.transform = "scale(1)";
+  });
+  container.addEventListener("mouseleave", () => {
+    refreshBtn.style.opacity = "0";
+    refreshBtn.style.transform = "scale(0.8)";
+  });
+
+  // ✨ Add pulse animation for both indicator & button
+  const style = document.createElement("style");
+  style.innerHTML = `
+    @keyframes pulse {
+      0% { transform: scale(1); box-shadow: 0 0 5px ${accentColor}; }
+      50% { transform: scale(1.2); box-shadow: 0 0 18px ${accentColor}; }
+      100% { transform: scale(1); box-shadow: 0 0 5px ${accentColor}; }
+    }
+    .pulse-anim {
+      animation: pulse 1s infinite ease-in-out;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // 🗺️ Detect user language
+  let userLang = "en", country = "", flag = "🌐";
+  async function detectLanguage() {
+    try {
+      indicator.classList.add("pulse-anim");
+      const res = await fetch(`/api/lang?nocache=${Date.now()}`, {
+        headers: { "Cache-Control": "no-cache" }
+      });
+      const data = await res.json();
+      userLang = data.detectedLang || "en";
+      country = data.country || "";
+      flag = data.flag || "🌐";
+      indicator.textContent = `${flag} ${userLang.toUpperCase()} ▼`;
+      indicator.classList.remove("pulse-anim");
+      return userLang;
+    } catch {
+      indicator.textContent = "🌐 EN ▼";
+      indicator.classList.remove("pulse-anim");
+      return "en";
+    }
+  }
+
+  await detectLanguage();
+
+  // 🔽 Dropdown setup
+  const dropdown = document.createElement("div");
+  dropdown.id = "lang-dropdown";
+  dropdown.style.cssText = `
+    display:none;position:fixed;top:50px;right:25px;background:white;
+    border:2px solid ${accentColor};border-radius:10px;
+    box-shadow:0 4px 20px rgba(255,64,129,0.2);
+    z-index:9999;padding:8px;width:250px;max-height:300px;overflow-y:auto;
+  `;
+  document.body.appendChild(dropdown);
+
+  const search = document.createElement("input");
+  search.type = "text";
+  search.placeholder = "Search language...";
+  search.style.cssText = `
+    width:100%;padding:6px;border:1px solid ${accentColor};
+    border-radius:8px;margin-bottom:8px;
+  `;
+  dropdown.appendChild(search);
+
+  // 🌍 Supported languages
+  const languages = {
+    af:"Afrikaans", am:"Amharic", ar:"Arabic", as:"Assamese", ay:"Aymara", az:"Azerbaijani",
+    be:"Belarusian", bg:"Bulgarian", bho:"Bhojpuri", bn:"Bengali", bs:"Bosnian", ca:"Catalan",
+    ceb:"Cebuano", ckb:"Kurdish (Sorani)", co:"Corsican", cs:"Czech", cy:"Welsh", da:"Danish",
+    de:"German", doi:"Dogri", dv:"Dhivehi", ee:"Ewe", el:"Greek", en:"English", eo:"Esperanto",
+    es:"Spanish", et:"Estonian", eu:"Basque", fa:"Persian", fi:"Finnish", fil:"Filipino",
+    fr:"French", fy:"Frisian", ga:"Irish", gd:"Scottish Gaelic", gl:"Galician", gn:"Guarani",
+    gom:"Konkani", gu:"Gujarati", ha:"Hausa", haw:"Hawaiian", he:"Hebrew", hi:"Hindi",
+    hmn:"Hmong", hr:"Croatian", ht:"Haitian Creole", hu:"Hungarian", hy:"Armenian",
+    id:"Indonesian", ig:"Igbo", ilo:"Ilocano", is:"Icelandic", it:"Italian", ja:"Japanese",
+    jv:"Javanese", ka:"Georgian", kk:"Kazakh", km:"Khmer", kn:"Kannada", ko:"Korean",
+    kri:"Krio", ku:"Kurdish (Kurmanji)", ky:"Kyrgyz", la:"Latin", lb:"Luxembourgish",
+    lg:"Luganda", ln:"Lingala", lo:"Lao", lt:"Lithuanian", lus:"Mizo", lv:"Latvian",
+    mai:"Maithili", mg:"Malagasy", mi:"Maori", mk:"Macedonian", ml:"Malayalam", mn:"Mongolian",
+    mni:"Meitei (Manipuri)", mr:"Marathi", ms:"Malay", mt:"Maltese", my:"Burmese", ne:"Nepali",
+    nl:"Dutch", no:"Norwegian", nso:"Northern Sotho", ny:"Nyanja (Chichewa)", om:"Oromo",
+    or:"Odia (Oriya)", pa:"Punjabi", pap:"Papiamento", pl:"Polish", ps:"Pashto", pt:"Portuguese",
+    qu:"Quechua", ro:"Romanian", ru:"Russian", rw:"Kinyarwanda", sa:"Sanskrit", sd:"Sindhi",
+    si:"Sinhala", sk:"Slovak", sl:"Slovenian", sm:"Samoan", sn:"Shona", so:"Somali", sq:"Albanian",
+    sr:"Serbian", st:"Sesotho", su:"Sundanese", sv:"Swedish", sw:"Swahili", ta:"Tamil", te:"Telugu",
+    tg:"Tajik", th:"Thai", ti:"Tigrinya", tk:"Turkmen", tl:"Tagalog", tr:"Turkish", ts:"Tsonga",
+    tt:"Tatar", ug:"Uyghur", uk:"Ukrainian", ur:"Urdu", uz:"Uzbek", vi:"Vietnamese", xh:"Xhosa",
+    yi:"Yiddish", yo:"Yoruba", zh:"Chinese (Simplified)", "zh-TW":"Chinese (Traditional)", zu:"Zulu"
+  };
+
+  // 🏳️ Flag helper
+  function getFlagEmoji(code) {
+    if (!code) return "🌐";
+    return String.fromCodePoint(...[...code.toUpperCase()].map(c => 127397 + c.charCodeAt()));
+  }
+
+  // Build dropdown list
+  const ul = document.createElement("ul");
+  ul.style.cssText = "list-style:none;padding:0;margin:0;";
+  dropdown.appendChild(ul);
+
+  Object.entries(languages).forEach(([code, name]) => {
+    const li = document.createElement("li");
+    li.innerHTML = `${getFlagEmoji(code.slice(0,2))} ${name} <small>(${code.toUpperCase()})</small>`;
+    li.style.cssText = "padding:6px 10px;border-radius:6px;cursor:pointer;font-size:13px;";
+    li.addEventListener("mouseover",()=>li.style.background="#ffe6ef");
+    li.addEventListener("mouseout",()=>li.style.background="transparent");
+    li.addEventListener("click",()=>{
+      dropdown.style.display="none";
+      indicator.textContent=`${getFlagEmoji(code.slice(0,2))} ${name}`;
+      translatePage(code);
+    });
+    ul.appendChild(li);
+  });
+
+  search.addEventListener("input", e=>{
+    const q=e.target.value.toLowerCase();
+    ul.querySelectorAll("li").forEach(li=>{
+      li.style.display=li.textContent.toLowerCase().includes(q)?"block":"none";
+    });
+  });
+
+  indicator.addEventListener("click", e=>{
+    e.stopPropagation();
+    dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+  });
+  document.addEventListener("click", e=>{
+    if(!dropdown.contains(e.target)&&!indicator.contains(e.target)) dropdown.style.display="none";
+  });
+
+  // 🌍 Auto-translate for foreign visitors
+  if(userLang!=="en" && country!=="India") translatePage(userLang);
+
+  // 🔁 Auto recheck (every 15s)
+  setInterval(async()=>{
+    try{
+      const res=await fetch(`/api/lang?nocache=${Date.now()}`,{headers:{"Cache-Control":"no-cache"}});
+      const data=await res.json();
+      if(data.detectedLang && data.detectedLang!==userLang){
+        userLang=data.detectedLang;
+        indicator.textContent=`${data.flag||"🌐"} ${userLang.toUpperCase()} ▼`;
+        translatePage(userLang);
+      }
+    }catch(err){console.warn("VPN recheck failed:",err);}
+  },15000);
+
+  // 🔤 Translate visible text
+  async function translatePage(targetLang){
+    console.log("🔁 Translating page to:",targetLang);
+    refreshBtn.classList.add("pulse-anim");
+    indicator.classList.add("pulse-anim");
+    const els=document.querySelectorAll("h1,h2,h3,p,a,button,span,li,label,option");
+    for(const el of els){
+      const text=el.textContent.trim();
+      if(text.length>1){
+        try{
+          const res=await fetch(`/api/lang?text=${encodeURIComponent(text)}&target=${targetLang}&nocache=${Date.now()}`,{
+            headers:{"Cache-Control":"no-cache"}
+          });
+          const data=await res.json();
+          if(data.translated) el.textContent=data.translated;
+        }catch{console.warn("Translation failed for:",text);}
+      }
+    }
+    refreshBtn.classList.remove("pulse-anim");
+    indicator.classList.remove("pulse-anim");
+  }
+
+  // 🔁 Manual Refresh
+  refreshBtn.addEventListener("click", async ()=>{
+    refreshBtn.classList.add("pulse-anim");
+    indicator.classList.add("pulse-anim");
+    await detectLanguage();
+    await translatePage(userLang);
+    refreshBtn.classList.remove("pulse-anim");
+    indicator.classList.remove("pulse-anim");
+  });
+})();
