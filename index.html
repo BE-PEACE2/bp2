@@ -52,6 +52,23 @@
 
   <link rel="stylesheet" href="style.css">
 
+  <!-- 🌐 Google Translate Widget -->
+<p style="position:fixed;top:12px;right:170px;font-size:14px;color:#333;z-index:9999;">
+  🌐 Choose Language:
+</p>
+<div id="google_translate_element" style="position:fixed;top:10px;right:10px;z-index:9999;"></div>
+
+<script type="text/javascript">
+  function googleTranslateElementInit() {
+    new google.translate.TranslateElement({
+      pageLanguage: 'en',
+      includedLanguages: 'en,hi,fr,es,de,ru,ar,bn,zh-CN,ja,pt',
+      layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+    }, 'google_translate_element');
+  }
+</script>
+<script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
 </head>
 <body>
 
@@ -263,170 +280,24 @@
   <!-- Overlay -->
   <div id="overlay"></div>
 
-  <!-- 🌍 BE PEACE Global Translator -->
-<style>
-  #lang-indicator {
-    position: fixed;
-    top: 15px;
-    right: 25px;
-    background: #ff4081;
-    color: white;
-    padding: 7px 12px;
-    border-radius: 10px;
-    font-family: "Poppins", sans-serif;
-    font-weight: 600;
-    font-size: 13px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    z-index: 9999;
-    box-shadow: 0 4px 10px rgba(255, 64, 129, 0.25);
-  }
-
-  #lang-dropdown {
-    display: none;
-    position: fixed;
-    top: 50px;
-    right: 25px;
-    background: white;
-    border: 2px solid #ff80ab;
-    border-radius: 10px;
-    box-shadow: 0 4px 20px rgba(255, 64, 129, 0.2);
-    z-index: 9999;
-    padding: 8px;
-    width: 220px;
-  }
-
-  #lang-dropdown.active {
-    display: block;
-  }
-
-  #lang-dropdown input {
-    width: 100%;
-    padding: 6px;
-    border: 1px solid #ff80ab;
-    border-radius: 8px;
-    margin-bottom: 8px;
-  }
-
-  #lang-dropdown ul {
-    list-style: none;
-    padding: 0;
-    max-height: 160px;
-    overflow-y: auto;
-    margin: 0;
-  }
-
-  #lang-dropdown li {
-    padding: 6px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-  }
-
-  #lang-dropdown li:hover {
-    background: #ffe6ef;
-  }
-</style>
-
-<div id="lang-indicator">🌐 Detecting...</div>
-<div id="lang-dropdown">
-  <input type="text" id="lang-search" placeholder="Search language...">
-  <ul id="lang-list"></ul>
-</div>
-
-<script>
-(async function () {
-  const indicator = document.getElementById("lang-indicator");
-  const dropdown = document.getElementById("lang-dropdown");
-  const langList = document.getElementById("lang-list");
-  const search = document.getElementById("lang-search");
-
-  // 1️⃣ Detect user language via your API
-  let userLang = "en", flag = "🌐", country = "";
-  try {
-    const res = await fetch("/api/lang");
-    const data = await res.json();
-    userLang = data.detectedLang || "en";
-    country = data.country || "";
-    flag = data.flag || "🌐";
-    indicator.textContent = `${flag} ${userLang.toUpperCase()} ▼`;
-  } catch (e) {
-    indicator.textContent = "🌐 English ▼";
-  }
-
-  // 2️⃣ Fetch all supported languages (ISO + names)
-  const languages = {
-    en: "English", hi: "Hindi", fr: "French", es: "Spanish", de: "German",
-    ar: "Arabic", ru: "Russian", ja: "Japanese", ko: "Korean", zh: "Chinese",
-    it: "Italian", pt: "Portuguese", tr: "Turkish", nl: "Dutch", th: "Thai",
-    sv: "Swedish", pl: "Polish", ro: "Romanian", el: "Greek", he: "Hebrew",
-    vi: "Vietnamese", sw: "Swahili", ta: "Tamil", ur: "Urdu", id: "Indonesian",
-    bn: "Bengali", te: "Telugu", mr: "Marathi", fa: "Persian", uk: "Ukrainian",
-    fil: "Filipino", hu: "Hungarian", cs: "Czech", da: "Danish", no: "Norwegian",
-    ms: "Malay", sr: "Serbian", sk: "Slovak", fi: "Finnish", bg: "Bulgarian",
-    et: "Estonian", lv: "Latvian", lt: "Lithuanian", hr: "Croatian", sl: "Slovenian"
-  };
-
-  // 3️⃣ Populate dropdown
-  Object.entries(languages).forEach(([code, name]) => {
-    const li = document.createElement("li");
-    li.textContent = `${name} (${code.toUpperCase()})`;
-    li.dataset.code = code;
-    li.addEventListener("click", () => {
-      dropdown.classList.remove("active");
-      indicator.textContent = `${flag} ${name}`;
-      translatePage(code);
-    });
-    langList.appendChild(li);
-  });
-
-  // 4️⃣ Search filter
-  search.addEventListener("input", e => {
-    const q = e.target.value.toLowerCase();
-    langList.querySelectorAll("li").forEach(li => {
-      li.style.display = li.textContent.toLowerCase().includes(q) ? "block" : "none";
-    });
-  });
-
-  // 5️⃣ Toggle dropdown
-  indicator.addEventListener("click", e => {
-    e.stopPropagation();
-    dropdown.classList.toggle("active");
-  });
-  document.addEventListener("click", e => {
-    if (!dropdown.contains(e.target) && !indicator.contains(e.target)) {
-      dropdown.classList.remove("active");
-    }
-  });
-
-  // 6️⃣ Auto-translate page for foreign visitors
-  if (userLang !== "en" && country !== "India") translatePage(userLang);
-
-  // 7️⃣ Function: Translate text dynamically using your API
-  async function translatePage(targetLang) {
-    const els = document.querySelectorAll("h1,h2,h3,p,a,button,span,li");
-    for (const el of els) {
-      const text = el.textContent.trim();
-      if (text.length > 1 && !el.dataset.translated) {
-        try {
-          const res = await fetch(`/api/lang?text=${encodeURIComponent(text)}&target=${targetLang}`);
-          const data = await res.json();
-          if (data.translated) {
-            el.textContent = data.translated;
-            el.dataset.translated = "true";
-          }
-        } catch (err) {
-          console.warn("❌ Translate failed:", text);
-        }
-      }
-    }
-  }
-})();
-</script>
 
   <!-- JS -->
   <script src="script.js" defer></script>
+
+  <script>
+document.addEventListener("DOMContentLoaded", () => {
+  const lang = navigator.language || navigator.userLanguage;
+  const joinBtn = document.querySelector(".join-btn");
+  if (!joinBtn) return;
+
+  if (lang.startsWith("hi")) joinBtn.innerText = "परामर्श में शामिल हों";
+  else if (lang.startsWith("fr")) joinBtn.innerText = "Rejoindre la consultation";
+  else if (lang.startsWith("es")) joinBtn.innerText = "Unirse a la consulta";
+  else if (lang.startsWith("ar")) joinBtn.innerText = "انضم إلى الاستشارة";
+  else if (lang.startsWith("zh")) joinBtn.innerText = "加入咨询";
+  else joinBtn.innerText = "Join Consultation";
+});
+</script>
+
 </body>
 </html>
