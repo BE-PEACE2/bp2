@@ -480,12 +480,16 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// ================= 🌍 BE PEACE Global Translator (200+ Languages + Dual Pulse Animation) =================
+// ================= 🌍 BE PEACE Global Translator (200+ Languages + Persistent Setting + Full Page Translation) =================
 (async function () {
   console.log("🌍 Initializing BE PEACE Translator...");
 
   const mainColor = "#ff4081";
   const accentColor = "#ff80ab";
+
+  // 🌎 Persistent language across pages
+  let storedLang = localStorage.getItem("bepeace_lang");
+  let userLang = storedLang || "en", country = "", flag = "🌐";
 
   // 🌐 Floating container
   const container = document.createElement("div");
@@ -522,7 +526,7 @@ window.addEventListener("DOMContentLoaded", () => {
   container.appendChild(refreshBtn);
   document.body.appendChild(container);
 
-  // 🪄 Hover Animation: show refresh on hover
+  // 🪄 Hover Animation
   container.addEventListener("mouseenter", () => {
     refreshBtn.style.opacity = "1";
     refreshBtn.style.transform = "scale(1)";
@@ -532,7 +536,7 @@ window.addEventListener("DOMContentLoaded", () => {
     refreshBtn.style.transform = "scale(0.8)";
   });
 
-  // ✨ Add pulse animation for both indicator & button
+  // ✨ Pulse Animation
   const style = document.createElement("style");
   style.innerHTML = `
     @keyframes pulse {
@@ -540,37 +544,63 @@ window.addEventListener("DOMContentLoaded", () => {
       50% { transform: scale(1.2); box-shadow: 0 0 18px ${accentColor}; }
       100% { transform: scale(1); box-shadow: 0 0 5px ${accentColor}; }
     }
-    .pulse-anim {
-      animation: pulse 1s infinite ease-in-out;
-    }
+    .pulse-anim { animation: pulse 1s infinite ease-in-out; }
   `;
   document.head.appendChild(style);
 
-  // 🗺️ Detect user language
-  let userLang = "en", country = "", flag = "🌐";
-  async function detectLanguage() {
+  // 🏳️ Flag Helper
+  function getFlagEmoji(code) {
+    if (!code) return "🌐";
+    return String.fromCodePoint(...[...code.toUpperCase()].map(c => 127397 + c.charCodeAt()));
+  }
+
+  // 🧭 Smart Language Detector
+  async function detectLanguage(force = false) {
     try {
       indicator.classList.add("pulse-anim");
-      const res = await fetch(`/api/lang?nocache=${Date.now()}`, {
-        headers: { "Cache-Control": "no-cache" }
-      });
+
+      // If stored preference exists, skip backend call
+      if (!force && localStorage.getItem("bepeace_lang")) {
+        userLang = localStorage.getItem("bepeace_lang");
+        flag = getFlagEmoji(userLang.slice(0, 2));
+        indicator.textContent = `${flag} ${userLang.toUpperCase()} ▼`;
+        indicator.classList.remove("pulse-anim");
+        return userLang;
+      }
+
+      const url = force
+        ? `/api/lang?force=true&nocache=${Date.now()}`
+        : `/api/lang?nocache=${Date.now()}`;
+
+      const res = await fetch(url, { headers: { "Cache-Control": "no-cache" } });
       const data = await res.json();
+
       userLang = data.detectedLang || "en";
       country = data.country || "";
       flag = data.flag || "🌐";
       indicator.textContent = `${flag} ${userLang.toUpperCase()} ▼`;
+
       indicator.classList.remove("pulse-anim");
       return userLang;
-    } catch {
+    } catch (err) {
+      console.warn("⚠️ detectLanguage failed:", err);
       indicator.textContent = "🌐 EN ▼";
       indicator.classList.remove("pulse-anim");
       return "en";
     }
   }
 
-  await detectLanguage();
+  // Detect or use stored
+  if (storedLang) {
+    userLang = storedLang;
+    flag = getFlagEmoji(userLang.slice(0, 2));
+    indicator.textContent = `${flag} ${userLang.toUpperCase()} ▼`;
+    translatePage(userLang);
+  } else {
+    await detectLanguage();
+  }
 
-  // 🔽 Dropdown setup
+  // 🌐 Dropdown Setup
   const dropdown = document.createElement("div");
   dropdown.id = "lang-dropdown";
   dropdown.style.cssText = `
@@ -616,13 +646,6 @@ window.addEventListener("DOMContentLoaded", () => {
     yi:"Yiddish", yo:"Yoruba", zh:"Chinese (Simplified)", "zh-TW":"Chinese (Traditional)", zu:"Zulu"
   };
 
-  // 🏳️ Flag helper
-  function getFlagEmoji(code) {
-    if (!code) return "🌐";
-    return String.fromCodePoint(...[...code.toUpperCase()].map(c => 127397 + c.charCodeAt()));
-  }
-
-  // Build dropdown list
   const ul = document.createElement("ul");
   ul.style.cssText = "list-style:none;padding:0;margin:0;";
   dropdown.appendChild(ul);
@@ -636,6 +659,8 @@ window.addEventListener("DOMContentLoaded", () => {
     li.addEventListener("click",()=>{
       dropdown.style.display="none";
       indicator.textContent=`${getFlagEmoji(code.slice(0,2))} ${name}`;
+      localStorage.setItem("bepeace_lang", code);
+      showLangSaved();
       translatePage(code);
     });
     ul.appendChild(li);
@@ -656,51 +681,94 @@ window.addEventListener("DOMContentLoaded", () => {
     if(!dropdown.contains(e.target)&&!indicator.contains(e.target)) dropdown.style.display="none";
   });
 
-  // 🌍 Auto-translate for foreign visitors
-  if(userLang!=="en" && country!=="India") translatePage(userLang);
-
-  // 🔁 Auto recheck (every 15s)
-  setInterval(async()=>{
-    try{
-      const res=await fetch(`/api/lang?nocache=${Date.now()}`,{headers:{"Cache-Control":"no-cache"}});
-      const data=await res.json();
-      if(data.detectedLang && data.detectedLang!==userLang){
-        userLang=data.detectedLang;
-        indicator.textContent=`${data.flag||"🌐"} ${userLang.toUpperCase()} ▼`;
-        translatePage(userLang);
-      }
-    }catch(err){console.warn("VPN recheck failed:",err);}
-  },15000);
-
-  // 🔤 Translate visible text
-  async function translatePage(targetLang){
-    console.log("🔁 Translating page to:",targetLang);
+  // 🧠 Deep Translator (every visible text node)
+  async function translatePage(targetLang) {
+    console.log("🔁 Translating page to:", targetLang);
     refreshBtn.classList.add("pulse-anim");
     indicator.classList.add("pulse-anim");
-    const els=document.querySelectorAll("h1,h2,h3,p,a,button,span,li,label,option");
-    for(const el of els){
-      const text=el.textContent.trim();
-      if(text.length>1){
-        try{
-          const res=await fetch(`/api/lang?text=${encodeURIComponent(text)}&target=${targetLang}&nocache=${Date.now()}`,{
-            headers:{"Cache-Control":"no-cache"}
-          });
-          const data=await res.json();
-          if(data.translated) el.textContent=data.translated;
-        }catch{console.warn("Translation failed for:",text);}
+
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+    const nodes = [];
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      const text = node.nodeValue.trim();
+      if (text.length > 1 && !node.parentNode.closest("script,style,noscript,code,pre")) {
+        nodes.push({ node, text });
       }
     }
+
+    for (const { node, text } of nodes) {
+      try {
+        const res = await fetch(`/api/lang?text=${encodeURIComponent(text)}&target=${targetLang}&nocache=${Date.now()}`);
+        const data = await res.json();
+        if (data.translated) node.nodeValue = data.translated;
+      } catch (err) {
+        console.warn("Translation failed for:", text);
+      }
+    }
+
     refreshBtn.classList.remove("pulse-anim");
     indicator.classList.remove("pulse-anim");
   }
 
-  // 🔁 Manual Refresh
-  refreshBtn.addEventListener("click", async ()=>{
+  // 🌀 Manual Refresh (forces re-detect)
+  refreshBtn.addEventListener("click", async () => {
     refreshBtn.classList.add("pulse-anim");
     indicator.classList.add("pulse-anim");
-    await detectLanguage();
+    await detectLanguage(true);
     await translatePage(userLang);
     refreshBtn.classList.remove("pulse-anim");
     indicator.classList.remove("pulse-anim");
+  });
+
+  // 🔁 Auto VPN recheck
+  setInterval(async () => {
+    try {
+      const res = await fetch(`/api/lang?nocache=${Date.now()}`);
+      const data = await res.json();
+      if (!localStorage.getItem("bepeace_lang") && data.detectedLang !== userLang) {
+        userLang = data.detectedLang;
+        indicator.textContent = `${data.flag||"🌐"} ${userLang.toUpperCase()} ▼`;
+        translatePage(userLang);
+      }
+    } catch (err) {
+      console.warn("VPN recheck failed:", err);
+    }
+  }, 15000);
+
+  // 🧹 Reset saved language (Ctrl+Shift+R)
+  document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "r") {
+      localStorage.removeItem("bepeace_lang");
+      alert("🌐 Language preference reset. Reloading...");
+      location.reload();
+    }
+  });
+
+  // 💬 Tooltip after saving language
+  function showLangSaved() {
+    const tip = document.createElement("div");
+    tip.textContent = "🌍 Language saved — applies to all pages!";
+    tip.style.cssText = `
+      position:fixed;top:60px;right:25px;background:${mainColor};
+      color:white;padding:8px 12px;border-radius:10px;
+      font-size:13px;font-family:'Poppins',sans-serif;
+      box-shadow:0 4px 10px rgba(255,64,129,0.3);
+      opacity:0;transition:opacity 0.5s ease;z-index:99999;
+    `;
+    document.body.appendChild(tip);
+    setTimeout(()=>{ tip.style.opacity=1; },50);
+    setTimeout(()=>{ tip.style.opacity=0; tip.remove(); },2500);
+  }
+
+  // 🔄 Sync language across all open tabs (live)
+  window.addEventListener("storage", (e) => {
+    if (e.key === "bepeace_lang" && e.newValue && e.newValue !== userLang) {
+      console.log("🔄 Language changed in another tab:", e.newValue);
+      userLang = e.newValue;
+      flag = getFlagEmoji(userLang.slice(0, 2));
+      indicator.textContent = `${flag} ${userLang.toUpperCase()} ▼`;
+      translatePage(userLang);
+    }
   });
 })();

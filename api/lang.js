@@ -4,7 +4,7 @@
 const cache = new Map();
 
 export default async function handler(req, res) {
-  const { text, target } = req.query;
+  const { text, target, force } = req.query; // 👈 added `force`
 
   try {
     // 🗺️ STEP 1: Get client IP safely
@@ -16,13 +16,14 @@ export default async function handler(req, res) {
 
     // 🕐 STEP 2: Use cached data if available (1 hour)
     const cached = cache.get(ip);
-    if (cached && Date.now() - cached.timestamp < 60 * 60 * 1000) {
+    // 👇 Skip cache if user forces re-detect (e.g. VPN test)
+    if (!force && cached && Date.now() - cached.timestamp < 60 * 60 * 1000) {
       console.log(`⚡ Using cached location for ${ip}`);
       return handleResponse(req, res, cached.data);
     }
 
     // 🧭 STEP 3: Detect location using fallback APIs
-    const locationData = await detectLocation();
+    const locationData = await detectLocation(ip);
 
     // 🏳️ Extract values
     const detectedLang =
@@ -49,11 +50,11 @@ export default async function handler(req, res) {
 // =============================
 // 🌍 LOCATION DETECTION SECTION
 // =============================
-async function detectLocation() {
+async function detectLocation(ip) {
   const sources = [
-    "https://ipapi.co/json/",
-    "https://ipwho.is/",
-    "https://ipapi.com/ip_api.php?format=json"
+    `https://ipapi.co/${ip}/json/`,       // 👈 Use IP-based endpoint
+    `https://ipwho.is/${ip}`,
+    `https://ipapi.com/ip_api.php?ip=${ip}&format=json`
   ];
 
   for (const url of sources) {
