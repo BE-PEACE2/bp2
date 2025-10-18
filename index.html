@@ -52,22 +52,17 @@
 
   <link rel="stylesheet" href="style.css">
 
-  <!-- 🌐 Google Translate Widget -->
-<p style="position:fixed;top:12px;right:170px;font-size:14px;color:#333;z-index:9999;">
-  🌐 Choose Language:
-</p>
-<div id="google_translate_element" style="position:fixed;top:10px;right:10px;z-index:9999;"></div>
-
-<script type="text/javascript">
-  function googleTranslateElementInit() {
-    new google.translate.TranslateElement({
-      pageLanguage: 'en',
-      includedLanguages: 'en,hi,fr,es,de,ru,ar,bn,zh-CN,ja,pt',
-      layout: google.translate.TranslateElement.InlineLayout.SIMPLE
-    }, 'google_translate_element');
-  }
-</script>
-<script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+<!-- 🌐 Google Translate Widget -->
+  <script type="text/javascript">
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement({
+        pageLanguage: 'en',
+        includedLanguages: 'en,hi,fr,es,de,ru,ar,bn,zh-CN,ja,pt',
+        layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+      }, 'google_translate_element');
+    }
+  </script>
+  <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
 </head>
 <body>
@@ -78,7 +73,13 @@
     <div class="earth"></div>
     <h1 class="peach-text">BE PEACE</h1>
   </div>
-</header>
+
+ <!-- 🌐 Language Selector Embedded -->
+    <div class="lang-selector">
+      <label for="google_translate_element">🌐 Choose Language:</label>
+      <div id="google_translate_element"></div>
+    </div>
+    </header>
 
 <!-- Navigation (sticky + hamburger) -->
   <nav class="main-nav" role="navigation">
