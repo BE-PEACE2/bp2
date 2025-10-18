@@ -1,4 +1,6 @@
 // File: /api/lang.js
+// In-memory 1-hour cache (auto resets when server restarts)
+const cache = new Map();
 
 export default async function handler(req, res) {
   const { text, target, force } = req.query;
