@@ -1905,31 +1905,3 @@ footer {
   animation-delay: 0.3s, 1.5s;
 }
 
-/* 🌐 Language Selector Styling */
-.lang-selector {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  justify-content: flex-end;
-  margin: 10px 20px 0 0;
-  font-size: 14px;
-  color: #333;
-}
-
-.lang-selector label {
-  font-weight: 500;
-}
-
-.goog-logo-link,
-.goog-te-gadget span {
-  display: none !important;
-}
-
-#google_translate_element select {
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  padding: 4px 8px;
-  font-size: 13px;
-  background: #fff;
-  color: #333;
-}
