@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="content-language" content="en">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BE PEACE - Global Health Consultation</title>
     <!-- Basic SEO -->
@@ -264,5 +265,16 @@
 
   <!-- JS -->
   <script src="script.js" defer></script>
+  
+  <script>
+document.addEventListener("DOMContentLoaded", () => {
+  const userLang = (navigator.language || "en").split("-")[0];
+  // If visitor language isn’t English, hint browsers to offer translation
+  if (userLang !== "en") {
+    const meta = document.querySelector('meta[http-equiv="content-language"]');
+    if (meta) meta.setAttribute("content", userLang);
+  }
+});
+</script>
 </body>
 </html>
