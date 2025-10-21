@@ -8,7 +8,7 @@
   <style>
     body, html { margin: 0; height: 100%; background: #f9f9f9; font-family: Arial, sans-serif; }
     header, footer { text-align: center; padding: 10px 0; }
-    main { height: 80vh; display: flex; justify-content: center; align-items: center; }
+    main { height: 85vh; display: flex; justify-content: center; align-items: center; }
     #meet { width: 95%; height: 90%; border-radius: 10px; overflow: hidden; }
   </style>
 </head>
@@ -31,20 +31,19 @@
     <p>© 2025 BE PEACE. All rights reserved.</p>
   </footer>
 
-  <!-- ✅ Jitsi Embed Script -->
-  <script src="https://meet.jit.si/external_api.js"></script>
+  <!-- ✅ Use your own Jitsi server -->
+  <script src="https://meet.bepeace.in/external_api.js"></script>
   <script>
-    // ✅ Read room details from URL parameters
+    // ✅ Read parameters from URL
     const urlParams = new URLSearchParams(window.location.search);
-    const roomName = urlParams.get("room") || "BePeaceDefaultRoom";
+    const roomName = urlParams.get("room") || "BePeaceConsultation";
     const orderId = urlParams.get("orderId") || "";
     const name = urlParams.get("name") || "Patient";
 
-    // ✅ Display room details in console for debugging
     console.log("Joining Room:", roomName, "as", name);
 
-    // ✅ Setup Jitsi meeting
-    const domain = "meet.jit.si";
+    // ✅ Embed Jitsi directly (skip second page)
+    const domain = "meet.bepeace.in";
     const options = {
       roomName: roomName,
       width: "100%",
@@ -52,19 +51,25 @@
       parentNode: document.querySelector("#meet"),
       userInfo: { displayName: name },
       configOverwrite: {
-        prejoinPageEnabled: true,
-        disableModeratorIndicator: false,
+        prejoinPageEnabled: false, // 👈 Skips the second screen
+        disableDeepLinking: true,
+        startWithAudioMuted: false,
+        startWithVideoMuted: false,
+        disableInviteFunctions: true,
       },
       interfaceConfigOverwrite: {
         SHOW_JITSI_WATERMARK: false,
         SHOW_BRAND_WATERMARK: false,
         SHOW_WATERMARK_FOR_GUESTS: false,
+        TOOLBAR_BUTTONS: [
+          'microphone', 'camera', 'chat', 'desktop', 'hangup', 'tileview'
+        ],
       }
     };
 
     const api = new JitsiMeetExternalAPI(domain, options);
 
-    // ✅ Optional: Notify backend when consultation ends
+    // ✅ When the doctor or patient ends the call
     api.addEventListener("readyToClose", async () => {
       if (orderId) {
         await fetch("/api/waiting?path=end", {
@@ -74,7 +79,7 @@
         });
       }
       alert("Consultation ended. Thank you for using BE PEACE.");
-      window.close();
+      window.location.href = "/thank-you.html";
     });
   </script>
 </body>
