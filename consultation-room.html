@@ -1,48 +1,129 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BE PEACE | Consultation Room</title>
-  <link rel="stylesheet" href="/style.css" />
+
+  <!-- 🌿 Link to your main site stylesheet -->
+  <link rel="stylesheet" href="style.css">
+
   <style>
-    body, html { margin: 0; height: 100%; background: #f9f9f9; font-family: Arial, sans-serif; }
-    header, footer { text-align: center; padding: 10px 0; }
-    main { height: 85vh; display: flex; justify-content: center; align-items: center; }
-    #meet { width: 95%; height: 90%; border-radius: 10px; overflow: hidden; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #fdfdfd;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    header {
+      text-align: center;
+      padding: 15px 10px;
+      background: linear-gradient(to right, #b2f2f2, #e6ffff);
+      border-bottom: 2px solid #eee;
+    }
+
+    .logo-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .earth {
+      width: 40px;
+      height: 40px;
+      background: url('images/earth.png') center/cover no-repeat;
+      border-radius: 50%;
+      animation: rotate 25s linear infinite;
+    }
+
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .peach-text {
+      color: #d91b60;
+      font-weight: 700;
+      font-size: 24px;
+      letter-spacing: 1px;
+    }
+
+    h2 {
+      color: #c71585;
+      margin-top: 5px;
+      font-size: 18px;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 10px;
+    }
+
+    #meet {
+      width: 95%;
+      height: 85vh;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    }
+
+    footer {
+      text-align: center;
+      padding: 10px 0;
+      background: #111;
+      color: white;
+      font-size: 14px;
+    }
+
+    footer a {
+      color: #d91b60;
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
-  <!-- HEADER -->
+  <!-- 🌎 HEADER -->
   <header>
     <div class="logo-container">
       <div class="earth"></div>
       <h1 class="peach-text">BE PEACE</h1>
     </div>
-    <h2 style="color:#c71585;">Live Consultation Room</h2>
+    <h2>Live Consultation Room</h2>
   </header>
 
+  <!-- 🎥 MAIN MEETING AREA -->
   <main>
     <div id="meet">Loading consultation room...</div>
   </main>
 
-  <!-- FOOTER -->
+  <!-- 🌿 FOOTER -->
   <footer>
-    <p>© 2025 BE PEACE. All rights reserved.</p>
+    <p>© 2025 <strong>BE PEACE</strong>. All rights reserved. | <a href="https://bepeace.in">Your Health, Your Peace</a></p>
   </footer>
 
-  <!-- ✅ Use your own Jitsi server -->
+  <!-- 📹 Jitsi Embed Script -->
   <script src="https://meet.bepeace.in/external_api.js"></script>
   <script>
-    // ✅ Read parameters from URL
+    // 🧩 Get meeting details from URL
     const urlParams = new URLSearchParams(window.location.search);
     const roomName = urlParams.get("room") || "BePeaceConsultation";
-    const orderId = urlParams.get("orderId") || "";
-    const name = urlParams.get("name") || "Patient";
+    const name = urlParams.get("name") || "Guest";
 
     console.log("Joining Room:", roomName, "as", name);
 
-    // ✅ Embed Jitsi directly (skip second page)
+    // 🎥 Jitsi configuration
     const domain = "meet.bepeace.in";
     const options = {
       roomName: roomName,
@@ -51,35 +132,28 @@
       parentNode: document.querySelector("#meet"),
       userInfo: { displayName: name },
       configOverwrite: {
-        prejoinPageEnabled: false, // 👈 Skips the second screen
+        prejoinPageEnabled: false,
         disableDeepLinking: true,
         startWithAudioMuted: false,
         startWithVideoMuted: false,
-        disableInviteFunctions: true,
+        disableInviteFunctions: true
       },
       interfaceConfigOverwrite: {
         SHOW_JITSI_WATERMARK: false,
         SHOW_BRAND_WATERMARK: false,
         SHOW_WATERMARK_FOR_GUESTS: false,
         TOOLBAR_BUTTONS: [
-          'microphone', 'camera', 'chat', 'desktop', 'hangup', 'tileview'
-        ],
+          'microphone', 'camera', 'desktop', 'chat', 'raisehand', 'tileview', 'hangup'
+        ]
       }
     };
 
+    // 🚀 Initialize meeting
     const api = new JitsiMeetExternalAPI(domain, options);
 
-    // ✅ When the doctor or patient ends the call
-    api.addEventListener("readyToClose", async () => {
-      if (orderId) {
-        await fetch("/api/waiting?path=end", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId })
-        });
-      }
+    // ✅ When call ends
+    api.addEventListener("readyToClose", () => {
       alert("Consultation ended. Thank you for using BE PEACE.");
-      window.location.href = "/thank-you.html";
     });
   </script>
 </body>
