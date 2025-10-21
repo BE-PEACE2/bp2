@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thank You | BE PEACE</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      background: linear-gradient(to bottom, #e6ffff, #f9f9f9);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-family: "Segoe UI", sans-serif;
+      text-align: center;
+      color: #333;
+    }
+
+    .earth {
+      width: 80px;
+      height: 80px;
+      background: url("/images/earth.png") center/cover no-repeat;
+      border-radius: 50%;
+      animation: spin 25s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    h1 {
+      color: #c71585;
+      margin-top: 20px;
+      font-size: 26px;
+      text-shadow: 0 0 10px rgba(199, 21, 133, 0.3);
+    }
+
+    h2 {
+      color: #444;
+      font-weight: 500;
+      font-size: 18px;
+      margin: 10px 0 30px;
+    }
+
+    a.btn {
+      display: inline-block;
+      background: #c71585;
+      color: #fff;
+      padding: 10px 25px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 16px;
+      transition: background 0.3s;
+    }
+
+    a.btn:hover {
+      background: #a0136d;
+    }
+  </style>
+</head>
+<body>
+  <div class="earth"></div>
+  <h1>Thank You for Your Trust</h1>
+  <h2>Your Health, Your Peace 🌿</h2>
+  <a href="/" class="btn">Return to Home</a>
+</body>
+</html>
