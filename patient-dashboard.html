@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Patient Dashboard | BE PEACE</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1 class="peach-text">BE PEACE</h1>
+    <button id="logoutBtn" style="position:absolute; right:20px; top:20px;">Logout</button>
+  </header>
+
+  <section style="padding:50px;">
+    <h2>👋 Welcome, <span id="userName">Patient</span></h2>
+    <p>You are logged in. Book your next consultation below:</p>
+    <a href="booking.html" class="btn">Book a Consultation</a>
+  </section>
+
+  <script type="module">
+    import { auth, database } from "./js/firebase-init.js";
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    import { ref, get } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+
+    const userName = document.getElementById("userName");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const snapshot = await get(ref(database, "users/" + user.uid));
+        const userData = snapshot.val();
+        userName.textContent = userData?.name || user.displayName || "Patient";
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    logoutBtn.addEventListener("click", async () => {
+      await signOut(auth);
+      window.location.href = "login.html";
+    });
+  </script>
+</body>
+</html>
