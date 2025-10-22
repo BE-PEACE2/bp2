@@ -735,8 +735,9 @@ html {
 
 /* Header */
 header {
+  position: relative;            /* 👈 anchors buttons inside header */
   background: #a2e4f3;
-  padding: 20px;
+  padding: 20px 30px 50px;       /* 👈 extra bottom padding for buttons */
   text-align: center;
 }
 
