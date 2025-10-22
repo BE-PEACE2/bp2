@@ -1905,16 +1905,18 @@ footer {
   animation-delay: 0.3s, 1.5s;
 }
 
-/* ===== Buttons Right-Aligned Bottom ===== */
+/* ===== Adjust Auth Buttons — right side, touching bottom line ===== */
 .auth-buttons {
   position: absolute;
-  right: 60px; /* stick to right edge */
-  bottom: 10px; /* touching bottom of header */
+  right: 40px;     /* keep to right edge */
+  bottom: 0;       /* exactly on header bottom line */
   display: flex;
-  gap: 12px;
+  flex-direction: row-reverse;  /* shows Sign Up first, Login second */
+  gap: 10px;
+  align-items: flex-end;
 }
 
-/* Buttons style */
+/* Style consistency */
 .auth-buttons button {
   background: #c71585;
   color: #fff;
@@ -1927,23 +1929,18 @@ footer {
   transition: all 0.3s ease;
 }
 
+/* Hover animation */
 .auth-buttons button:hover {
   background: #a0126d;
   transform: translateY(-2px);
   box-shadow: 0 4px 10px rgba(199, 21, 133, 0.3);
 }
 
-/* Responsive: stack under logo on mobile */
+/* Responsive fix — move buttons under logo on small screens */
 @media (max-width: 768px) {
-  header {
-    flex-direction: column;
-    align-items: center;
-    height: auto;
-    padding: 15px 20px;
-  }
-
   .auth-buttons {
     position: static;
     margin-top: 10px;
+    flex-direction: row;
   }
 }
