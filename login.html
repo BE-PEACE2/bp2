@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BePeace | Login</title>
+  <title>BE PEACE | Login</title>
   <link rel="stylesheet" href="/style.css" />
   <script type="module" src="/js/firebase-init.js"></script>
+
   <style>
     body, html {
       margin: 0;
@@ -53,6 +54,39 @@
     .login-box button:hover {
       background: #a0126d;
     }
+
+    /* Google Button */
+    #googleLogin {
+      background: white;
+      color: #444;
+      border: 1px solid #ddd;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+    #googleLogin img {
+      width: 20px;
+      height: 20px;
+    }
+    #googleLogin:hover {
+      background: #f8f8f8;
+    }
+
+    /* Forgot Password */
+    .forgot-link {
+      display: block;
+      margin-top: 10px;
+      color: #c71585;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .forgot-link:hover {
+      text-decoration: underline;
+    }
+
     footer {
       text-align: center;
       margin-top: 20px;
@@ -62,6 +96,7 @@
 </head>
 <body>
 
+  <!-- Header -->
   <header>
     <div class="logo-container">
       <div class="earth"></div>
@@ -73,10 +108,20 @@
   <main>
     <div class="login-box">
       <h2>Login</h2>
+
       <input type="email" id="email" placeholder="Email Address" required />
       <input type="password" id="password" placeholder="Password" required />
+
       <button id="loginBtn">Login</button>
-      <p>New user? <a href="signup.html" style="color:#c71585;">Sign up</a></p>
+
+      <a href="#" id="forgotPassword" class="forgot-link">Forgot Password?</a>
+
+      <button id="googleLogin">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo" />
+        Login with Google
+      </button>
+
+      <p>New user? <a href="signup.html" style="color:#c71585;">Sign Up</a></p>
     </div>
   </main>
 
@@ -84,12 +129,23 @@
     <p>© 2025 BE PEACE. All rights reserved.</p>
   </footer>
 
+  <!-- Firebase Logic -->
   <script type="module">
-    import { auth } from '/js/firebase-init.js';
-    import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    import { auth, database } from '/js/firebase-init.js';
+    import { 
+      signInWithEmailAndPassword, 
+      GoogleAuthProvider, 
+      signInWithPopup, 
+      sendPasswordResetEmail 
+    } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    import { ref, set, get } 
+      from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
     const loginBtn = document.getElementById('loginBtn');
+    const googleLogin = document.getElementById('googleLogin');
+    const forgotPassword = document.getElementById('forgotPassword');
 
+    // ===== Email + Password Login =====
     loginBtn.addEventListener('click', async () => {
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value.trim();
@@ -101,10 +157,48 @@
 
       try {
         await signInWithEmailAndPassword(auth, email, password);
-        alert('Login successful!');
+        alert('Login successful! Redirecting...');
         window.location.href = "/dashboard.html";
       } catch (error) {
-        alert(error.message);
+        alert("Error: " + error.message);
+      }
+    });
+
+    // ===== Google Login =====
+    googleLogin.addEventListener('click', async () => {
+      try {
+        const provider = new GoogleAuthProvider();
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+
+        // Save new users in database
+        const snapshot = await get(ref(database, 'users/' + user.uid));
+        if (!snapshot.exists()) {
+          await set(ref(database, 'users/' + user.uid), {
+            name: user.displayName || "Patient",
+            email: user.email,
+            createdAt: new Date().toISOString(),
+            provider: "google"
+          });
+        }
+
+        alert(`Welcome back, ${user.displayName || 'User'}!`);
+        window.location.href = "/dashboard.html";
+      } catch (error) {
+        alert("Google login failed: " + error.message);
+      }
+    });
+
+    // ===== Forgot Password =====
+    forgotPassword.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const email = prompt("Enter your registered email address:");
+      if (!email) return;
+      try {
+        await sendPasswordResetEmail(auth, email);
+        alert("Password reset link sent! Check your inbox.");
+      } catch (error) {
+        alert("Error: " + error.message);
       }
     });
   </script>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BePeace | Sign Up</title>
+  <title>BE PEACE | Sign Up</title>
   <link rel="stylesheet" href="/style.css" />
   <script type="module" src="/js/firebase-init.js"></script>
   <style>
@@ -53,6 +53,27 @@
     .signup-box button:hover {
       background: #a0126d;
     }
+
+    /* Google Button */
+    #googleSignup {
+      background: white;
+      color: #444;
+      border: 1px solid #ddd;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+    #googleSignup img {
+      width: 20px;
+      height: 20px;
+    }
+    #googleSignup:hover {
+      background: #f8f8f8;
+    }
+
     footer {
       text-align: center;
       margin-top: 20px;
@@ -74,11 +95,21 @@
   <main>
     <div class="signup-box">
       <h2>Sign Up</h2>
+
       <input type="text" id="name" placeholder="Full Name" required />
       <input type="email" id="email" placeholder="Email Address" required />
       <input type="password" id="password" placeholder="Password" required />
+
       <button id="signupBtn">Sign Up</button>
-      <p>Already have an account? <a href="login.html" style="color:#c71585;">Login</a></p>
+
+      <button id="googleSignup">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo" />
+        Sign Up with Google
+      </button>
+
+      <p>Already have an account? 
+        <a href="login.html" style="color:#c71585;">Login</a>
+      </p>
     </div>
   </main>
 
@@ -89,11 +120,15 @@
   <!-- Firebase Signup Logic -->
   <script type="module">
     import { auth, database } from '/js/firebase-init.js';
-    import { createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
-    import { ref, set } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+    import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } 
+      from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    import { ref, set, get } 
+      from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
     const signupBtn = document.getElementById('signupBtn');
+    const googleSignup = document.getElementById('googleSignup');
 
+    // ====== Email & Password Signup ======
     signupBtn.addEventListener('click', async () => {
       const name = document.getElementById('name').value.trim();
       const email = document.getElementById('email').value.trim();
@@ -110,15 +145,40 @@
 
         await updateProfile(user, { displayName: name });
 
-        // Save user data in Realtime Database
+        // Save user info to Database
         await set(ref(database, 'users/' + user.uid), {
-          name: name,
-          email: email,
+          name,
+          email,
           createdAt: new Date().toISOString()
         });
 
-        alert('Account created successfully! Redirecting to your dashboard...');
-        window.location.href = "/dashboard.html"; // Redirect after signup
+        alert('Account created successfully! Redirecting...');
+        window.location.href = "/dashboard.html";
+      } catch (error) {
+        alert(error.message);
+      }
+    });
+
+    // ====== Google Signup ======
+    googleSignup.addEventListener('click', async () => {
+      try {
+        const provider = new GoogleAuthProvider();
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+
+        // Check if user already exists in DB
+        const snapshot = await get(ref(database, 'users/' + user.uid));
+        if (!snapshot.exists()) {
+          await set(ref(database, 'users/' + user.uid), {
+            name: user.displayName || "Patient",
+            email: user.email,
+            createdAt: new Date().toISOString(),
+            provider: "google"
+          });
+        }
+
+        alert(`Welcome ${user.displayName || 'User'}!`);
+        window.location.href = "/dashboard.html";
       } catch (error) {
         alert(error.message);
       }
