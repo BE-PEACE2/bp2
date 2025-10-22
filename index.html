@@ -57,11 +57,20 @@
 
   <!-- Header -->
 <header>
-  <div class="logo-container">
-    <div class="earth"></div>
+   <div class="header-container">
+    <div class="logo-container">
+     <div class="earth"></div>
     <h1 class="peach-text">BE PEACE</h1>
   </div>
-  </header>
+  
+   <div class="auth-buttons">
+      <span id="userGreeting" style="color:#c71585; font-weight:600; margin-right:10px;"></span>
+      <button id="loginBtn" onclick="window.location.href='login.html'">Login</button>
+      <button id="signupBtn" onclick="window.location.href='signup.html'">Sign Up</button>
+      <button id="logoutBtn" style="display:none;" onclick="logout()">Logout</button>
+    </div>
+     </div>
+</header>
 
 <!-- Navigation (sticky + hamburger) -->
   <nav class="main-nav" role="navigation">
@@ -275,6 +284,42 @@ document.addEventListener("DOMContentLoaded", () => {
     if (meta) meta.setAttribute("content", userLang);
   }
 });
+</script>
+
+<!-- 🔐 Firebase Auth Buttons Control (add here) -->
+<script type="module">
+  import { auth, database } from './js/firebase-init.js';
+  import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+  import { ref, get } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+
+  onAuthStateChanged(auth, async (user) => {
+    const userGreeting = document.getElementById("userGreeting");
+    const loginBtn = document.getElementById("loginBtn");
+    const signupBtn = document.getElementById("signupBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    if (user) {
+      const snapshot = await get(ref(database, 'users/' + user.uid));
+      const userData = snapshot.val();
+      if (userGreeting && userData?.name) {
+        userGreeting.textContent = `👋 Welcome, ${userData.name}`;
+      }
+      loginBtn.style.display = "none";
+      signupBtn.style.display = "none";
+      logoutBtn.style.display = "inline-block";
+    } else {
+      if (userGreeting) userGreeting.textContent = "";
+      loginBtn.style.display = "inline-block";
+      signupBtn.style.display = "inline-block";
+      logoutBtn.style.display = "none";
+    }
+  });
+
+  window.logout = async function() {
+    await signOut(auth);
+    alert("You have been logged out.");
+    window.location.reload();
+  };
 </script>
 </body>
 </html>
