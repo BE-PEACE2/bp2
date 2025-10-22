@@ -1905,18 +1905,45 @@ footer {
   animation-delay: 0.3s, 1.5s;
 }
 
+/* ===== Buttons Right-Aligned Bottom ===== */
+.auth-buttons {
+  position: absolute;
+  right: 60px; /* stick to right edge */
+  bottom: 10px; /* touching bottom of header */
+  display: flex;
+  gap: 12px;
+}
+
+/* Buttons style */
 .auth-buttons button {
   background: #c71585;
   color: #fff;
   border: none;
-  border-radius: 6px;
-  margin-left: 10px;
-  padding: 8px 14px;
-  font-size: 14px;
+  border-radius: 25px;
+  padding: 8px 18px;
+  font-size: 0.95rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: all 0.3s ease;
 }
 
 .auth-buttons button:hover {
   background: #a0126d;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(199, 21, 133, 0.3);
+}
+
+/* Responsive: stack under logo on mobile */
+@media (max-width: 768px) {
+  header {
+    flex-direction: column;
+    align-items: center;
+    height: auto;
+    padding: 15px 20px;
+  }
+
+  .auth-buttons {
+    position: static;
+    margin-top: 10px;
+  }
 }
