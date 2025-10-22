@@ -1905,15 +1905,6 @@ footer {
   animation-delay: 0.3s, 1.5s;
 }
 
-/* Header Layout */
-.header-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 30px;
-  flex-wrap: wrap;
-}
-
 .auth-buttons button {
   background: #c71585;
   color: #fff;
@@ -1928,13 +1919,4 @@ footer {
 
 .auth-buttons button:hover {
   background: #a0126d;
-}
-
-/* Optional – make header sticky on scroll */
-header {
-  position: sticky;
-  top: 0;
-  background: #fff;
-  z-index: 1000;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
