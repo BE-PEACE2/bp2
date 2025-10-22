@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BePeace | Login</title>
+  <title>BePeace | Sign Up</title>
   <link rel="stylesheet" href="/style.css" />
   <script type="module" src="/js/firebase-init.js"></script>
   <style>
@@ -19,7 +19,7 @@
       align-items: center;
       height: 80vh;
     }
-    .login-box {
+    .signup-box {
       background: white;
       padding: 40px;
       border-radius: 10px;
@@ -28,18 +28,18 @@
       width: 90%;
       text-align: center;
     }
-    .login-box h2 {
+    .signup-box h2 {
       color: #c71585;
       margin-bottom: 20px;
     }
-    .login-box input {
+    .signup-box input {
       width: 100%;
       padding: 12px;
       margin: 8px 0;
       border: 1px solid #ccc;
       border-radius: 6px;
     }
-    .login-box button {
+    .signup-box button {
       background: #c71585;
       color: white;
       padding: 12px;
@@ -50,7 +50,7 @@
       cursor: pointer;
       transition: 0.3s;
     }
-    .login-box button:hover {
+    .signup-box button:hover {
       background: #a0126d;
     }
     footer {
@@ -62,21 +62,23 @@
 </head>
 <body>
 
+  <!-- Header -->
   <header>
     <div class="logo-container">
       <div class="earth"></div>
       <h1 class="peach-text">BE PEACE</h1>
     </div>
-    <h2 style="color:#c71585;">Welcome Back</h2>
+    <h2 style="color:#c71585;">Create Your Account</h2>
   </header>
 
   <main>
-    <div class="login-box">
-      <h2>Login</h2>
+    <div class="signup-box">
+      <h2>Sign Up</h2>
+      <input type="text" id="name" placeholder="Full Name" required />
       <input type="email" id="email" placeholder="Email Address" required />
       <input type="password" id="password" placeholder="Password" required />
-      <button id="loginBtn">Login</button>
-      <p>New user? <a href="signup.html" style="color:#c71585;">Sign up</a></p>
+      <button id="signupBtn">Sign Up</button>
+      <p>Already have an account? <a href="login.html" style="color:#c71585;">Login</a></p>
     </div>
   </main>
 
@@ -84,25 +86,39 @@
     <p>© 2025 BE PEACE. All rights reserved.</p>
   </footer>
 
+  <!-- Firebase Signup Logic -->
   <script type="module">
-    import { auth } from '/js/firebase-init.js';
-    import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    import { auth, database } from '/js/firebase-init.js';
+    import { createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    import { ref, set } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
-    const loginBtn = document.getElementById('loginBtn');
+    const signupBtn = document.getElementById('signupBtn');
 
-    loginBtn.addEventListener('click', async () => {
+    signupBtn.addEventListener('click', async () => {
+      const name = document.getElementById('name').value.trim();
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value.trim();
 
-      if (!email || !password) {
-        alert('Please enter email and password.');
+      if (!name || !email || !password) {
+        alert('Please fill all fields.');
         return;
       }
 
       try {
-        await signInWithEmailAndPassword(auth, email, password);
-        alert('Login successful!');
-        window.location.href = "/dashboard.html";
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        await updateProfile(user, { displayName: name });
+
+        // Save user data in Realtime Database
+        await set(ref(database, 'users/' + user.uid), {
+          name: name,
+          email: email,
+          createdAt: new Date().toISOString()
+        });
+
+        alert('Account created successfully! Redirecting to your dashboard...');
+        window.location.href = "/dashboard.html"; // Redirect after signup
       } catch (error) {
         alert(error.message);
       }
