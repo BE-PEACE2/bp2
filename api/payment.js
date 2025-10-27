@@ -7,6 +7,31 @@ import sendEmail from "../utils/sendEmail.js";
 import pkg from "jspdf";
 const { jsPDF } = pkg;
 import autoTable from "jspdf-autotable";
+import { db } from "../utils/firebase-admin.js";
+
+// =====================================================
+// 🔥 Save Booking to Firebase
+// =====================================================
+async function saveBookingToFirebase(paymentData) {
+  try {
+    const ref = db.ref("bookings").push();
+    await ref.set({
+      order_id: paymentData.orderId,
+      name: paymentData.name,
+      email: paymentData.email,
+      phone: paymentData.phone,
+      date: paymentData.date,
+      slot: paymentData.slot,
+      concern: paymentData.concern,
+      amount: paymentData.amount,
+      status: "confirmed",
+      createdAt: new Date().toISOString(),
+    });
+    console.log(`✅ Booking saved to Firebase for ${paymentData.email}`);
+  } catch (err) {
+    console.error("🔥 Firebase write error:", err.message);
+  }
+}
 
 // =====================================================
 // 🧠 MAIN HANDLER
@@ -129,6 +154,7 @@ export default async function handler(req, res) {
             { upsert: true }
           );
           console.log(`✅ Booking confirmed for ${payment.date} - ${payment.slot}`);
+          await saveBookingToFirebase(payment);
 
           // 👤 Auto-create patient account if not exists
           let existingUser = await users.findOne({ email: payment.email });
