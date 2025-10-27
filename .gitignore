@@ -6,3 +6,6 @@ node_modules/
 
 # Ignore Vercel config
 .vercel
+
+# Ignore Firebase private key
+utils/serviceAccountKey.json
