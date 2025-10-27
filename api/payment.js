@@ -1,4 +1,5 @@
 // /api/payment.js
+import bcrypt from "bcryptjs";
 import connectDB from "../db.js";
 import crypto from "crypto";
 import axios from "axios";
@@ -7,6 +8,9 @@ import pkg from "jspdf";
 const { jsPDF } = pkg;
 import autoTable from "jspdf-autotable";
 
+// =====================================================
+// 🧠 MAIN HANDLER
+// =====================================================
 export default async function handler(req, res) {
   const { path } = req.query; // e.g., /api/payment?path=create
 
@@ -14,6 +18,7 @@ export default async function handler(req, res) {
     const db = await connectDB();
     const payments = db.collection("payments");
     const bookings = db.collection("bookings");
+    const users = db.collection("users");
 
     // ===== CREATE ORDER =====
     if (path === "create" && req.method === "POST") {
@@ -28,12 +33,9 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Slot already booked" });
 
       const orderId = "ORDER_" + Date.now();
-
-      // 🧾 Sanitize identifiers
       const cleanPhone = phone.replace(/\D/g, "");
       const cleanCustomerId = email.replace(/[^a-zA-Z0-9_-]/g, "_");
 
-      // 💳 Create Cashfree live order
       try {
         const response = await axios.post(
           "https://api.cashfree.com/pg/orders",
@@ -64,7 +66,6 @@ export default async function handler(req, res) {
 
         const { payment_session_id } = response.data;
 
-        // Save payment record
         await payments.insertOne({
           orderId,
           name,
@@ -92,19 +93,13 @@ export default async function handler(req, res) {
     }
 
     // ===== WEBHOOK (Cashfree → your site) =====
-    if (
-      req.method === "POST" &&
-      (path === "webhook" || req.headers["x-webhook-signature"])
-    ) {
+    if (req.method === "POST" && (path === "webhook" || req.headers["x-webhook-signature"])) {
       try {
         console.log("📩 Cashfree webhook received:", req.body);
 
-        // ✅ Handle Cashfree webhook data safely for both formats
         const payload = req.body?.data || req.body;
         const order_id = payload?.order?.order_id || payload?.order_id;
         const order_status = payload?.payment?.payment_status || payload?.order_status;
-
-        console.log("🔍 Parsed webhook:", { order_id, order_status });
 
         if (!order_id || !order_status)
           return res.status(400).json({ error: "Invalid webhook data" });
@@ -134,75 +129,139 @@ export default async function handler(req, res) {
             { upsert: true }
           );
           console.log(`✅ Booking confirmed for ${payment.date} - ${payment.slot}`);
-        }
 
-        // 💌 Send receipt email
-        try {
-          const receiptBuffer = await generateReceipt({
-            ...payment,
-            orderId: order_id,
-          });
+          // 👤 Auto-create patient account if not exists
+          let existingUser = await users.findOne({ email: payment.email });
+          let tempPass;
+          if (!existingUser) {
+            tempPass = Math.random().toString(36).slice(-8);
+            const hashedPassword = await bcrypt.hash(tempPass, 10);
+            await users.insertOne({
+              name: payment.name,
+              email: payment.email,
+              phone: payment.phone,
+              password: hashedPassword,
+              createdAt: new Date(),
+            });
+            console.log(`👤 New patient account created: ${payment.email}`);
+          }
 
-          const subject = "Your BE PEACE Consultation Receipt 💚";
-          const html = `
-            <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;background:#f9f9f9;padding:20px;border-radius:10px">
-              <div style="text-align:center;margin-bottom:20px">
-                <img src="https://bepeace.in/images/logo.svg" width="80" alt="BE PEACE"/>
-                <h2 style="color:#007b5e;margin:10px 0 0;">Consultation Confirmed</h2>
-                <p style="color:#555;margin:5px 0;">Worldwide Online Teleconsultation</p>
-              </div>
+          // 💌 Unified BE PEACE Confirmation + Receipt Email
+          try {
+            const receiptBuffer = await generateReceipt({
+              ...payment,
+              orderId: order_id,
+            });
 
-              <p>Dear ${payment.name},</p>
-              <p>Your consultation has been successfully booked and payment received.</p>
+            const subject = "Your BE PEACE Consultation Confirmed 💚 (Receipt & Details Inside)";
 
-              <h3 style="color:#007b5e">Appointment Details</h3>
-              <p><b>Date:</b> ${payment.date}</p>
-              <p><b>Slot:</b> ${payment.slot}</p>
-              <p><b>Transaction ID:</b> ${order_id}</p>
+            const html = `
+            <table width="100%" style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px;">
+              <tr><td align="center">
+                <table width="600" style="background-color: #ffffff; border-radius: 10px;">
+                  <tr>
+                    <td style="background-color: #7de0e0; padding: 20px; text-align: center;">
+                      <h2 style="color: #d81b60; margin: 0;">💙 BE PEACE</h2>
+                      <p style="margin: 5px 0 0 0; color: #333;">Your Health, Your Peace</p>
+                    </td>
+                  </tr>
+                  <tr><td style="padding: 30px; color: #333;">
+                    <h3>Dear ${payment.name},</h3>
+                    <p>Thank you for choosing <b>BE PEACE</b> for your consultation.<br>
+                    Your appointment with <b>Dr. Mahesh Yadav</b> has been successfully confirmed.</p>
 
-              <hr style="border:none;border-top:1px solid #ddd;margin:15px 0">
+                    <h4 style="margin-top: 20px; color: #d81b60;">🩺 Consultation Details:</h4>
+                    <p>
+                      <b>Date & Time:</b> ${payment.date} at ${payment.slot}<br>
+                      <b>Doctor:</b> Dr. Mahesh Yadav<br>
+                      <b>Booking ID:</b> ${payment.orderId}<br>
+                      <b>Consultation Type:</b> Video Consultation<br>
+                    </p>
 
-              <p style="text-align:center;color:#007b5e;font-weight:bold;">
-                💚 Thank you for trusting BE PEACE<br>Your health, Your peace.
-              </p>
+                    ${
+                      !existingUser
+                        ? `
+                    <h4 style="margin-top: 20px; color: #d81b60;">👤 Your Account Details:</h4>
+                    <p><b>Login Email:</b> ${payment.email}<br>
+                    <b>Temporary Password:</b> ${tempPass}</p>
+                    `
+                        : ""
+                    }
 
-              <p style="text-align:center;margin-top:20px;">
-                <a href="https://bepeace.in/payment-success.html?order_id=${order_id}"
-                  style="background:#007b5e;color:#fff;text-decoration:none;padding:10px 20px;border-radius:5px;font-weight:bold;">
-                  View Online Receipt
-                </a>
-              </p>
+                    <p>
+                      🔗 <a href="https://bepeace.in/dashboard.html"
+                      style="background-color: #d81b60; color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 5px;">
+                      Go to Dashboard
+                      </a>
+                    </p>
 
-              <p style="font-size:13px;color:#888;text-align:center;margin-top:25px;">
-                Need help? Contact <a href="mailto:info@bepeace.in">info@bepeace.in</a>
-              </p>
-            </div>
-          `;
+                    <p>At your scheduled time, please log in to your BE PEACE Dashboard to view and join your consultation.</p>
 
-          await sendEmail(payment.email, subject, html, [
-            {
-              filename: `BEPEACE_Receipt_${order_id}.pdf`,
-              content: Buffer.from(receiptBuffer),
-              contentType: "application/pdf",
-            },
-          ]);
+<p>
+  🔗 <a href="https://bepeace.in/login.html?redirect=/dashboard.html"
+  style="background-color: #d81b60; color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 5px;">
+  Log In to Dashboard
+  </a>
+</p>
 
-          await sendEmail(
-            process.env.ADMIN_EMAIL || process.env.EMAIL_USER,
-            `New Booking - ${payment.name}`,
-            html,
-            [
+<p style="color:#555; margin-top:15px;">
+  Once logged in, you will find your consultation details and a <b>Join Consultation</b> button in your dashboard.
+</p>
+                    <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
+
+                    <h4 style="color: #007b5e;">💳 Payment Details</h4>
+                    <p>
+                      <b>Amount Paid:</b> ₹${payment.amount}<br>
+                      <b>Transaction ID:</b> ${payment.orderId}<br>
+                      <b>Status:</b> ${order_status}<br>
+                    </p>
+
+                    <p style="margin-top: 20px;">
+                      📄 <a href="https://bepeace.in/payment-success.html?order_id=${order_id}"
+                      style="background-color: #007b5e; color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 5px;">
+                      View Online Receipt
+                      </a>
+                    </p>
+
+                    <p style="font-size: 14px; color: #777; text-align: center;">
+                      Or find the attached PDF receipt for your records.
+                    </p>
+
+                    <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
+                    <p style="font-size: 14px; color: #555;">
+                      Thank you for trusting BE PEACE.<br>Your Health, Your Peace 🌿<br>
+                      <a href="https://bepeace.in" style="color: #d81b60;">www.bepeace.in</a>
+                    </p>
+                  </td></tr>
+                </table>
+              </td></tr>
+            </table>`;
+
+            await sendEmail(payment.email, subject, html, [
               {
                 filename: `BEPEACE_Receipt_${order_id}.pdf`,
                 content: Buffer.from(receiptBuffer),
                 contentType: "application/pdf",
               },
-            ]
-          );
+            ]);
 
-          console.log(`📧 Receipt emails sent to ${payment.email} and admin`);
-        } catch (err) {
-          console.error("⚠️ Email sending failed:", err.message);
+            await sendEmail(
+              process.env.ADMIN_EMAIL || process.env.EMAIL_USER,
+              `New Booking - ${payment.name}`,
+              html,
+              [
+                {
+                  filename: `BEPEACE_Receipt_${order_id}.pdf`,
+                  content: Buffer.from(receiptBuffer),
+                  contentType: "application/pdf",
+                },
+              ]
+            );
+
+            console.log(`📧 Unified email sent to ${payment.email} and admin`);
+          } catch (err) {
+            console.error("⚠️ Unified email sending failed:", err.message);
+          }
         }
 
         console.log("✅ Webhook processed successfully:", order_id);
@@ -215,36 +274,26 @@ export default async function handler(req, res) {
 
     // ===== VERIFY PAYMENT STATUS =====
     if (path === "verify" && req.method === "GET") {
-      try {
-        const { order_id } = req.query;
-        if (!order_id)
-          return res.status(400).json({ error: "Order ID required" });
+      const { order_id } = req.query;
+      if (!order_id) return res.status(400).json({ error: "Order ID required" });
 
-        const response = await fetch(
-          `https://api.cashfree.com/pg/orders/${order_id}`,
-          {
-            headers: {
-              "x-client-id": process.env.CASHFREE_APP_ID,
-              "x-client-secret": process.env.CASHFREE_SECRET_KEY,
-              "x-api-version": "2023-08-01",
-            },
-          }
+      const response = await fetch(`https://api.cashfree.com/pg/orders/${order_id}`, {
+        headers: {
+          "x-client-id": process.env.CASHFREE_APP_ID,
+          "x-client-secret": process.env.CASHFREE_SECRET_KEY,
+          "x-api-version": "2023-08-01",
+        },
+      });
+
+      const data = await response.json();
+      if (["PAID", "SUCCESS"].includes(data.order_status)) {
+        await payments.updateOne(
+          { orderId: order_id },
+          { $set: { status: data.order_status, updatedAt: new Date() } }
         );
-
-        const data = await response.json();
-
-        if (["PAID", "SUCCESS"].includes(data.order_status)) {
-          await payments.updateOne(
-            { orderId: order_id },
-            { $set: { status: data.order_status, updatedAt: new Date() } }
-          );
-        }
-
-        return res.status(200).json(data);
-      } catch (err) {
-        console.error("💥 Verification error:", err.message);
-        return res.status(500).json({ error: "Verification failed" });
       }
+
+      return res.status(200).json(data);
     }
 
     // ===== INVALID PATH =====
@@ -263,25 +312,20 @@ async function generateReceipt(payment) {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
-  // 💚 Watermark + Header
   const logoUrl = "https://bepeace.in/images/logo.svg";
   try {
     const res = await fetch(logoUrl);
     const blob = await res.blob();
     const imgBase64 = await blobToBase64(blob);
-    const watermarkSize = 90;
-    const watermarkX = (pageWidth - watermarkSize) / 2;
-    const watermarkY = (pageHeight - watermarkSize) / 2 - 10;
-
+    const size = 90;
+    const x = (pageWidth - size) / 2;
+    const y = (pageHeight - size) / 2 - 10;
     doc.saveGraphicsState();
     doc.setGState(new doc.GState({ opacity: 0.08 }));
-    doc.addImage(imgBase64, "PNG", watermarkX, watermarkY, watermarkSize, watermarkSize);
+    doc.addImage(imgBase64, "PNG", x, y, size, size);
     doc.restoreGraphicsState();
-
     doc.addImage(imgBase64, "PNG", (pageWidth - 45) / 2, 10, 45, 35);
-  } catch (e) {
-    console.warn("⚠️ Logo load failed:", e.message);
-  }
+  } catch {}
 
   doc.setFontSize(18);
   doc.setTextColor(0, 100, 0);
@@ -297,8 +341,6 @@ async function generateReceipt(payment) {
     ["Name", payment.name],
     ["Email", payment.email],
     ["Phone", payment.phone],
-    ["Age", payment.age || "—"],
-    ["Sex", payment.sex || "—"],
     ["Date", payment.date],
     ["Slot", payment.slot],
     ["Amount Paid", `₹${payment.amount}`],
@@ -320,22 +362,18 @@ async function generateReceipt(payment) {
   doc.setTextColor(0, 100, 0);
   doc.text("Thank you for trusting BE PEACE 💚", pageWidth / 2, msgY, { align: "center" });
   doc.setFontSize(11);
-  doc.setTextColor(60);
   doc.text("Your health, Your peace.", pageWidth / 2, msgY + 6, { align: "center" });
 
   const date = new Date().toLocaleString();
   const footerY = pageHeight - 25;
-  doc.setDrawColor(0, 120, 80);
   doc.line(20, footerY, pageWidth - 20, footerY);
   doc.setFontSize(10);
   doc.text(`Generated on: ${date}`, 20, footerY + 6);
-  doc.text("BE PEACE | Worldwide Online Teleconsultation", pageWidth / 2, footerY + 12, { align: "center" });
-  doc.text("Support: info@bepeace.in", pageWidth / 2, footerY + 17, { align: "center" });
+  doc.text("Support: info@bepeace.in", pageWidth / 2, footerY + 12, { align: "center" });
 
   return doc.output("arraybuffer");
 }
 
-// Helper: blob → base64
 function blobToBase64(blob) {
   return new Promise((resolve) => {
     const reader = new FileReader();

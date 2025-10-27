@@ -1,177 +1,561 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <title>Patient Dashboard | BE PEACE</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
 
   <style>
-    /* --- DASHBOARD STYLING --- */
-    body {
-      font-family: "Poppins", sans-serif;
-      background: #f9fbfd;
-      margin: 0;
+    /* -------------------------
+       Modern Glass Hamburger Dashboard
+       ------------------------- */
+    :root{
+      --accent:#c71585;
+      --glass-bg: rgba(255,255,255,0.55);
+      --card-bg: rgba(255,255,255,0.7);
+      --soft: #f6fbff;
+      --muted:#6b7280;
     }
 
-    header {
-      background: linear-gradient(90deg, #87cefa, #add8e6);
-      color: #c71585;
-      text-align: center;
-      padding: 20px 0;
-      position: relative;
+    html,body{height:100%;margin:0;font-family:Inter, "Poppins", system-ui, Arial; background: linear-gradient(180deg,#f3f8ff 0%, #f9fbfd 100%); color:#0f172a;}
+
+    /* header */
+    .topbar{
+      height:64px;
+      display:flex;
+      align-items:center;
+      gap:16px;
+      padding:0 18px;
+      backdrop-filter: blur(6px);
+      background: linear-gradient(90deg, rgba(135,206,250,0.12), rgba(173,216,230,0.06));
+      border-bottom: 1px solid rgba(15,23,42,0.04);
+      position:sticky; top:0; z-index:50;
+    }
+    .brand{
+      display:flex; align-items:center; gap:12px;
+    }
+    .logo{
+      width:44px; height:44px; border-radius:10px;
+      background:linear-gradient(135deg,#7de0e0,#d81b60); display:flex;align-items:center;justify-content:center;
+      color:#fff;font-weight:700;box-shadow:0 6px 20px rgba(215,21,133,0.12);
+    }
+    .brand h1{font-size:18px;margin:0;color:var(--accent); letter-spacing:0.2px;}
+    .hamburger{width:46px;height:46px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;background:transparent}
+    .hamburger svg{width:22px;height:22px;color:var(--accent)}
+
+    /* layout */
+    .layout{display:flex;min-height:calc(100vh - 64px);}
+    nav.sidebar{
+      width:260px; min-width:60px; transition:width .28s ease, min-width .28s;
+      background: linear-gradient(180deg, rgba(255,255,255,0.35), rgba(255,255,255,0.2));
+      border-right:1px solid rgba(15,23,42,0.04);
+      padding:18px; box-sizing:border-box; backdrop-filter: blur(6px);
+    }
+    nav.sidebar.collapsed{width:78px; min-width:78px; padding-inline:10px;}
+    .menu-top{display:flex;flex-direction:column;gap:10px}
+    .menu-item{display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;cursor:pointer;color:#0f172a;text-decoration:none}
+    .menu-item:hover{background:rgba(199,21,133,0.06)}
+    .menu-item.active{background:linear-gradient(90deg, rgba(199,21,133,0.06), rgba(199,21,133,0.03));box-shadow: inset 0 0 0 1px rgba(199,21,133,0.04);}
+
+    .menu-item svg{width:18px;height:18px;color:var(--accent)}
+    .menu-label{font-weight:600}
+
+    /* main content */
+    main.content{flex:1;padding:28px;box-sizing:border-box;}
+    .container{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 360px;gap:24px;}
+    .panel{background:var(--card-bg); border-radius:14px;padding:18px;box-shadow:0 8px 30px rgba(15,23,42,0.04);backdrop-filter: blur(6px); border:1px solid rgba(255,255,255,0.5);}
+
+    /* header area inside main */
+    .welcome{display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .welcome h2{margin:0;color:#0f172a;font-size:20px}
+    .sub{color:var(--muted);font-size:14px;margin-top:6px}
+
+    /* upcoming card */
+    .upcoming{display:flex;flex-direction:column;gap:12px}
+    .appointment{display:flex;justify-content:space-between;align-items:center;padding:14px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.5),rgba(255,255,255,0.35));border:1px solid rgba(0,0,0,0.03)}
+    .appt-info{display:flex;gap:14px;align-items:center}
+    .avatar{width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,#ffecd2,#fcb69f);display:flex;align-items:center;justify-content:center;font-weight:700;color:#8a2be2}
+    .appt-meta{display:flex;flex-direction:column}
+    .meta-small{color:var(--muted);font-size:13px}
+    .join-btn{background:linear-gradient(90deg,#007bff,#0056b3);color:white;padding:9px 14px;border-radius:10px;text-decoration:none;font-weight:700;border:none;cursor:pointer}
+
+    /* list for past & all */
+    .list{display:flex;flex-direction:column;gap:10px}
+    .list-item{display:flex;justify-content:space-between;align-items:center;padding:12px;border-radius:10px;background:rgba(255,255,255,0.6);border:1px solid rgba(0,0,0,0.03)}
+    .status{padding:6px 10px;border-radius:999px;font-weight:700;font-size:12px}
+    .status.upcoming{background:#ecfeff;color:#065f46}
+    .status.completed{background:#f0fdf4;color:#166534}
+    .status.cancelled{background:#fff1f2;color:#7f1d1d}
+
+    /* right column */
+    .summary .stat{display:flex;justify-content:space-between;align-items:center;padding:12px;border-radius:10px;background:rgba(255,255,255,0.65);margin-bottom:12px}
+    .small-muted{font-size:13px;color:var(--muted)}
+
+    /* responsive */
+    @media (max-width:980px){
+      .container{grid-template-columns:1fr; padding-bottom:60px}
+      nav.sidebar{display:none}
     }
 
-    header h1 {
-      font-size: 2rem;
-      margin: 0;
-    }
+    /* jitsi modal (embedded) */
+    .jitsi-modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,6,23,0.5);z-index:1200;opacity:1}
+    .jitsi-wrap{width:100%;max-width:1100px;height:78vh;background:var(--glass-bg);border-radius:12px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,0.5);display:flex;flex-direction:column}
+    .jitsi-header{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(255,255,255,0.08)}
+    .jitsi-close{background:transparent;border:none;color:var(--accent);font-weight:700;padding:8px 12px;cursor:pointer}
+    #jitsi-meet{flex:1;background:#000}
 
-    #logoutBtn {
-      background: #c71585;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 25px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.3s ease;
-    }
-
-    #logoutBtn:hover {
-      background: #a0126d;
-      transform: translateY(-2px);
-    }
-
-    /* --- Dashboard Section --- */
-    section {
-      text-align: center;
-      padding: 70px 20px;
-    }
-
-    section h2 {
-      color: #333;
-      font-size: 1.8rem;
-    }
-
-    .btn {
-      display: inline-block;
-      margin-top: 25px;
-      background: linear-gradient(135deg, #ff6600, #ff4500);
-      color: #fff;
-      font-size: 1.1rem;
-      font-weight: bold;
-      padding: 14px 28px;
-      border-radius: 30px;
-      text-decoration: none;
-      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
-      transition: all 0.3s ease;
-    }
-
-    .btn:hover {
-      background: linear-gradient(135deg, #ff7f50, #ff6347);
-      transform: translateY(-3px);
-    }
-
-    /* --- Loading Overlay --- */
-    #loadingOverlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(255, 255, 255, 0.9);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-      opacity: 1;
-      transition: opacity 0.6s ease;
-    }
-
-    #loadingOverlay.fade-out {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .loader {
-      border: 5px solid #ddd;
-      border-top: 5px solid #c71585;
-      border-radius: 50%;
-      width: 50px;
-      height: 50px;
-      animation: spin 1s linear infinite;
-      margin-bottom: 15px;
-    }
-
-    @keyframes spin {
-      0% {
-        transform: rotate(0deg);
-      }
-      100% {
-        transform: rotate(360deg);
-      }
-    }
-
-    #welcomeText {
-      color: #c71585;
-      font-weight: 600;
-      font-size: 1.1rem;
-    }
+    /* small foot */
+    .footer-note{font-size:13px;color:var(--muted);margin-top:12px;text-align:center}
   </style>
 </head>
-
 <body>
-  <!-- Loading Animation -->
-  <div id="loadingOverlay">
-    <div class="loader"></div>
-    <p id="welcomeText">Loading your dashboard...</p>
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <button id="hamburger" class="hamburger" aria-label="Toggle menu">
+      <!-- simple hamburger icon -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+
+    <div class="brand">
+      <div class="logo">BP</div>
+      <h1>BE PEACE</h1>
+    </div>
+
+    <div style="flex:1"></div>
+
+    <div id="userArea" style="display:flex;align-items:center;gap:12px">
+      <div id="userEmail" style="color:var(--muted);font-weight:600"></div>
+      <button id="topLogout" class="join-btn" style="background:linear-gradient(90deg,#ff4d6d,#c71585);">Logout</button>
+    </div>
   </div>
 
-  <header>
-    <h1 class="peach-text">BE PEACE</h1>
-    <button id="logoutBtn">Logout</button>
-  </header>
+  <!-- LAYOUT -->
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <nav id="sidebar" class="sidebar" role="navigation" aria-label="Main menu">
+      <div class="menu-top">
+        <a class="menu-item active" data-section="overview">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12h18M3 6h18M3 18h18"/></svg>
+          <span class="menu-label">Overview</span>
+        </a>
 
-  <section>
-    <h2>👋 Welcome, <span id="userName">Patient</span></h2>
-    <p>You are logged in. Book your next consultation below:</p>
-    <a href="booking.html" class="btn">Book a Consultation</a>
-  </section>
+        <a class="menu-item" data-section="consultations">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+          <span class="menu-label">My Consultations</span>
+        </a>
+
+        <a class="menu-item" data-section="profile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A9 9 0 1118.879 6.196 9 9 0 015.12 17.804zM12 12a3 3 0 100-6 3 3 0 000 6z"/></svg>
+          <span class="menu-label">Profile</span>
+        </a>
+
+        <a class="menu-item" id="menu-logout">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7"/></svg>
+          <span class="menu-label">Logout</span>
+        </a>
+      </div>
+
+      <div style="margin-top:22px;color:var(--muted);font-size:13px">BE PEACE • Your Health, Your Peace</div>
+    </nav>
+
+    <!-- MAIN -->
+    <main class="content">
+      <div class="container">
+        <!-- left column -->
+        <div>
+          <div class="panel">
+            <div class="welcome">
+              <div>
+                <h2 id="greeting">Hello Patient 👋</h2>
+                <div class="sub" id="subGreeting">Here is your patient dashboard</div>
+              </div>
+              <div style="text-align:right">
+                <div class="small-muted">Next appointment</div>
+                <div id="nextSmall" style="font-weight:800;color:var(--accent)">—</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" style="margin-top:18px">
+            <h3 style="margin:0 0 12px 0;color:var(--accent)">Upcoming Consultations</h3>
+            <div id="upcomingList" class="upcoming">
+              <!-- injected -->
+            </div>
+
+            <div style="margin-top:18px">
+              <h4 style="margin:0 0 10px;color:#0f172a">Past Consultations</h4>
+              <div id="pastList" class="list">
+                <!-- injected -->
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" style="margin-top:18px">
+            <h3 style="margin:0 0 12px 0;color:var(--accent)">All Consultations (history)</h3>
+            <div id="allList" class="list" style="max-height:300px;overflow:auto">
+              <!-- injected -->
+            </div>
+          </div>
+        </div>
+
+        <!-- right column -->
+        <aside class="panel summary">
+          <div class="stat"><div><div style="font-weight:700">Account</div><div class="small-muted" id="accEmail">—</div></div><div style="font-size:20px;color:var(--accent)" id="accName">—</div></div>
+          <div class="stat"><div><div style="font-weight:700">Upcoming</div><div class="small-muted">Next scheduled</div></div><div id="statUpcoming">—</div></div>
+          <div class="stat"><div><div style="font-weight:700">Completed</div><div class="small-muted">Total done</div></div><div id="statCompleted">—</div></div>
+
+          <div style="margin-top:12px">
+            <a class="btn" href="booking.html">Book Another Consultation</a>
+          </div>
+
+          <p class="footer-note">Need help? Email <a href="mailto:info@bepeace.in">info@bepeace.in</a></p>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <!-- JITSI MODAL -->
+  <div id="jitsiModal" class="jitsi-modal" style="display:none;">
+    <div class="jitsi-wrap">
+      <div class="jitsi-header">
+        <div id="jitsiTitle" style="font-weight:800;color:var(--accent)">Live Consultation</div>
+        <div>
+          <button id="toggleAudio" class="jitsi-close">Mute</button>
+          <button id="closeJitsi" class="jitsi-close">End</button>
+        </div>
+      </div>
+      <div id="jitsi-meet"></div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <!-- load your Jitsi external api from your server -->
+  <script src="https://meet.bepeace.in/external_api.js"></script>
 
   <script type="module">
-    import { auth, database } from "./js/firebase-init.js";
+    /**
+     * Patient dashboard script (embedded Jitsi inside dashboard)
+     * Assumptions:
+     *  - Firebase auth is used (you already had firebase-init.js)
+     *  - A backend endpoint /api/bookings?email=<email> returns an array of bookings:
+     *      { orderId, date, slot, name, email, phone, status } (status: PAID/CREATED/CANCELLED/COMPLETED)
+     *
+     *  - Jitsi room: "bepeace-<orderId>" on your server meet.bepeace.in
+     */
+
+    import { auth } from "./js/firebase-init.js"; // your existing firebase init
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
-    import { ref, get } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
-    const userName = document.getElementById("userName");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const overlay = document.getElementById("loadingOverlay");
-    const welcomeText = document.getElementById("welcomeText");
+    // DOM refs
+    const hamburger = document.getElementById("hamburger");
+    const sidebar = document.getElementById("sidebar");
+    const greet = document.getElementById("greeting");
+    const subGreeting = document.getElementById("subGreeting");
+    const userEmailEl = document.getElementById("userEmail");
+    const accEmail = document.getElementById("accEmail");
+    const accName = document.getElementById("accName");
+    const nextSmall = document.getElementById("nextSmall");
+    const upcomingList = document.getElementById("upcomingList");
+    const pastList = document.getElementById("pastList");
+    const allList = document.getElementById("allList");
+    const statUpcoming = document.getElementById("statUpcoming");
+    const statCompleted = document.getElementById("statCompleted");
+    const topLogout = document.getElementById("topLogout");
+    const menuLogout = document.getElementById("menu-logout");
+    const jitsiModal = document.getElementById("jitsiModal");
+    const jitsiMeet = document.getElementById("jitsi-meet");
+    const jitsiTitle = document.getElementById("jitsiTitle");
+    const closeJitsi = document.getElementById("closeJitsi");
+    const toggleAudio = document.getElementById("toggleAudio");
 
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const snapshot = await get(ref(database, "users/" + user.uid));
-        const userData = snapshot.val();
-        const name = userData?.name || user.displayName || "Patient";
+    let jitsiApi = null;
+    let currentRoom = null;
 
-        // Update greeting
-        userName.textContent = name;
-
-        // Animate welcome text
-        welcomeText.textContent = `Welcome back, ${name}!`;
-        setTimeout(() => {
-          overlay.classList.add("fade-out");
-        }, 1500);
-      } else {
-        window.location.href = "login.html";
-      }
+    // hamburger toggle
+    hamburger.addEventListener("click", () => {
+      sidebar.classList.toggle("collapsed");
+      document.querySelectorAll(".menu-item").forEach(mi=>{
+        // collapse labels for small widths
+        if (sidebar.classList.contains("collapsed")) mi.querySelector(".menu-label")?.setAttribute("style","display:none");
+        else mi.querySelector(".menu-label")?.removeAttribute("style");
+      });
     });
 
-    logoutBtn.addEventListener("click", async () => {
+    // logout handlers
+    topLogout.addEventListener("click", async () => {
       await signOut(auth);
       window.location.href = "login.html";
     });
+    menuLogout.addEventListener("click", async () => {
+      await signOut(auth);
+      window.location.href = "login.html";
+    });
+
+    // helper: parse date (YYYY-MM-DD) + slot (HH:MM - HH:MM or similar)
+    function parseDateTime(dateStr, slotStr){
+      // Attempt: if slot like "17:00 - 17:30" use start time
+      try {
+        const start = slotStr.split("-")[0].trim();
+        // Combine to ISO: dateStr + 'T' + start
+        const dt = new Date(dateStr + 'T' + (start.length===5?start: start + ':00'));
+        return dt;
+      } catch(e){
+        return new Date(dateStr);
+      }
+    }
+
+    // sorting helper
+    function sortByDate(a,b){
+      const da = parseDateTime(a.date, a.slot).getTime();
+      const db = parseDateTime(b.date, b.slot).getTime();
+      return da - db;
+    }
+
+    // build appointment DOM
+    function createApptDOM(booking, isUpcoming){
+      const wrapper = document.createElement("div");
+      wrapper.className = "appointment";
+
+      const left = document.createElement("div");
+      left.className = "appt-info";
+
+      const avatar = document.createElement("div");
+      avatar.className = "avatar";
+      avatar.textContent = (booking.name||"Patient").split(" ").map(s=>s[0]?.toUpperCase()||'').slice(0,2).join('');
+
+      const meta = document.createElement("div");
+      meta.className = "appt-meta";
+      const title = document.createElement("div");
+      title.style.fontWeight = "800";
+      title.textContent = booking.name || booking.email;
+      const dt = document.createElement("div");
+      dt.className = "meta-small";
+      dt.textContent = `${booking.date} • ${booking.slot}`;
+
+      meta.appendChild(title);
+      meta.appendChild(dt);
+      left.appendChild(avatar);
+      left.appendChild(meta);
+
+      const right = document.createElement("div");
+      right.style.display = "flex";
+      right.style.flexDirection = "column";
+      right.style.gap = "8px";
+      right.style.alignItems = "flex-end";
+
+      const id = document.createElement("div");
+      id.className = "meta-small";
+      id.textContent = `Booking: ${booking.orderId || booking.orderId}`;
+
+      const btn = document.createElement("button");
+      btn.className = "join-btn";
+      btn.textContent = isUpcoming ? "Join Consultation" : "View Details";
+      btn.onclick = () => {
+        if(isUpcoming){
+          openJitsiRoom(booking.orderId, booking.name || (booking.email || "Patient"));
+        } else {
+          // show details in alert or modal (simple)
+          alert(`Booking details\n\nBooking ID: ${booking.orderId}\nDate: ${booking.date}\nSlot: ${booking.slot}\nDoctor: Dr. Mahesh Yadav\nStatus: ${booking.status || '—'}`);
+        }
+      };
+
+      right.appendChild(id);
+      right.appendChild(btn);
+
+      wrapper.appendChild(left);
+      wrapper.appendChild(right);
+
+      return wrapper;
+    }
+
+    // open embedded jitsi
+    async function openJitsiRoom(orderId, displayName){
+      // safety: destroy existing session if any
+      if(jitsiApi){
+        try{ jitsiApi.executeCommand('hangup'); }catch(e){/*ignore*/ }
+        jitsiApi.dispose();
+        jitsiApi = null;
+        jitsiMeet.innerHTML = '';
+      }
+
+      currentRoom = `bepeace-${orderId}`;
+      jitsiTitle.textContent = `Consultation — ${orderId}`;
+      jitsiModal.style.display = 'flex';
+
+      const domain = "meet.bepeace.in";
+      const options = {
+        roomName: currentRoom,
+        parentNode: jitsiMeet,
+        width: '100%',
+        height: '100%',
+        userInfo: { displayName: displayName || 'Patient' },
+        configOverwrite: {
+          prejoinPageEnabled: false,
+          startWithAudioMuted: false,
+          startWithVideoMuted: true,
+          disableInviteFunctions: true
+        },
+        interfaceConfigOverwrite: {
+          SHOW_JITSI_WATERMARK: false,
+          TOOLBAR_BUTTONS: [
+            'microphone', 'camera', 'chat', 'fullscreen', 'hangup', 'tileview'
+          ]
+        }
+      };
+
+      // create external API instance (provided by your hosted external_api.js)
+      try{
+        jitsiApi = new JitsiMeetExternalAPI(domain, options);
+      }catch(e){
+        console.error("Jitsi init error:", e);
+        alert("Failed to load video room. Please try opening in a new page.");
+        jitsiModal.style.display = 'none';
+        return;
+      }
+
+      // mute toggle
+      toggleAudio.textContent = "Mute";
+      toggleAudio.onclick = async ()=>{
+        try{
+          const isMuted = await jitsiApi.getAudioMuted(); // returns boolean
+          jitsiApi.executeCommand('toggleAudio');
+          toggleAudio.textContent = isMuted ? "Mute" : "Unmute";
+        }catch(e){ console.warn(e); }
+      };
+
+      // when readyToClose: auto hide
+      jitsiApi.addEventListener('readyToClose', () => {
+        closeEmbeddedJitsi();
+      });
+    }
+
+    function closeEmbeddedJitsi(){
+      if(jitsiApi){
+        try{ jitsiApi.executeCommand('hangup'); }catch(e){}
+        try{ jitsiApi.dispose(); }catch(e){}
+        jitsiApi = null;
+      }
+      jitsiMeet.innerHTML = '';
+      jitsiModal.style.display = 'none';
+    }
+
+    closeJitsi.addEventListener('click', closeEmbeddedJitsi);
+
+    // Fetch bookings from backend
+    async function loadBookings(email){
+      try{
+        const res = await fetch(`/api/bookings?email=${encodeURIComponent(email)}`);
+        const data = await res.json();
+        // expected: { success: true, bookings: [ ... ] } or { success:true, booking: {...} }
+        // we'll normalize to array
+        let bookings = [];
+        if(Array.isArray(data.bookings)) bookings = data.bookings;
+        else if(Array.isArray(data)) bookings = data;
+        else if(data.booking) bookings = [data.booking];
+        else if(data.success && data.bookings == null) bookings = [];
+        // sort
+        bookings.sort(sortByDate);
+
+        // split upcoming/past
+        const now = new Date();
+        const upcoming = [], past = [];
+        bookings.forEach(b=>{
+          const dt = parseDateTime(b.date, b.slot);
+          if(dt.getTime() >= (now.getTime() - (30*60*1000))) { // treat within 30 mins as upcoming
+            upcoming.push(b);
+          } else {
+            past.push(b);
+          }
+        });
+
+        // render summary
+        statUpcoming.textContent = upcoming.length || 0;
+        statCompleted.textContent = past.filter(p=> (p.status||'').toLowerCase() === 'completed').length || 0;
+
+        // next appointment small
+        if(upcoming.length>0){
+          const next = upcoming[0];
+          nextSmall.textContent = `${next.date} • ${next.slot}`;
+        } else nextSmall.textContent = "No upcoming";
+
+        // render lists
+        upcomingList.innerHTML = '';
+        if(upcoming.length===0){
+          const p = document.createElement('div'); p.className='small-muted'; p.textContent='No upcoming consultations.';
+          upcomingList.appendChild(p);
+        } else {
+          upcoming.forEach(b=>{
+            upcomingList.appendChild(createApptDOM(b,true));
+          });
+        }
+
+        pastList.innerHTML = '';
+        if(past.length===0){
+          const p = document.createElement('div'); p.className='small-muted'; p.textContent='No past consultations.';
+          pastList.appendChild(p);
+        } else {
+          past.forEach(b=>{
+            const li = document.createElement('div'); li.className='list-item';
+            li.innerHTML = `<div>
+                              <div style="font-weight:700">${b.name || b.email}</div>
+                              <div class="meta-small">${b.date} • ${b.slot}</div>
+                            </div>
+                            <div style="display:flex;gap:10px;align-items:center">
+                              <div class="status ${b.status && b.status.toLowerCase()==='completed' ? 'completed' : 'upcoming'}">${b.status || 'CONFIRMED'}</div>
+                              <button class="join-btn" onclick="(function(){alert('Open receipt or details for ${b.orderId}');})()">View</button>
+                            </div>`;
+            pastList.appendChild(li);
+          });
+        }
+
+        // all history
+        allList.innerHTML = '';
+        if(bookings.length===0){
+          allList.innerHTML = `<div class="small-muted">No bookings found.</div>`;
+        }else{
+          bookings.forEach(b=>{
+            const it = document.createElement('div'); it.className='list-item';
+            it.innerHTML = `<div>
+                              <div style="font-weight:700">${b.name || b.email}</div>
+                              <div class="meta-small">${b.date} • ${b.slot}</div>
+                            </div>
+                            <div style="display:flex;gap:8px;align-items:center">
+                              <div class="meta-small">ID: ${b.orderId}</div>
+                              <div class="status ${b.status && b.status.toLowerCase()==='paid' ? 'upcoming' : (b.status && b.status.toLowerCase()==='completed' ? 'completed' : 'upcoming')}">${b.status || 'CONFIRMED'}</div>
+                            </div>`;
+            allList.appendChild(it);
+          });
+        }
+
+      }catch(err){
+        console.error('Error fetching bookings',err);
+        upcomingList.innerHTML = '<div class="small-muted">Failed to load bookings.</div>';
+      }
+    }
+
+    // AUTH and initialization
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = 'login.html';
+        return;
+      }
+      const name = user.displayName || user.email.split('@')[0];
+      const email = user.email;
+
+      // UI updates
+      greet.textContent = `Hello ${name} 👋`;
+      subGreeting.textContent = 'Welcome back — here are your consultations';
+      userEmailEl.textContent = email;
+      accEmail.textContent = email;
+      accName.textContent = name;
+
+      // load bookings for this email
+      await loadBookings(email);
+    });
+
+    // Expose openJitsiRoom to inline onclick functions in markup (if used)
+    window.openJitsiRoom = openJitsiRoom;
   </script>
 </body>
 </html>
