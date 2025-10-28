@@ -1,58 +1,348 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Help – BePeace</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Dashboard | BePeace</title>
+  <link rel="stylesheet" href="style.css" />
 
-  <!-- SEO Meta -->
-  <meta name="description" content="Learn how to use your BePeace patient dashboard — join consultations, view history, and manage your appointments easily.">
+  <style>
+    :root {
+      --accent: #c71585;
+      --muted: #64748b;
+      --bg: #f3f8ff;
+    }
 
-  <!-- Open Graph (for social sharing) -->
-  <meta property="og:title" content="Dashboard Help – BE PEACE">
-  <meta property="og:description" content="Step-by-step guide to using the BePeace dashboard for online pediatric consultations.">
-  <meta property="og:image" content="https://bepeace.in/images/dashboard-preview.jpg">
-  <meta property="og:url" content="https://bepeace.in/modules/dashboard-help.html">
+    body {
+      margin: 0;
+      font-family: "Poppins", sans-serif;
+      background: var(--bg);
+      color: #0f172a;
+      display: flex;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
 
-  <link rel="stylesheet" href="../style.css">
+    /* === SIDEBAR === */
+    .sidebar {
+      width: 240px;
+      background: #fff;
+      box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 900;
+      padding: 20px;
+      transition: all 0.3s ease;
+    }
+
+    .sidebar .logo {
+      text-align: center;
+      font-weight: 700;
+      color: var(--accent);
+      font-size: 22px;
+      margin-bottom: 20px;
+    }
+
+    .profile-mini {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #48b6ff, #1b6ddc);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 24px;
+      margin: 0 auto 10px;
+    }
+
+    .profile-mini h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .profile-mini p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .logout-btn {
+      background: #f9fafb;
+      border: 1px solid #eee;
+      padding: 10px 14px;
+      border-radius: 8px;
+      color: var(--muted);
+      text-align: center;
+      cursor: pointer;
+      transition: 0.3s ease;
+      margin-top: auto;
+    }
+
+    .logout-btn:hover {
+      background: var(--accent);
+      color: white;
+    }
+
+    /* === MAIN AREA === */
+    .dashboard-content {
+      margin-left: 260px;
+      flex: 1;
+      padding: 40px 30px;
+      transition: all 0.3s ease;
+    }
+
+    .panel {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    h2, h3 {
+      color: var(--accent);
+      margin-top: 0;
+    }
+
+    /* === APPOINTMENT CARDS === */
+    .appointment {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fafafa;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      border: 1px solid #eee;
+      transition: 0.3s ease;
+    }
+
+    .appointment:hover {
+      background: #fff;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    .join-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-left: 4px;
+    }
+
+    .join-btn:hover {
+      opacity: 0.9;
+    }
+
+    #loading {
+      text-align: center;
+      color: var(--muted);
+      font-size: 15px;
+      margin-top: 20px;
+    }
+
+    /* === MOBILE === */
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+        position: fixed;
+      }
+
+      .sidebar.show {
+        transform: translateX(0);
+      }
+
+      .menu-btn {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        background: var(--accent);
+        color: white;
+        border: none;
+        padding: 10px 14px;
+        border-radius: 6px;
+        z-index: 1000;
+        cursor: pointer;
+      }
+
+      .dashboard-content {
+        margin-left: 0;
+        padding-top: 70px;
+      }
+    }
+  </style>
 </head>
 
-<body class="module-page">
+<body>
+  <!-- Mobile toggle -->
+  <button class="menu-btn" onclick="toggleMenu()">☰</button>
 
-  <!-- Header (auto-loads from partials) -->
-  <div id="header"></div>
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="logo">BE PEACE</div>
+    <div class="profile-mini">
+      <div class="avatar" id="profileAvatar">P</div>
+      <h3 id="profileName">Patient</h3>
+      <p id="profileEmail">loading...</p>
+    </div>
+    <div class="logout-btn" id="logoutBtn">🚪 Logout</div>
+  </aside>
 
-  <!-- Page Content -->
-  <main>
-    <h1>🩺 Dashboard Help & User Guide</h1>
+  <!-- MAIN DASHBOARD CONTENT -->
+  <main class="dashboard-content">
+    <div class="panel">
+      <h2 id="greeting">Hello 👋</h2>
+      <p>Welcome to your BePeace Dashboard. Manage your online consultations and view your visit history here.</p>
+    </div>
 
-    <section>
-      <h2>📅 Viewing Your Appointments</h2>
-      <p>All your scheduled and past consultations appear in the dashboard. You can easily join an upcoming meeting or view receipts from past visits.</p>
-    </section>
+    <div class="panel">
+      <h3>Upcoming Consultations</h3>
+      <div id="upcomingList">Loading...</div>
+    </div>
 
-    <section>
-      <h2>🔗 Joining a Consultation</h2>
-      <p>To join your online session, simply click the <strong>“Join”</strong> button next to the upcoming consultation in your dashboard. A secure video room will open automatically.</p>
-    </section>
+    <div class="panel">
+      <h3>Past Consultations</h3>
+      <div id="pastList"></div>
+    </div>
 
-    <section>
-      <h2>📜 Viewing Receipts</h2>
-      <p>After a consultation, your receipt can be downloaded using the <strong>“Receipt”</strong> button under <em>Past Consultations</em>.</p>
-    </section>
+    <div class="panel">
+      <h3>All Consultations</h3>
+      <div id="allList"></div>
+    </div>
 
-    <section>
-      <h2>⚙️ Logging Out</h2>
-      <p>You can safely log out anytime by clicking the <strong>Logout</strong> button on the top-right corner of your header. It ensures your session ends securely.</p>
-    </section>
-
-    <a href="../dashboard.html" class="back-btn">⬅ Back to Dashboard</a>
+    <div id="loading">Loading your consultations...</div>
   </main>
 
-  <!-- Footer (auto-loads from partials) -->
-  <div id="footer"></div>
+  <script type="module">
+    import { auth, database } from "./js/firebase-init.js";
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+    import { ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
 
-  <!-- Load shared script for header/footer -->
-  <script src="../script.js"></script>
+    const greeting = document.getElementById("greeting");
+    const upcomingList = document.getElementById("upcomingList");
+    const pastList = document.getElementById("pastList");
+    const allList = document.getElementById("allList");
+    const profileName = document.getElementById("profileName");
+    const profileEmail = document.getElementById("profileEmail");
+    const profileAvatar = document.getElementById("profileAvatar");
+    const loading = document.getElementById("loading");
+
+    function loadBookings(email) {
+      const bookingsRef = ref(database, "bookings");
+
+      onValue(bookingsRef, (snapshot) => {
+        if (!snapshot.exists()) {
+          loading.textContent = "No consultations yet.";
+          return;
+        }
+
+        const allBookings = snapshot.val();
+        const userBookings = Object.values(allBookings).filter(
+          (b) => b.email && b.email.toLowerCase() === email.toLowerCase()
+        );
+
+        if (!userBookings.length) {
+          loading.textContent = "No consultations found.";
+          return;
+        }
+
+        const now = new Date();
+        const upcoming = [];
+        const past = [];
+
+        userBookings.forEach((b) => {
+          const dt = new Date(b.date);
+          if (dt >= now) upcoming.push(b);
+          else past.push(b);
+        });
+
+        loading.style.display = "none";
+        renderList(upcomingList, upcoming, true);
+        renderList(pastList, past, false);
+        renderList(allList, userBookings, false);
+      });
+    }
+
+    function renderList(container, list, isUpcoming) {
+      container.innerHTML = "";
+      if (!list.length) {
+        container.innerHTML = `<div class='small-muted'>No consultations yet.</div>`;
+        return;
+      }
+
+      list.forEach((b) => {
+        const div = document.createElement("div");
+        div.className = "appointment";
+
+        const joinButton =
+          isUpcoming && b.order_id
+            ? `<button class="join-btn" onclick="window.open('https://meet.bepeace.in/bepeace-${b.order_id}','_blank')">Join</button>`
+            : "";
+        const receiptButton = b.receiptUrl
+          ? `<button class="join-btn" onclick="window.open('${b.receiptUrl}','_blank')">Receipt</button>`
+          : "";
+        const prescriptionButton = b.prescriptionUrl
+          ? `<button class="join-btn" onclick="window.open('${b.prescriptionUrl}','_blank')">Prescription</button>`
+          : "";
+
+        div.innerHTML = `
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="avatar">${(b.name || "P")[0].toUpperCase()}</div>
+            <div>
+              <div style="font-weight:700">${b.name || b.email}</div>
+              <div class="small-muted">${b.date} • ${b.slot || "N/A"}<br>
+                Status: <b style="color:${b.status === "confirmed" ? "green" : "gray"}">${b.status}</b>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            ${joinButton}
+            ${prescriptionButton}
+            ${receiptButton}
+          </div>
+        `;
+        container.append(div);
+      });
+    }
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "./login.html";
+        return;
+      }
+
+      const name = user.displayName || user.email.split("@")[0];
+      greeting.textContent = `Hello ${name} 👋`;
+      profileName.textContent = name;
+      profileEmail.textContent = user.email;
+      profileAvatar.textContent = name[0].toUpperCase();
+
+      loadBookings(user.email);
+    });
+
+    document.getElementById("logoutBtn").onclick = async () => {
+      await signOut(auth);
+      window.location.href = "./login.html";
+    };
+
+    window.toggleMenu = function() {
+      document.getElementById("sidebar").classList.toggle("show");
+    };
+  </script>
 </body>
 </html>
