@@ -4,14 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Patient Dashboard | BE PEACE</title>
-  <link rel="icon" type="image/png" href="/images/favicon.png" />
+  <link rel="icon" href="images/logo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css" />
 
   <style>
     :root {
       --accent: #c71585;
-      --glass-bg: rgba(255,255,255,0.55);
-      --card-bg: rgba(255,255,255,0.7);
       --muted: #6b7280;
     }
 
@@ -22,15 +20,16 @@
       color: #0f172a;
     }
 
-    /* 🩵 HEADER (same as homepage) */
+    /* HEADER (copied from homepage) */
     header {
       background: #fff;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
       position: sticky;
       top: 0;
       z-index: 1000;
     }
-    .header-inner {
+
+    .header-container {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -38,75 +37,88 @@
       margin: 0 auto;
       padding: 14px 20px;
     }
-    .header-logo {
+
+    .logo-container {
       display: flex;
       align-items: center;
       gap: 10px;
-      font-weight: 700;
-      color: var(--accent);
-      font-size: 20px;
-      text-decoration: none;
-    }
-    .header-logo img {
-      width: 40px;
-      height: 40px;
-      border-radius: 8px;
-    }
-    nav.header-nav a {
-      color: #333;
-      margin: 0 10px;
-      text-decoration: none;
-      font-weight: 500;
-      transition: 0.3s;
-    }
-    nav.header-nav a:hover {
-      color: var(--accent);
     }
 
-    /* MAIN DASHBOARD LAYOUT */
-    .layout {
-      display: flex;
-      min-height: calc(100vh - 180px);
-      padding: 20px;
-      gap: 20px;
+    .earth {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #48b6ff, #1b6ddc);
+      box-shadow: inset 0 0 8px rgba(255,255,255,0.6);
+      animation: spin 6s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .peach-text {
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 20px;
+    }
+
+    .auth-buttons button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-left: 6px;
+    }
+
+    .auth-buttons button:hover {
+      opacity: 0.9;
+    }
+
+    /* NAVIGATION */
+    nav.main-nav {
+      background: #fafafa;
+      border-top: 1px solid #eee;
+      border-bottom: 1px solid #eee;
+    }
+    .nav-container {
       max-width: 1200px;
       margin: 0 auto;
-    }
-
-    .sidebar {
-      width: 240px;
-      border-radius: 16px;
-      background: rgba(255, 255, 255, 0.4);
-      backdrop-filter: blur(10px);
-      padding: 20px;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
-    }
-
-    .menu-item {
+      padding: 10px 20px;
       display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px;
-      border-radius: 10px;
-      cursor: pointer;
-      text-decoration: none;
-      color: #0f172a;
+      gap: 16px;
     }
-    .menu-item:hover,
-    .menu-item.active {
-      background: rgba(199,21,133,0.08);
+    .nav-links a {
+      color: #333;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .nav-links a:hover {
+      color: var(--accent);
     }
 
-    main.content {
-      flex: 1;
+    /* DASHBOARD */
+    .layout {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      min-height: 70vh;
     }
 
     .panel {
-      background: var(--card-bg);
+      background: rgba(255, 255, 255, 0.75);
       border-radius: 16px;
       padding: 20px;
       box-shadow: 0 8px 30px rgba(15,23,42,0.04);
       margin-bottom: 20px;
+      width: 100%;
+      max-width: 800px;
+      backdrop-filter: blur(8px);
     }
 
     .appointment {
@@ -142,7 +154,18 @@
       font-weight: 600;
     }
 
-    /* FOOTER (same as homepage) */
+    .small-muted {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    #loading {
+      text-align: center;
+      color: #888;
+      margin-top: 20px;
+    }
+
+    /* FOOTER (copied from homepage) */
     footer {
       background: #fafafa;
       border-top: 1px solid #eee;
@@ -156,94 +179,78 @@
       text-decoration: none;
       font-weight: 500;
     }
-
-    /* JITSI MODAL */
-    .jitsi-modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(2,6,23,0.5);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
-    .jitsi-wrap {
-      width: 90%;
-      max-width: 1000px;
-      height: 75vh;
-      border-radius: 12px;
-      background: rgba(255,255,255,0.9);
-      overflow: hidden;
-    }
   </style>
 </head>
-<body>
 
-  <!-- 🩵 HEADER -->
+<body>
+  <!-- HEADER -->
   <header>
-    <div class="header-inner">
-      <a href="/" class="header-logo">
-        <img src="/images/logo.svg" alt="BE PEACE" />
-        BE PEACE
-      </a>
-      <nav class="header-nav">
-        <a href="/">Home</a>
-        <a href="/booking.html">Book</a>
-        <a href="/about.html">About</a>
-        <a href="/contact.html">Contact</a>
-        <a href="/logout.html" id="logoutBtn">Logout</a>
-      </nav>
+    <div class="header-container">
+      <div class="logo-container">
+        <div class="earth"></div>
+        <h1 class="peach-text">BE PEACE</h1>
+      </div>
+      <div class="auth-buttons">
+        <button id="homeBtn" onclick="window.location.href='index.html'">Home</button>
+        <button id="bookBtn" onclick="window.location.href='booking.html'">Book</button>
+        <button id="logoutBtn">Logout</button>
+      </div>
     </div>
   </header>
 
-  <!-- 🧠 DASHBOARD -->
+  <!-- NAV -->
+  <nav class="main-nav">
+    <div class="nav-container nav-links">
+      <a href="index.html">Home</a>
+      <a href="booking.html">Book</a>
+      <a href="about.html">About</a>
+      <a href="contact.html">Contact</a>
+    </div>
+  </nav>
+
+  <!-- DASHBOARD -->
   <div class="layout">
-    <aside class="sidebar">
-      <a class="menu-item active">Overview</a>
-      <a class="menu-item">My Consultations</a>
-      <a class="menu-item" id="logoutSide">Logout</a>
-    </aside>
+    <div class="panel">
+      <h2 id="greeting">Hello 👋</h2>
+      <p class="small-muted">Welcome to your BE PEACE dashboard</p>
+    </div>
 
-    <main class="content">
-      <div class="panel">
-        <h2 id="greeting">Hello 👋</h2>
-        <p class="small-muted">Welcome to your BE PEACE dashboard</p>
-      </div>
+    <div class="panel">
+      <h3 style="color:var(--accent)">Upcoming Consultations</h3>
+      <div id="upcomingList"></div>
+    </div>
 
-      <div class="panel">
-        <h3 style="color:var(--accent)">Upcoming Consultations</h3>
-        <div id="upcomingList"></div>
-      </div>
+    <div class="panel">
+      <h3 style="color:var(--accent)">Past Consultations</h3>
+      <div id="pastList"></div>
+    </div>
 
-      <div class="panel">
-        <h3 style="color:var(--accent)">Past Consultations</h3>
-        <div id="pastList"></div>
-      </div>
+    <div class="panel">
+      <h3 style="color:var(--accent)">All Consultations</h3>
+      <div id="allList"></div>
+    </div>
 
-      <div class="panel">
-        <h3 style="color:var(--accent)">All Consultations</h3>
-        <div id="allList"></div>
-      </div>
-    </main>
+    <div id="loading">Loading your consultations...</div>
   </div>
 
-  <!-- 🧾 FOOTER -->
+  <!-- FOOTER -->
   <footer>
-    <p>© 2025 <strong>BE PEACE</strong> • Your Health, Your Peace 🌿 <br>
-      <a href="mailto:info@bepeace.in">info@bepeace.in</a> • <a href="/privacy.html">Privacy Policy</a>
-    </p>
+    <div class="footer-logo">
+      <div class="earth slow"></div>
+      <h1 class="peach-text">BE PEACE</h1>
+    </div>
+    <p>© 2025 BE PEACE. All rights reserved.</p>
+    <div class="policy-links">
+      <a href="refund.html">Refund & Cancellation</a> |
+      <a href="terms.html">Terms & Conditions</a> |
+      <a href="shipping.html">Shipping Policy</a> |
+      <a href="privacy.html">Privacy Policy</a> |
+      <a href="contact.html">Contact Us</a>
+    </div>
   </footer>
 
-  <!-- 🧠 JITSI MODAL -->
-  <div id="jitsiModal" class="jitsi-modal">
-    <div class="jitsi-wrap">
-      <div id="jitsi-meet"></div>
-    </div>
-  </div>
-
+  <!-- DASHBOARD SCRIPT -->
   <script src="https://meet.bepeace.in/external_api.js"></script>
-
-  <!-- 💻 DASHBOARD SCRIPT -->
   <script type="module">
     import { auth } from "./js/firebase-init.js";
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
@@ -253,16 +260,13 @@
     const allList = document.getElementById("allList");
     const greeting = document.getElementById("greeting");
     const logoutBtn = document.getElementById("logoutBtn");
-    const logoutSide = document.getElementById("logoutSide");
-    const jitsiModal = document.getElementById("jitsiModal");
-    const jitsiMeet = document.getElementById("jitsi-meet");
-
-    let jitsiApi = null;
+    const loading = document.getElementById("loading");
 
     async function loadBookings(email) {
       const res = await fetch(`/api/bookings?email=${encodeURIComponent(email)}`);
       const data = await res.json();
       const bookings = data.bookings || [];
+      loading.style.display = "none";
 
       const now = new Date();
       const upcoming = [];
@@ -294,12 +298,12 @@
             <div class="avatar">${(b.name||"P")[0].toUpperCase()}</div>
             <div>
               <div style="font-weight:700">${b.name || b.email}</div>
-              <div class="meta-small">${b.date} • ${b.slot}</div>
+              <div class="small-muted">${b.date} • ${b.slot}</div>
             </div>
           </div>
           <div>
             ${isUpcoming ? 
-              `<button class="join-btn" onclick="openJitsi('${b.orderId}','${b.name}')">Join</button>` :
+              `<button class="join-btn" onclick="window.open('https://meet.bepeace.in/bepeace-${b.orderId}', '_blank')">Join</button>` :
               `<button class="join-btn" onclick="window.open('${b.receiptUrl}','_blank')">Receipt</button>`}
           </div>
         `;
@@ -307,32 +311,7 @@
       });
     }
 
-    window.openJitsi = (orderId, name) => {
-      jitsiModal.style.display = "flex";
-      const domain = "meet.bepeace.in";
-      const options = {
-        roomName: `bepeace-${orderId}`,
-        parentNode: jitsiMeet,
-        userInfo: { displayName: name },
-        width: "100%",
-        height: "100%",
-      };
-      jitsiApi = new JitsiMeetExternalAPI(domain, options);
-    };
-
-    function closeJitsi() {
-      if (jitsiApi) {
-        jitsiApi.dispose();
-        jitsiApi = null;
-      }
-      jitsiModal.style.display = "none";
-    }
-
-    jitsiModal.addEventListener("click", (e) => {
-      if (e.target === jitsiModal) closeJitsi();
-    });
-
-    logoutBtn.onclick = logoutSide.onclick = async () => {
+    logoutBtn.onclick = async () => {
       await signOut(auth);
       window.location.href = "/login.html";
     };
