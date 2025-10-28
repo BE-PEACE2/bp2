@@ -9,48 +9,57 @@
 
 <body class="dashboard-page">
 
-  <!-- HEADER (from partial) -->
+  <!-- HEADER -->
   <div id="header"></div>
 
-  <!-- HAMBURGER MENU -->
-  <button class="menu-btn" onclick="toggleMenu()">☰</button>
-  <nav class="side-menu" id="sideMenu">
-    <div class="menu-header">
+  <!-- MAIN DASHBOARD CONTENT (Between Header and Footer) -->
+  <div class="dashboard-content">
+
+    <!-- HAMBURGER BUTTON -->
+    <button class="menu-btn" onclick="toggleMenu()">☰</button>
+
+    <!-- 🌸 SOFT PINK BACKGROUND OVERLAY -->
+    <div id="menuOverlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- SIDE MENU -->
+    <nav class="side-menu" id="sideMenu">
       <h2>BE PEACE</h2>
-    </div>
-    <ul>
-      <li><a href="dashboard.html" class="active">🏠 Dashboard</a></li>
-      <li><a href="#" onclick="alert('Coming Soon!')">💊 Prescriptions</a></li>
-      <li><a href="#" onclick="alert('Coming Soon!')">🧾 Receipts</a></li>
-      <li><a href="#" onclick="logout()">🚪 Logout</a></li>
-    </ul>
-  </nav>
+      <ul>
+        <li><a href="dashboard.html" class="active">🏠 Dashboard</a></li>
+        <li><a href="#" onclick="alert('Coming Soon!')">💊 Prescriptions</a></li>
+        <li><a href="#" onclick="alert('Coming Soon!')">🧾 Receipts</a></li>
+        <li><a href="#" onclick="logout()">🚪 Logout</a></li>
+      </ul>
+    </nav>
 
-  <!-- MAIN CONTENT -->
-  <main class="dashboard-main">
-    <section class="greeting">
-      <h1 id="greeting">Hello 👋</h1>
-      <p>Welcome to your BePeace Dashboard — view your consultations and updates here.</p>
-    </section>
+    <!-- MAIN DASHBOARD AREA -->
+    <main class="dashboard-main">
+      <section class="greeting">
+        <h1 id="greeting">Hello 👋</h1>
+        <p>Welcome to your BePeace Dashboard — view your consultations and updates here.</p>
+      </section>
 
-    <section class="panel">
-      <h2>📅 Upcoming Consultations</h2>
-      <div id="upcomingList" class="booking-list">Loading...</div>
-    </section>
+      <section class="panel">
+        <h2>📅 Upcoming Consultations</h2>
+        <div id="upcomingList" class="booking-list">Loading...</div>
+      </section>
 
-    <section class="panel">
-      <h2>🕒 Past Consultations</h2>
-      <div id="pastList" class="booking-list"></div>
-    </section>
-  </main>
+      <section class="panel">
+        <h2>🕒 Past Consultations</h2>
+        <div id="pastList" class="booking-list"></div>
+      </section>
+    </main>
+  </div>
 
-  <!-- FOOTER (from partial) -->
+  <!-- FOOTER -->
   <div id="footer"></div>
 
+  <!-- JS Scripts -->
   <script src="js/dashboard.js" type="module"></script>
   <script src="js/load-partials.js"></script>
 
   <style>
+    /* =============== BASE STYLING =============== */
     body.dashboard-page {
       margin: 0;
       font-family: "Poppins", sans-serif;
@@ -58,12 +67,21 @@
       color: #0f172a;
     }
 
-    /* Side Menu */
+    /* =============== STRUCTURE =============== */
+    .dashboard-content {
+      display: flex;
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 20px;
+      position: relative;
+      gap: 20px;
+    }
+
+    /* =============== MENU BUTTON =============== */
     .menu-btn {
-      position: fixed;
-      top: 16px;
-      left: 16px;
-      z-index: 1100;
+      position: absolute;
+      top: 0;
+      left: 0;
       background: var(--accent, #c71585);
       color: white;
       border: none;
@@ -71,29 +89,44 @@
       border-radius: 6px;
       cursor: pointer;
       font-size: 20px;
+      z-index: 300;
+      box-shadow: 0 2px 8px rgba(199, 21, 133, 0.25);
+      transition: background 0.3s ease;
+    }
+    .menu-btn:hover {
+      background: #a50f6e;
+      transform: translateY(-2px);
     }
 
+    /* =============== SIDE MENU =============== */
     .side-menu {
-      position: fixed;
-      top: 0;
-      left: -260px;
-      width: 240px;
-      height: 100%;
-      background: white;
-      box-shadow: 4px 0 12px rgba(0, 0, 0, 0.1);
-      padding: 20px;
-      transition: all 0.3s ease;
-      z-index: 1000;
+      width: 0;
+      overflow: hidden;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      transition: width 0.3s ease, padding 0.3s ease;
+      padding: 0;
+      flex-shrink: 0;
+      z-index: 400; /* sits above pink overlay */
     }
 
     .side-menu.show {
-      left: 0;
+      width: 220px;
+      padding: 20px;
+    }
+
+    .side-menu h2 {
+      margin: 0 0 10px;
+      color: var(--accent, #c71585);
+      text-align: center;
+      font-weight: 700;
     }
 
     .side-menu ul {
       list-style: none;
       padding: 0;
-      margin: 0;
+      margin: 20px 0 0;
     }
 
     .side-menu li {
@@ -110,15 +143,36 @@
       transition: 0.2s ease;
     }
 
-    .side-menu a:hover, .side-menu a.active {
+    .side-menu a:hover,
+    .side-menu a.active {
       background: #c71585;
       color: white;
     }
+   
+    /* 🌸 SOFT PINK OVERLAY */
+.menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(253, 221, 230, 0.28); /* warm pink tone */
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  z-index: 200;
+}
 
+.menu-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+    /* =============== MAIN DASHBOARD AREA =============== */
     .dashboard-main {
-      padding: 80px 20px 40px;
-      max-width: 900px;
-      margin: 0 auto;
+      flex: 1;
+      transition: margin-left 0.3s ease;
     }
 
     .greeting {
@@ -138,6 +192,57 @@
       margin-top: 12px;
       color: #555;
     }
+
+    /* =============== RESPONSIVE =============== */
+    @media (max-width: 768px) {
+      .dashboard-content {
+        flex-direction: column;
+        margin-top: 20px;
+      }
+
+      .side-menu {
+        width: 100%;
+        display: none;
+        border-radius: 10px;
+      }
+
+      .side-menu.show {
+        display: block;
+        width: 100%;
+      }
+
+      .menu-btn {
+        position: relative;
+        margin-bottom: 10px;
+      }
+    }
   </style>
+
+  <!-- INLINE JS for menu toggle -->
+<script>
+  window.toggleMenu = function () {
+    const menu = document.getElementById("sideMenu");
+    const overlay = document.getElementById("menuOverlay");
+    if (!menu || !overlay) return;
+
+    const isOpen = menu.classList.toggle("show");
+    // show overlay when menu opens, hide when closes
+    overlay.classList.toggle("show", isOpen);
+  };
+
+  // optional helper — close menu explicitly
+  function closeMenu() {
+    const menu = document.getElementById("sideMenu");
+    const overlay = document.getElementById("menuOverlay");
+    if (!menu || !overlay) return;
+    menu.classList.remove("show");
+    overlay.classList.remove("show");
+  }
+
+  // allow closing by pressing Escape
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeMenu();
+  });
+</script>
 </body>
 </html>
