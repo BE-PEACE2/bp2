@@ -20,7 +20,7 @@
       color: #0f172a;
     }
 
-    /* HEADER (copied from homepage) */
+    /* 🌍 HEADER (identical to homepage) */
     header {
       background: #fff;
       box-shadow: 0 2px 12px rgba(0,0,0,0.05);
@@ -79,29 +79,7 @@
       opacity: 0.9;
     }
 
-    /* NAVIGATION */
-    nav.main-nav {
-      background: #fafafa;
-      border-top: 1px solid #eee;
-      border-bottom: 1px solid #eee;
-    }
-    .nav-container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 10px 20px;
-      display: flex;
-      gap: 16px;
-    }
-    .nav-links a {
-      color: #333;
-      text-decoration: none;
-      font-weight: 500;
-    }
-    .nav-links a:hover {
-      color: var(--accent);
-    }
-
-    /* DASHBOARD */
+    /* 🧠 DASHBOARD LAYOUT */
     .layout {
       display: flex;
       flex-direction: column;
@@ -165,7 +143,7 @@
       margin-top: 20px;
     }
 
-    /* FOOTER (copied from homepage) */
+    /* FOOTER (identical to homepage) */
     footer {
       background: #fafafa;
       border-top: 1px solid #eee;
@@ -192,21 +170,10 @@
       </div>
       <div class="auth-buttons">
         <button id="homeBtn" onclick="window.location.href='index.html'">Home</button>
-        <button id="bookBtn" onclick="window.location.href='booking.html'">Book</button>
         <button id="logoutBtn">Logout</button>
       </div>
     </div>
   </header>
-
-  <!-- NAV -->
-  <nav class="main-nav">
-    <div class="nav-container nav-links">
-      <a href="index.html">Home</a>
-      <a href="booking.html">Book</a>
-      <a href="about.html">About</a>
-      <a href="contact.html">Contact</a>
-    </div>
-  </nav>
 
   <!-- DASHBOARD -->
   <div class="layout">
@@ -249,7 +216,7 @@
     </div>
   </footer>
 
-  <!-- DASHBOARD SCRIPT -->
+  <!-- SCRIPT -->
   <script src="https://meet.bepeace.in/external_api.js"></script>
   <script type="module">
     import { auth } from "./js/firebase-init.js";
