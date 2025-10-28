@@ -1,293 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Patient Dashboard | BE PEACE</title>
-  <link rel="icon" href="images/logo.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Help – BePeace</title>
 
-  <style>
-    :root {
-      --accent: #c71585;
-      --muted: #6b7280;
-    }
+  <!-- SEO Meta -->
+  <meta name="description" content="Learn how to use your BePeace patient dashboard — join consultations, view history, and manage your appointments easily.">
 
-    body {
-      margin: 0;
-      font-family: "Poppins", Inter, sans-serif;
-      background: linear-gradient(180deg, #f3f8ff 0%, #f9fbfd 100%);
-      color: #0f172a;
-    }
+  <!-- Open Graph (for social sharing) -->
+  <meta property="og:title" content="Dashboard Help – BE PEACE">
+  <meta property="og:description" content="Step-by-step guide to using the BePeace dashboard for online pediatric consultations.">
+  <meta property="og:image" content="https://bepeace.in/images/dashboard-preview.jpg">
+  <meta property="og:url" content="https://bepeace.in/modules/dashboard-help.html">
 
-    /* 🌍 HEADER (identical to homepage) */
-    header {
-      background: #fff;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-    }
-
-    .header-container {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 14px 20px;
-    }
-
-    .logo-container {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .earth {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 30% 30%, #48b6ff, #1b6ddc);
-      box-shadow: inset 0 0 8px rgba(255,255,255,0.6);
-      animation: spin 6s linear infinite;
-    }
-
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-
-    .peach-text {
-      color: var(--accent);
-      font-weight: 700;
-      font-size: 20px;
-    }
-
-    .auth-buttons button {
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      padding: 6px 12px;
-      font-weight: 600;
-      cursor: pointer;
-      margin-left: 6px;
-    }
-
-    .auth-buttons button:hover {
-      opacity: 0.9;
-    }
-
-    /* 🧠 DASHBOARD LAYOUT */
-    .layout {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 40px 20px;
-      min-height: 70vh;
-    }
-
-    .panel {
-      background: rgba(255, 255, 255, 0.75);
-      border-radius: 16px;
-      padding: 20px;
-      box-shadow: 0 8px 30px rgba(15,23,42,0.04);
-      margin-bottom: 20px;
-      width: 100%;
-      max-width: 800px;
-      backdrop-filter: blur(8px);
-    }
-
-    .appointment {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 14px;
-      border-radius: 12px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0.35));
-      margin-bottom: 10px;
-      border: 1px solid rgba(0,0,0,0.03);
-    }
-
-    .avatar {
-      width: 48px;
-      height: 48px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, #ffecd2, #fcb69f);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      color: #8a2be2;
-    }
-
-    .join-btn {
-      background: linear-gradient(90deg, #007bff, #0056b3);
-      color: #fff;
-      padding: 8px 14px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      font-weight: 600;
-    }
-
-    .small-muted {
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    #loading {
-      text-align: center;
-      color: #888;
-      margin-top: 20px;
-    }
-
-    /* FOOTER (identical to homepage) */
-    footer {
-      background: #fafafa;
-      border-top: 1px solid #eee;
-      padding: 30px 0;
-      text-align: center;
-      color: #555;
-      font-size: 14px;
-    }
-    footer a {
-      color: var(--accent);
-      text-decoration: none;
-      font-weight: 500;
-    }
-  </style>
+  <link rel="stylesheet" href="../style.css">
 </head>
 
-<body>
-  <!-- HEADER -->
-  <header>
-    <div class="header-container">
-      <div class="logo-container">
-        <div class="earth"></div>
-        <h1 class="peach-text">BE PEACE</h1>
-      </div>
-      <div class="auth-buttons">
-        <button id="homeBtn" onclick="window.location.href='index.html'">Home</button>
-        <button id="logoutBtn">Logout</button>
-      </div>
-    </div>
-  </header>
+<body class="module-page">
 
-  <!-- DASHBOARD -->
-  <div class="layout">
-    <div class="panel">
-      <h2 id="greeting">Hello 👋</h2>
-      <p class="small-muted">Welcome to your BE PEACE dashboard</p>
-    </div>
+  <!-- Header (auto-loads from partials) -->
+  <div id="header"></div>
 
-    <div class="panel">
-      <h3 style="color:var(--accent)">Upcoming Consultations</h3>
-      <div id="upcomingList"></div>
-    </div>
+  <!-- Page Content -->
+  <main>
+    <h1>🩺 Dashboard Help & User Guide</h1>
 
-    <div class="panel">
-      <h3 style="color:var(--accent)">Past Consultations</h3>
-      <div id="pastList"></div>
-    </div>
+    <section>
+      <h2>📅 Viewing Your Appointments</h2>
+      <p>All your scheduled and past consultations appear in the dashboard. You can easily join an upcoming meeting or view receipts from past visits.</p>
+    </section>
 
-    <div class="panel">
-      <h3 style="color:var(--accent)">All Consultations</h3>
-      <div id="allList"></div>
-    </div>
+    <section>
+      <h2>🔗 Joining a Consultation</h2>
+      <p>To join your online session, simply click the <strong>“Join”</strong> button next to the upcoming consultation in your dashboard. A secure video room will open automatically.</p>
+    </section>
 
-    <div id="loading">Loading your consultations...</div>
-  </div>
+    <section>
+      <h2>📜 Viewing Receipts</h2>
+      <p>After a consultation, your receipt can be downloaded using the <strong>“Receipt”</strong> button under <em>Past Consultations</em>.</p>
+    </section>
 
-  <!-- FOOTER -->
-  <footer>
-    <div class="footer-logo">
-      <div class="earth slow"></div>
-      <h1 class="peach-text">BE PEACE</h1>
-    </div>
-    <p>© 2025 BE PEACE. All rights reserved.</p>
-    <div class="policy-links">
-      <a href="refund.html">Refund & Cancellation</a> |
-      <a href="terms.html">Terms & Conditions</a> |
-      <a href="shipping.html">Shipping Policy</a> |
-      <a href="privacy.html">Privacy Policy</a> |
-      <a href="contact.html">Contact Us</a>
-    </div>
-  </footer>
+    <section>
+      <h2>⚙️ Logging Out</h2>
+      <p>You can safely log out anytime by clicking the <strong>Logout</strong> button on the top-right corner of your header. It ensures your session ends securely.</p>
+    </section>
 
-  <!-- SCRIPT -->
-  <script src="https://meet.bepeace.in/external_api.js"></script>
-  <script type="module">
-    import { auth } from "./js/firebase-init.js";
-    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    <a href="../dashboard.html" class="back-btn">⬅ Back to Dashboard</a>
+  </main>
 
-    const upcomingList = document.getElementById("upcomingList");
-    const pastList = document.getElementById("pastList");
-    const allList = document.getElementById("allList");
-    const greeting = document.getElementById("greeting");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const loading = document.getElementById("loading");
+  <!-- Footer (auto-loads from partials) -->
+  <div id="footer"></div>
 
-    async function loadBookings(email) {
-      const res = await fetch(`/api/bookings?email=${encodeURIComponent(email)}`);
-      const data = await res.json();
-      const bookings = data.bookings || [];
-      loading.style.display = "none";
-
-      const now = new Date();
-      const upcoming = [];
-      const past = [];
-
-      bookings.forEach(b => {
-        const dt = new Date(b.date);
-        if (dt >= now) upcoming.push(b);
-        else past.push(b);
-      });
-
-      renderList(upcomingList, upcoming, true);
-      renderList(pastList, past, false);
-      renderList(allList, bookings, false);
-    }
-
-    function renderList(container, list, isUpcoming) {
-      container.innerHTML = "";
-      if (!list.length) {
-        container.innerHTML = `<div class='small-muted'>No consultations yet.</div>`;
-        return;
-      }
-
-      list.forEach(b => {
-        const div = document.createElement("div");
-        div.className = "appointment";
-        div.innerHTML = `
-          <div style="display:flex;align-items:center;gap:12px">
-            <div class="avatar">${(b.name||"P")[0].toUpperCase()}</div>
-            <div>
-              <div style="font-weight:700">${b.name || b.email}</div>
-              <div class="small-muted">${b.date} • ${b.slot}</div>
-            </div>
-          </div>
-          <div>
-            ${isUpcoming ? 
-              `<button class="join-btn" onclick="window.open('https://meet.bepeace.in/bepeace-${b.orderId}', '_blank')">Join</button>` :
-              `<button class="join-btn" onclick="window.open('${b.receiptUrl}','_blank')">Receipt</button>`}
-          </div>
-        `;
-        container.append(div);
-      });
-    }
-
-    logoutBtn.onclick = async () => {
-      await signOut(auth);
-      window.location.href = "/login.html";
-    };
-
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) return (window.location.href = "/login.html");
-      greeting.textContent = `Hello ${user.displayName || user.email.split("@")[0]} 👋`;
-      await loadBookings(user.email);
-    });
-  </script>
+  <!-- Load shared script for header/footer -->
+  <script src="../script.js"></script>
 </body>
 </html>
