@@ -26,14 +26,18 @@ export default async function handler(req, res) {
     }
 
     // Step 3️⃣ — Merge & remove duplicates (by orderId)
-    const allBookings = [...mongoBookings, ...firebaseBookings];
-    const seen = new Set();
-    const unique = allBookings.filter(b => {
-      if (!b.orderId) return false;
-      if (seen.has(b.orderId)) return false;
-      seen.add(b.orderId);
-      return true;
-    });
+const allBookings = [...mongoBookings, ...firebaseBookings.map(b => ({
+  ...b,
+  orderId: b.orderId || b.order_id, // normalize field name
+}))];
+
+const seen = new Set();
+const unique = allBookings.filter(b => {
+  if (!b.orderId) return false;
+  if (seen.has(b.orderId)) return false;
+  seen.add(b.orderId);
+  return true;
+});
 
     // Step 4️⃣ — Add computed fields for dashboard
     const enriched = unique.map(b => {
