@@ -3,7 +3,7 @@
 // Import Firebase modules
 import { auth, database } from "./firebase-init.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-import { ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
+import { ref, get } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
 
 // Get DOM elements
 const greeting = document.getElementById("greeting");
@@ -23,8 +23,6 @@ onAuthStateChanged(auth, (user) => {
 });
 
 // ================== FETCH BOOKINGS ==================
-import { ref, get, child } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
-
 function loadBookings(email) {
   const dbRef = ref(database, "bookings");
 
