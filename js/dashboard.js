@@ -23,50 +23,52 @@ onAuthStateChanged(auth, (user) => {
 });
 
 // ================== FETCH BOOKINGS ==================
+import { ref, get, child } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
+
 function loadBookings(email) {
-  const bookingsRef = ref(database, "bookings");
+  const dbRef = ref(database, "bookings");
 
-  onValue(bookingsRef, (snapshot) => {
-    if (!snapshot.exists()) {
-      upcomingList.textContent = "No upcoming consultations.";
-      pastList.textContent = "";
-      return;
-    }
+  get(dbRef)
+    .then((snapshot) => {
+      if (!snapshot.exists()) {
+        upcomingList.textContent = "No upcoming consultations.";
+        pastList.textContent = "";
+        return;
+      }
 
-    const allBookings = snapshot.val();
+      const allBookings = snapshot.val();
 
-    // 🔍 Debug info in console
-    console.log("Logged in email:", email);
-    console.log("All bookings from Firebase:", allBookings);
+      console.log("Logged in email:", email);
+      console.log("All bookings from Firebase:", allBookings);
 
-    // ✅ Flexible match (trims and ignores case)
-    const userBookings = Object.values(allBookings).filter((b) => {
-      if (!b.email || !email) return false;
-      return b.email.trim().toLowerCase() === email.trim().toLowerCase();
+      // Filter by patient email (case insensitive)
+      const userBookings = Object.values(allBookings).filter(
+        (b) => b.email && b.email.toLowerCase() === email.toLowerCase()
+      );
+
+      if (!userBookings.length) {
+        upcomingList.textContent = "No consultations found for your account.";
+        pastList.textContent = "";
+        return;
+      }
+
+      const now = new Date();
+      const upcoming = [];
+      const past = [];
+
+      userBookings.forEach((b) => {
+        const dt = new Date(b.date);
+        if (dt >= now) upcoming.push(b);
+        else past.push(b);
+      });
+
+      renderList(upcomingList, upcoming, true);
+      renderList(pastList, past, false);
+    })
+    .catch((error) => {
+      console.error("Error fetching bookings:", error);
+      upcomingList.textContent = "Unable to load consultations. Please try again.";
     });
-
-    if (!userBookings.length) {
-      upcomingList.textContent = "No consultations found for your account.";
-      pastList.textContent = "";
-      return;
-    }
-
-    const now = new Date();
-    const upcoming = [];
-    const past = [];
-
-    userBookings.forEach((b) => {
-      const dt = new Date(b.date);
-      if (dt >= now) upcoming.push(b);
-      else past.push(b);
-    });
-
-    renderList(upcomingList, upcoming, true);
-    renderList(pastList, past, false);
-  }, (error) => {
-    console.error("Error fetching bookings:", error);
-    upcomingList.textContent = "Unable to load consultations. Please try again.";
-  });
 }
 
 // ================== RENDER LIST ==================
