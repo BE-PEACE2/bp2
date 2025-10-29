@@ -36,7 +36,8 @@
     <main class="dashboard-main">
       <section class="greeting">
         <h1 id="greeting">Hello 👋</h1>
-        <p>Welcome to your BePeace Dashboard — view your consultations and updates here.</p>
+         <p>Welcome to your <span style="color:#c71585;font-weight:bold;">BePeace</span> Dashboard — view your consultations and updates here.</p>
+      </section>
       </section>
 
       <!-- TODAY CONSULTATIONS -->
@@ -196,10 +197,66 @@
       margin-bottom: 24px;
     }
 
+    .panel:hover {
+      transform: translateY(-2px);
+    }
+
     .booking-list {
       margin-top: 12px;
       color: #555;
     }
+
+    /* Consultation Cards */
+    .appointment {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #eee;
+      padding: 12px 0;
+    }
+
+    .appointment:last-child {
+      border-bottom: none;
+    }
+
+    .appointment strong {
+      color: #c71585;
+    }
+
+    .countdown {
+      display: block;
+      margin-top: 4px;
+      font-size: 0.9rem;
+      color: #444;
+      text-shadow: 0 0 6px rgba(34, 197, 94, 0.3);
+    }
+
+    /* Buttons */
+    .join-btn {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: 0.2s ease;
+      font-size: 0.9rem;
+    }
+
+    .join-btn.live {
+      background: #22c55e;
+      color: white;
+      font-weight: 600;
+    }
+
+    .join-btn.live:hover {
+      background: #16a34a;
+    }
+
+    .join-btn.disabled {
+      background: #d1d5db;
+      color: #666;
+      cursor: not-allowed;
+    }
+
 
     /* =============== RESPONSIVE =============== */
     @media (max-width: 768px) {

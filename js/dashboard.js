@@ -17,7 +17,7 @@ const todayList = document.getElementById("todayList");
 const upcomingList = document.getElementById("upcomingList");
 const pastList = document.getElementById("pastList");
 
-// Watch authentication state
+// ================== AUTH WATCH ==================
 onAuthStateChanged(auth, (user) => {
   console.log("🔐 Authenticated user:", user ? user.email : "No user");
   if (!user) {
@@ -55,19 +55,19 @@ function loadBookings(email) {
 
       Object.values(allBookings).forEach((b) => {
         try {
-          const datePart = b.date; // e.g. "2025-10-30"
-          const timePart = b.slot?.replace("AM", " AM").replace("PM", " PM") || "12:00 AM";
+          const datePart = b.date;
+          const timePart =
+            b.slot?.replace("AM", " AM").replace("PM", " PM") || "12:00 AM";
           const bookingDateTime = new Date(`${datePart} ${timePart}`);
-
           const bookingDate = new Date(datePart);
           const todayDate = new Date(now.toISOString().split("T")[0]);
 
-          if (bookingDate.toDateString() === todayDate.toDateString() && bookingDateTime >= now) {
-            today.push(b); // today’s upcoming
+          if (bookingDate.toDateString() === todayDate.toDateString()) {
+            today.push(b);
           } else if (bookingDateTime > now) {
-            upcoming.push(b); // future
+            upcoming.push(b);
           } else {
-            past.push(b); // past
+            past.push(b);
           }
         } catch (err) {
           console.warn("⚠️ Invalid booking date:", b, err);
@@ -80,7 +80,7 @@ function loadBookings(email) {
     })
     .catch((error) => {
       console.error("❌ Error fetching bookings:", error);
-      todayList.textContent = "Unable to load consultations. Please try again.";
+      todayList.textContent = "Unable to load consultations.";
       upcomingList.textContent = "";
       pastList.textContent = "";
     });
@@ -97,32 +97,54 @@ function renderList(container, list, isUpcoming) {
   const now = new Date();
 
   list.forEach((b) => {
-    const div = document.createElement("div");
-    div.className = "appointment";
+    try {
+      const div = document.createElement("div");
+      div.className = "appointment";
 
-    const datePart = b.date;
-    const timePart = b.slot?.replace("AM", " AM").replace("PM", " PM") || "12:00 AM";
-    const bookingTime = new Date(`${datePart} ${timePart}`);
+      const datePart = b.date;
+      const timePart =
+        b.slot?.replace("AM", " AM").replace("PM", " PM") || "12:00 AM";
+      const bookingTime = new Date(`${datePart} ${timePart}`);
 
-    // Show Join button only 10 minutes before consultation
-    const minutesUntil = (bookingTime - now) / 60000;
-    const canJoin = minutesUntil <= 10 && minutesUntil > -60; // within 10 mins before or up to 1 hour after
+      const minutesUntil = (bookingTime - now) / 60000;
+      const canJoin = minutesUntil <= 10 && minutesUntil > -60;
 
-    div.innerHTML = `
-      <div>
-        <strong>${b.name || "Consultation"}</strong><br>
-        ${b.date} • ${b.slot}<br>
-        <span class="status">${b.status || "confirmed"}</span>
-      </div>
-      ${isUpcoming && canJoin
-        ? `<button class="join-btn" onclick="window.open('https://meet.bepeace.in/bepeace-${b.order_id}','_blank')">Join</button>`
-        : isUpcoming
-        ? `<button class="join-btn disabled">Join (available 10 min before)</button>`
-        : ""}
-    `;
-    container.append(div);
+      let statusText = "";
+      if (minutesUntil > 10) {
+        statusText = `⏳ Starts in ${Math.floor(minutesUntil)} min`;
+      } else if (canJoin) {
+        statusText = "✅ Live now";
+      } else {
+        statusText = "🔴 Completed";
+      }
+
+      div.innerHTML = `
+        <div>
+          <strong>${b.name || "Consultation"}</strong><br>
+          ${b.date} • ${b.slot}<br>
+          <span class="status">${b.status || "confirmed"}</span><br>
+          <span class="countdown">${statusText}</span>
+        </div>
+        ${
+          isUpcoming && canJoin
+            ? `<button class="join-btn live" onclick="window.open('https://meet.bepeace.in/bepeace-${b.order_id}','_blank')">Join</button>`
+            : isUpcoming
+            ? `<button class="join-btn disabled" disabled>Join (available 10 min before)</button>`
+            : ""
+        }
+      `;
+      container.append(div);
+    } catch (err) {
+      console.warn("⚠️ Error rendering booking:", err);
+    }
   });
 }
+
+// 🔁 AUTO REFRESH LIST EVERY 1 MINUTE
+setInterval(() => {
+  const user = auth.currentUser;
+  if (user) loadBookings(user.email);
+}, 60000);
 
 // ================== MENU + LOGOUT ==================
 window.toggleMenu = function () {
