@@ -3,7 +3,13 @@
 // Import Firebase modules
 import { auth, database } from "./firebase-init.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-import { ref, get } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
+import {
+  ref,
+  get,
+  query,
+  orderByChild,
+  equalTo
+} from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
 
 // Get DOM elements
 const greeting = document.getElementById("greeting");
@@ -24,9 +30,10 @@ onAuthStateChanged(auth, (user) => {
 
 // ================== FETCH BOOKINGS ==================
 function loadBookings(email) {
-  const dbRef = ref(database, "bookings");
+  const bookingsRef = ref(database, "bookings");
+  const userQuery = query(bookingsRef, orderByChild("email"), equalTo(email.toLowerCase()));
 
-  get(dbRef)
+  get(userQuery)
     .then((snapshot) => {
       if (!snapshot.exists()) {
         upcomingList.textContent = "No upcoming consultations.";
@@ -35,26 +42,14 @@ function loadBookings(email) {
       }
 
       const allBookings = snapshot.val();
-
       console.log("Logged in email:", email);
-      console.log("All bookings from Firebase:", allBookings);
-
-      // Filter by patient email (case insensitive)
-      const userBookings = Object.values(allBookings).filter(
-        (b) => b.email && b.email.toLowerCase() === email.toLowerCase()
-      );
-
-      if (!userBookings.length) {
-        upcomingList.textContent = "No consultations found for your account.";
-        pastList.textContent = "";
-        return;
-      }
+      console.log("Bookings fetched for this user:", allBookings);
 
       const now = new Date();
       const upcoming = [];
       const past = [];
 
-      userBookings.forEach((b) => {
+      Object.values(allBookings).forEach((b) => {
         const dt = new Date(b.date);
         if (dt >= now) upcoming.push(b);
         else past.push(b);
