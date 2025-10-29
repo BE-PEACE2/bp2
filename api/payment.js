@@ -7,7 +7,7 @@ import sendEmail from "../utils/sendEmail.js";
 import pkg from "jspdf";
 const { jsPDF } = pkg;
 import autoTable from "jspdf-autotable";
-import { db } from "../utils/firebase-admin.js";
+import { db, authAdmin } from "../utils/firebase-admin.js";
 
 // =====================================================
 // 🔥 Save Booking to Firebase
@@ -157,21 +157,42 @@ export default async function handler(req, res) {
           await saveBookingToFirebase(payment);
 
           // 👤 Auto-create patient account if not exists
-          let existingUser = await users.findOne({ email: payment.email });
-          let tempPass;
-          if (!existingUser) {
-            tempPass = Math.random().toString(36).slice(-8);
-            const hashedPassword = await bcrypt.hash(tempPass, 10);
-            await users.insertOne({
-              name: payment.name,
-              email: payment.email,
-              phone: payment.phone,
-              password: hashedPassword,
-              createdAt: new Date(),
-            });
-            console.log(`👤 New patient account created: ${payment.email}`);
-          }
+let existingUser = await users.findOne({ email: payment.email });
+let tempPass;
 
+// If user doesn't exist in MongoDB → create both account + Firebase Auth
+if (!existingUser) {
+  tempPass = Math.random().toString(36).slice(-8);
+  const hashedPassword = await bcrypt.hash(tempPass, 10);
+
+  await users.insertOne({
+    name: payment.name,
+    email: payment.email,
+    phone: payment.phone,
+    password: hashedPassword,
+    createdAt: new Date(),
+  });
+
+  console.log(`👤 New patient account created: ${payment.email}`);
+
+  // 🔐 Create Firebase Authentication user (use same password as emailed)
+  try {
+    await authAdmin.createUser({
+      email: payment.email,
+      password: tempPass,
+      emailVerified: true,
+      displayName: payment.name,
+    });
+    console.log(`✅ Firebase Auth user created for ${payment.email}`);
+  } catch (error) {
+    if (error.code === "auth/email-already-exists") {
+      console.log(`ℹ️ Firebase user already exists: ${payment.email}`);
+    } else {
+      console.error("🔥 Firebase Auth creation error:", error);
+    }
+  }
+}
+         
           // 💌 Unified BE PEACE Confirmation + Receipt Email
           try {
             const receiptBuffer = await generateReceipt({
