@@ -52,10 +52,20 @@ function loadBookings(email) {
       const past = [];
 
       Object.values(allBookings).forEach((b) => {
-        const dt = new Date(b.date);
-        if (dt >= now) upcoming.push(b);
-        else past.push(b);
-      });
+  try {
+    const datePart = b.date; // e.g. "2025-10-29"
+    const timePart = b.slot?.replace("AM", " AM").replace("PM", " PM") || "12:00 AM"; // e.g. "03:00 PM"
+    const bookingDateTime = new Date(`${datePart} ${timePart}`);
+    
+    // Debug
+    console.log("📅 Checking:", bookingDateTime, "vs Now:", now);
+
+    if (bookingDateTime >= now) upcoming.push(b);
+    else past.push(b);
+  } catch (err) {
+    console.warn("⚠️ Invalid booking date:", b, err);
+  }
+});
 
       renderList(upcomingList, upcoming, true);
       renderList(pastList, past, false);
