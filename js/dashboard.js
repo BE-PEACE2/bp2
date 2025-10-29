@@ -18,6 +18,8 @@ const pastList = document.getElementById("pastList");
 
 // Watch authentication state
 onAuthStateChanged(auth, (user) => {
+  // 🔍 DEBUG LOG
+  console.log("🔐 Authenticated user:", user ? user.email : "No user");
   if (!user) {
     window.location.href = "login.html";
     return;
