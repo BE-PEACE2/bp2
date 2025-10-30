@@ -1,14 +1,11 @@
-// ==================== dashboard.js ====================
+// ==================== dashboard.js (Final Fixed Version) ====================
 
 // Import Firebase modules
 import { auth, database } from "./firebase-init.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
 import {
   ref,
-  get,
-  query,
-  orderByChild,
-  equalTo
+  get
 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
 
 // Get DOM elements
@@ -26,21 +23,18 @@ onAuthStateChanged(auth, (user) => {
   }
 
   const name = user.displayName || user.email.split("@")[0];
-  greeting.textContent = `Hello ${name} 👋`;
+  greeting.textContent = `Hello ${name.toUpperCase()} 👋`;
+
   loadBookings(user.email);
 });
 
 // ================== FETCH BOOKINGS ==================
-// Helper: parse booking date + slot reliably in local timezone
 function parseBookingDateTime(datePart, slot) {
-  // datePart expected "YYYY-MM-DD"
-  // slot examples: "10:00 PM", "10:00PM", "03:30 AM", "12:00 AM", "09:00"
   const dp = String(datePart || "").trim();
   const sp = String(slot || "12:00 AM").toUpperCase().replace(/\s+/g, " ").trim();
 
   const dateParts = dp.split("-").map((n) => parseInt(n, 10));
   if (dateParts.length !== 3 || dateParts.some(isNaN)) {
-    // fallback to Date constructor if format unexpected
     return new Date(`${dp} ${sp}`);
   }
 
@@ -55,87 +49,79 @@ function parseBookingDateTime(datePart, slot) {
       if (ampm === "AM" && hour === 12) hour = 0;
     }
   }
-  // Create a local Date using the numeric parts (avoids UTC midnight issues)
+
   return new Date(dateParts[0], dateParts[1] - 1, dateParts[2], hour, minute, 0, 0);
 }
 
-function loadBookings(email) {
-  const bookingsRef = ref(database, "bookings");
-  const userQuery = query(bookingsRef, orderByChild("email"), equalTo(email.toLowerCase()));
+async function loadBookings(email) {
+  try {
+    const bookingsRef = ref(database, "bookings");
+    const snapshot = await get(bookingsRef);
 
-  get(userQuery)
-    .then((snapshot) => {
-      if (!snapshot.exists()) {
-        todayList.textContent = "No consultations today.";
-        upcomingList.textContent = "No upcoming consultations.";
-        pastList.textContent = "No past consultations.";
-        return;
-      }
+    if (!snapshot.exists()) {
+      todayList.textContent = "No consultations today.";
+      upcomingList.textContent = "No upcoming consultations.";
+      pastList.textContent = "No past consultations.";
+      return;
+    }
 
-      const allBookings = snapshot.val();
-      console.log("📬 Logged in email:", email);
-      console.log("🗂️ Bookings fetched for this user:", allBookings);
+    // ✅ Fix: handle both ORDER_xxx and -OcfQcxxx style keys
+    const allBookings = snapshot.val();
+    const userBookings = Object.values(allBookings).filter(
+      (b) => b.email && b.email.toLowerCase() === email.toLowerCase()
+    );
 
-      const now = new Date();
-      // todayDate as local midnight (year, month, date) — IMPORTANT fix
-      const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (!userBookings.length) {
+      todayList.textContent = "No consultations found.";
+      upcomingList.textContent = "No consultations found.";
+      pastList.textContent = "No consultations found.";
+      return;
+    }
 
-      const today = [];
-      const upcoming = [];
-      const past = [];
+    console.log("🗂️ Total bookings for", email, "→", userBookings.length);
 
-      Object.values(allBookings).forEach((b) => {
-        try {
-          // Use robust parser (local timezone)
-          const datePart = b.date; // "YYYY-MM-DD"
-          const slot = b.slot || "12:00 AM";
-          const bookingDateTime = parseBookingDateTime(datePart, slot);
+    const now = new Date();
+    const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const today = [], upcoming = [], past = [];
 
-          // bookingDate = local midnight for that booking day
-          const bookingDate = new Date(bookingDateTime.getFullYear(), bookingDateTime.getMonth(), bookingDateTime.getDate());
+    userBookings.forEach((b) => {
+      try {
+        const bookingDateTime = parseBookingDateTime(b.date, b.slot);
+        const bookingDate = new Date(bookingDateTime.getFullYear(), bookingDateTime.getMonth(), bookingDateTime.getDate());
 
-          // If booking is on the same local day as today
-          if (bookingDate.getTime() === todayDate.getTime()) {
-            // If its time is still in future or now -> today's upcoming
-            if (bookingDateTime >= now) {
-              today.push(b);
-            } else {
-              // earlier today -> past
-              past.push(b);
-            }
-          } else if (bookingDateTime > now) {
-            // future (not today)
-            upcoming.push(b);
-          } else {
-            // past
-            past.push(b);
-          }
-        } catch (err) {
-          console.warn("⚠️ Invalid booking date:", b, err);
+        if (bookingDate.getTime() === todayDate.getTime()) {
+          if (bookingDateTime >= now) today.push(b);
+          else past.push(b);
+        } else if (bookingDateTime > now) {
+          upcoming.push(b);
+        } else {
+          past.push(b);
         }
-      });
-
-      // Optional: sort lists by date/time ascending
-      const sortByDateTime = (arr) => arr.sort((x, y) => {
-        const dx = parseBookingDateTime(x.date, x.slot).getTime();
-        const dy = parseBookingDateTime(y.date, y.slot).getTime();
-        return dx - dy;
-      });
-
-      sortByDateTime(today);
-      sortByDateTime(upcoming);
-      sortByDateTime(past);
-
-      renderList(todayList, today, true);
-      renderList(upcomingList, upcoming, true);
-      renderList(pastList, past, false);
-    })
-    .catch((error) => {
-      console.error("❌ Error fetching bookings:", error);
-      todayList.textContent = "Unable to load consultations.";
-      upcomingList.textContent = "";
-      pastList.textContent = "";
+      } catch (err) {
+        console.warn("⚠️ Skipping invalid booking:", b);
+      }
     });
+
+    const sortByDateTime = (arr) => arr.sort((x, y) => {
+      const dx = parseBookingDateTime(x.date, x.slot).getTime();
+      const dy = parseBookingDateTime(y.date, y.slot).getTime();
+      return dx - dy;
+    });
+
+    sortByDateTime(today);
+    sortByDateTime(upcoming);
+    sortByDateTime(past);
+
+    renderList(todayList, today, true);
+    renderList(upcomingList, upcoming, true);
+    renderList(pastList, past, false);
+
+  } catch (error) {
+    console.error("❌ Error fetching bookings:", error);
+    todayList.textContent = "Unable to load consultations.";
+    upcomingList.textContent = "";
+    pastList.textContent = "";
+  }
 }
 
 // ================== RENDER LIST ==================
@@ -154,10 +140,8 @@ function renderList(container, list, isUpcoming) {
       div.className = "appointment";
 
       const datePart = b.date;
-      const timePart =
-        b.slot?.replace("AM", " AM").replace("PM", " PM") || "12:00 AM";
+      const timePart = b.slot?.replace("AM", " AM").replace("PM", " PM") || "12:00 AM";
       const bookingTime = new Date(`${datePart} ${timePart}`);
-
       const minutesUntil = (bookingTime - now) / 60000;
       const canJoin = minutesUntil <= 10 && minutesUntil > -60;
 
