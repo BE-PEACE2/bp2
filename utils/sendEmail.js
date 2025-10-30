@@ -26,7 +26,6 @@ export default async function sendEmail(to, subject, html, attempt = 1) {
     const mailOptions = {
       from: `"BE PEACE" <${process.env.EMAIL_USER}>`,
       to,
-      replyTo: process.env.ADMIN_EMAIL,
       subject,
       html,
     };

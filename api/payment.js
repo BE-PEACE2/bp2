@@ -155,6 +155,12 @@ if (["PAID", "SUCCESS"].includes(order_status)) {
     console.log(`ℹ️ Booking already processed for ${order_id}`);
     return res.status(200).json({ success: true, message: "Already processed" });
   }
+ 
+   // ✅ Mark Mongo payment as processed before anything else
+          await payments.updateOne(
+            { orderId: order_id },
+            { $set: { bookingSaved: true, bookingConfirmedAt: new Date() } }
+          );
 
   // ✅ Create booking in Mongo (if not already)
   await bookings.updateOne(
@@ -174,11 +180,6 @@ if (["PAID", "SUCCESS"].includes(order_status)) {
   // ✅ Save to Firebase (unique key prevents duplicates)
   await saveBookingToFirebase(payment);
 
-  // ✅ Mark Mongo payment as processed
-  await payments.updateOne(
-    { orderId: order_id },
-    { $set: { bookingSaved: true, bookingConfirmedAt: new Date() } }
-  );
 
   console.log(`✅ Booking confirmed and flagged for ${order_id}`);
 
@@ -220,7 +221,7 @@ if (!existingUser) {
   }
 }
          
-          // 💌 Unified BE PEACE Confirmation + Receipt Email
+          // 💌 Send BE PEACE Confirmation Email (only once)
           try {
             const receiptBuffer = await generateReceipt({
               ...payment,
@@ -319,20 +320,7 @@ if (!existingUser) {
               },
             ]);
 
-            await sendEmail(
-              process.env.ADMIN_EMAIL || process.env.EMAIL_USER,
-              `New Booking - ${payment.name}`,
-              html,
-              [
-                {
-                  filename: `BEPEACE_Receipt_${order_id}.pdf`,
-                  content: Buffer.from(receiptBuffer),
-                  contentType: "application/pdf",
-                },
-              ]
-            );
-
-            console.log(`📧 Unified email sent to ${payment.email} and admin`);
+            console.log(`📧 Confirmation email sent to ${payment.email}`);
           } catch (err) {
             console.error("⚠️ Unified email sending failed:", err.message);
           }
