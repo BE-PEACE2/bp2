@@ -1,9 +1,18 @@
-// ==================== dashboard.js (Final Production Version) ====================
+// ==================== dashboard.js (Final Debug + Optimized Version) ====================
 
 // Import Firebase modules
 import { auth, database } from "./firebase-init.js";
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-import { ref, get } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
+import {
+  onAuthStateChanged,
+  signOut,
+} from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+import {
+  ref,
+  get,
+  query,
+  orderByChild,
+  equalTo,
+} from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
 
 // Get DOM elements
 const greeting = document.getElementById("greeting");
@@ -23,15 +32,20 @@ onAuthStateChanged(auth, (user) => {
   loadBookings(user.email);
 });
 
-// ================== FETCH BOOKINGS ==================
+// ================== DATE PARSER ==================
 function parseBookingDateTime(datePart, slot) {
   const dp = String(datePart || "").trim();
-  const sp = String(slot || "12:00 AM").toUpperCase().replace(/\s+/g, " ").trim();
+  const sp = String(slot || "12:00 AM")
+    .toUpperCase()
+    .replace(/\s+/g, " ")
+    .trim();
 
   const dateParts = dp.split("-").map((n) => parseInt(n, 10));
-  if (dateParts.length !== 3 || dateParts.some(isNaN)) return new Date(`${dp} ${sp}`);
+  if (dateParts.length !== 3 || dateParts.some(isNaN))
+    return new Date(`${dp} ${sp}`);
 
-  let hour = 0, minute = 0;
+  let hour = 0,
+    minute = 0;
   const m = sp.match(/(\d{1,2}):?(\d{2})?\s*([AP]M)?/);
   if (m) {
     hour = parseInt(m[1], 10);
@@ -46,60 +60,80 @@ function parseBookingDateTime(datePart, slot) {
   return new Date(dateParts[0], dateParts[1] - 1, dateParts[2], hour, minute);
 }
 
+// ================== FETCH BOOKINGS ==================
 async function loadBookings(email) {
+  const startTime = performance.now();
   try {
+    console.log(
+      `%c🔍 Fetching bookings for: %c${email}`,
+      "color: #7c3aed; font-weight: bold;",
+      "color: #2563eb;"
+    );
+
     const bookingsRef = ref(database, "bookings");
-    const snapshot = await get(bookingsRef);
+    const userQuery = query(
+      bookingsRef,
+      orderByChild("email"),
+      equalTo(email.toLowerCase())
+    );
+    const snapshot = await get(userQuery);
+
+    const duration = ((performance.now() - startTime) / 1000).toFixed(2);
 
     if (!snapshot.exists()) {
+      console.log(
+        `%c⚠️ No consultations found for ${email} (⏱️ ${duration}s)`,
+        "color: #f59e0b; font-weight: bold;"
+      );
       todayList.textContent = "No consultations today.";
       upcomingList.textContent = "No upcoming consultations.";
       pastList.textContent = "No past consultations.";
       return;
     }
 
-    const allBookingsRaw = snapshot.val();
+    const rawData = snapshot.val();
+    const jsonString = JSON.stringify(rawData);
+    const dataSizeKB = (jsonString.length / 1024).toFixed(2);
+    const userBookings = Object.values(rawData || {});
 
-    // 🧠 Flatten nested bookings safely & skip unwanted nodes
-    const allBookings = [];
-    Object.entries(allBookingsRaw).forEach(([key, value]) => {
-      // 🚫 Skip connection-test or invalid nodes
-      if (key === "connection-test") return;
-
-      if (value && typeof value === "object" && !Array.isArray(value) && value.email) {
-        allBookings.push(value);
-      } else if (value && typeof value === "object") {
-        // handle nested Firebase structures
-        Object.values(value).forEach((v) => {
-          if (v && typeof v === "object" && v.email) allBookings.push(v);
-        });
-      }
-    });
-
-    // 🎯 Filter bookings for logged-in user
-    const userBookings = allBookings.filter(
-      (b) => b.email && b.email.toLowerCase() === email.toLowerCase()
+    console.log(
+      `%c✅ Found %c${userBookings.length}%c bookings for %c${email}\n⏱️ %c${duration}s %c| 💾 ${dataSizeKB} KB fetched`,
+      "color: #22c55e; font-weight: bold;",
+      "color: #16a34a; font-weight: bold;",
+      "color: #22c55e;",
+      "color: #2563eb;",
+      "color: #10b981; font-weight: bold;",
+      "color: #6b7280;"
     );
 
-    if (!userBookings.length) {
-      todayList.textContent = "No consultations found.";
-      upcomingList.textContent = "";
-      pastList.textContent = "";
-      return;
-    }
+    console.table(
+      userBookings.map((b) => ({
+        Date: b.date,
+        Slot: b.slot,
+        Status: b.status,
+        Name: b.name,
+      }))
+    );
 
-    console.log(`🗂️ ${userBookings.length} bookings found for ${email}`);
-
+    // ================= Categorize Consultations =================
     const now = new Date();
-    const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayDate = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
+    const today = [],
+      upcoming = [],
+      past = [];
 
-    const today = [], upcoming = [], past = [];
-
-    // 🧭 Categorize bookings by time
     userBookings.forEach((b) => {
       try {
         const bookingDateTime = parseBookingDateTime(b.date, b.slot);
-        const bookingDate = new Date(bookingDateTime.getFullYear(), bookingDateTime.getMonth(), bookingDateTime.getDate());
+        const bookingDate = new Date(
+          bookingDateTime.getFullYear(),
+          bookingDateTime.getMonth(),
+          bookingDateTime.getDate()
+        );
 
         if (bookingDate.getTime() === todayDate.getTime()) {
           bookingDateTime >= now ? today.push(b) : past.push(b);
@@ -109,20 +143,28 @@ async function loadBookings(email) {
           past.push(b);
         }
       } catch (err) {
-        console.warn("⚠️ Skipping invalid booking:", b);
+        console.warn("%c⚠️ Skipping invalid booking:", "color: #eab308;", b);
       }
     });
 
-    // 📅 Sort chronologically
+    // ================= Sort and Render =================
     const sortByDate = (arr) =>
-      arr.sort((a, b) => parseBookingDateTime(a.date, a.slot) - parseBookingDateTime(b.date, b.slot));
+      arr.sort(
+        (a, b) =>
+          parseBookingDateTime(a.date, a.slot) -
+          parseBookingDateTime(b.date, b.slot)
+      );
 
     renderList(todayList, sortByDate(today), true);
     renderList(upcomingList, sortByDate(upcoming), true);
     renderList(pastList, sortByDate(past), false);
-
   } catch (error) {
-    console.error("❌ Error fetching bookings:", error);
+    const duration = ((performance.now() - startTime) / 1000).toFixed(2);
+    console.error(
+      `%c❌ Error fetching bookings after ${duration}s:`,
+      "color: #ef4444; font-weight: bold;",
+      error
+    );
     todayList.textContent = "Unable to load consultations.";
     upcomingList.textContent = "";
     pastList.textContent = "";
@@ -177,7 +219,7 @@ function renderList(container, list, isUpcoming) {
   });
 }
 
-// 🔁 AUTO REFRESH LIST EVERY MINUTE
+// 🔁 AUTO REFRESH LIST EVERY 1 MINUTE
 setInterval(() => {
   const user = auth.currentUser;
   if (user) loadBookings(user.email);
