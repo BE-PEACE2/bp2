@@ -321,6 +321,44 @@ if (!existingUser) {
             ]);
 
             console.log(`📧 Confirmation email sent to ${payment.email}`);
+
+            // 📨 Send one clean admin notification (only if different from patient)
+if (process.env.ADMIN_EMAIL && process.env.ADMIN_EMAIL !== payment.email) {
+  try {
+    await sendEmail(
+  process.env.ADMIN_EMAIL,
+  `🩺 New BE PEACE Booking: ${payment.name}`,
+  `
+  <div style="font-family: Arial, sans-serif; background:#f8f9fa; padding:20px;">
+    <div style="max-width:600px; margin:auto; background:#ffffff; border-radius:10px; padding:25px;">
+      <h2 style="color:#d81b60; text-align:center; margin-bottom:10px;">💙 BE PEACE - New Booking Alert</h2>
+      <hr style="border:0; border-top:2px solid #7de0e0; margin:15px 0;">
+      <p><b>Name:</b> ${payment.name}</p>
+      <p><b>Email:</b> ${payment.email}</p>
+      <p><b>Phone:</b> ${payment.phone}</p>
+      <p><b>Date:</b> ${payment.date}</p>
+      <p><b>Slot:</b> ${payment.slot}</p>
+      <p><b>Concern:</b> ${payment.concern}</p>
+      <p><b>Amount:</b> ₹${payment.amount}</p>
+      <p><b>Order ID:</b> ${payment.orderId}</p>
+      <p><b>Status:</b> ${order_status}</p>
+      <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
+      <p style="text-align:center;">
+        <a href="https://bepeace.in/dashboard.html"
+           style="background:#d81b60; color:white; padding:10px 20px; text-decoration:none; border-radius:5px;">
+           Open Dashboard
+        </a>
+      </p>
+    </div>
+  </div>
+  `
+);
+    console.log(`📧 Admin notification sent to ${process.env.ADMIN_EMAIL}`);
+  } catch (adminErr) {
+    console.error("⚠️ Failed to send admin notification:", adminErr.message);
+  }
+}
+
           } catch (err) {
             console.error("⚠️ Unified email sending failed:", err.message);
           }
