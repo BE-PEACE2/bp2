@@ -342,13 +342,6 @@ if (process.env.ADMIN_EMAIL && process.env.ADMIN_EMAIL !== payment.email) {
       <p><b>Amount:</b> ₹${payment.amount}</p>
       <p><b>Order ID:</b> ${payment.orderId}</p>
       <p><b>Status:</b> ${order_status}</p>
-      <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
-      <p style="text-align:center;">
-        <a href="https://bepeace.in/dashboard.html"
-           style="background:#d81b60; color:white; padding:10px 20px; text-decoration:none; border-radius:5px;">
-           Open Dashboard
-        </a>
-      </p>
     </div>
   </div>
   `
