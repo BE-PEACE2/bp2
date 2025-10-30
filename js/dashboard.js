@@ -62,12 +62,36 @@ function parseBookingDateTime(datePart, slot) {
 // ================== LOAD BOOKINGS ==================
 async function loadBookings(email) {
   const startTime = performance.now();
+  todayList.textContent = "Loading consultations...";
+upcomingList.textContent = "";
+pastList.textContent = "";
   try {
     const bookingsRef = ref(database, "bookings");
     const snapshot = await get(bookingsRef);
+let raw = {};
 
-   // ✅ Safe JSON clone that avoids Firebase circular structures
-const raw = snapshot.val() || {};
+// 🧠 Safe snapshot extraction (prevents cyclic Firebase objects)
+try {
+  const val = snapshot.val();
+
+  if (val && typeof val === "object" && !Array.isArray(val)) {
+    // Instead of Object.assign (which can still trigger recursion),
+    // copy only plain JSON-safe keys manually
+    for (const key in val) {
+      if (
+        Object.prototype.hasOwnProperty.call(val, key) &&
+        typeof val[key] !== "function"
+      ) {
+        raw[key] = val[key];
+      }
+    }
+  }
+} catch (err) {
+  console.warn("⚠️ Skipped cyclic Firebase snapshot:", err.message);
+  raw = {};
+}
+
+
 const data = {};
 
 Object.keys(raw).forEach((key) => {
