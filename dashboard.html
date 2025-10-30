@@ -23,14 +23,26 @@
 
     <!-- SIDE MENU -->
     <nav class="side-menu" id="sideMenu">
-      <h2>BE PEACE</h2>
-      <ul>
-        <li><a href="dashboard.html" class="active">🏠 Dashboard</a></li>
-        <li><a href="#" onclick="alert('Coming Soon!')">💊 Prescriptions</a></li>
-        <li><a href="#" onclick="alert('Coming Soon!')">🧾 Receipts</a></li>
-        <li><a href="#" onclick="logout()">🚪 Logout</a></li>
-      </ul>
-    </nav>
+  <h2>BE PEACE</h2>
+  <ul>
+    <li><a href="dashboard.html" class="active">🏠 Dashboard</a></li>
+
+    <li>
+      <details>
+        <summary>📅 Consultations</summary>
+        <ul style="margin-top: 8px; list-style: none; padding-left: 12px;">
+          <li><a href="#today" onclick="scrollToSection('today')">Today’s Consultations</a></li>
+          <li><a href="#upcoming" onclick="scrollToSection('upcoming')">Upcoming</a></li>
+          <li><a href="#past" onclick="scrollToSection('past')">Past</a></li>
+        </ul>
+      </details>
+    </li>
+
+    <li><a href="#" onclick="alert('Coming Soon!')">💊 Prescriptions</a></li>
+    <li><a href="#" onclick="alert('Coming Soon!')">🧾 Receipts</a></li>
+    <li><a href="#" onclick="logout()">🚪 Logout</a></li>
+  </ul>
+</nav>
 
     <!-- MAIN DASHBOARD AREA -->
     <main class="dashboard-main">
@@ -281,6 +293,10 @@
         margin-bottom: 10px;
       }
     }
+    
+    html {
+  scroll-behavior: smooth;
+}
   </style>
 
   <!-- INLINE JS for menu toggle -->
@@ -308,6 +324,21 @@
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeMenu();
   });
+</script>
+<script>
+  window.scrollToSection = function (id) {
+    const sectionMap = {
+      today: document.querySelector("#todayList"),
+      upcoming: document.querySelector("#upcomingList"),
+      past: document.querySelector("#pastList"),
+    };
+    const target = sectionMap[id];
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.getElementById("sideMenu").classList.remove("show");
+      document.getElementById("menuOverlay").classList.remove("show");
+    }
+  };
 </script>
 </body>
 </html>
