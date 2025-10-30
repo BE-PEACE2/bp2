@@ -1,17 +1,19 @@
-// ==================== dashboard.js (Stable Production Build) ====================
+// ==================== dashboard.js (Final Stable Production Build) ====================
 
 // Import Firebase
 import { auth, database } from "./firebase-init.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
 import { ref, get } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
 
-// DOM Elements
+// DOM elements
 const greeting = document.getElementById("greeting");
 const todayList = document.getElementById("todayList");
 const upcomingList = document.getElementById("upcomingList");
 const pastList = document.getElementById("pastList");
 
-// ================== AUTH WATCH ==================
+let refreshTimer = null;
+
+// ================== AUTH WATCH (SINGLE TRIGGER) ==================
 onAuthStateChanged(auth, (user) => {
   if (!user) {
     window.location.href = "login.html";
@@ -23,22 +25,27 @@ onAuthStateChanged(auth, (user) => {
 
   console.log(`📥 Fetching bookings for: ${user.email}`);
   loadBookings(user.email);
+
+  // ⏳ Start auto-refresh once
+  if (!refreshTimer) {
+    refreshTimer = setInterval(() => {
+      if (auth.currentUser) loadBookings(auth.currentUser.email);
+    }, 60000); // every 1 minute
+  }
 });
 
-// ================== DATE PARSER (SAFE) ==================
+// ================== DATE PARSER (SAFE FOR MULTI FORMATS) ==================
 function parseBookingDateTime(datePart, slot) {
   if (!datePart) return new Date();
 
   const sp = String(slot || "12:00 AM").trim().toUpperCase();
   let [y, m, d] = [0, 0, 0];
-
-  // ✅ Support "YYYY-MM-DD", "DD-MM-YYYY", "YYYY/MM/DD"
   const parts = datePart.split(/[-/]/).map(Number);
+
   if (parts[0] > 1900) [y, m, d] = parts;
   else if (parts[2] > 1900) [d, m, y] = parts;
   else return new Date(datePart + " " + sp);
 
-  // ✅ Handle 12-hour and 24-hour times
   let hour = 0, minute = 0;
   const match = sp.match(/(\d{1,2})(?::(\d{2}))?\s*([AP]M)?/);
   if (match) {
@@ -52,26 +59,21 @@ function parseBookingDateTime(datePart, slot) {
   return new Date(y, m - 1, d, hour, minute);
 }
 
-// ================== FETCH BOOKINGS ==================
+// ================== LOAD BOOKINGS ==================
 async function loadBookings(email) {
   const startTime = performance.now();
   try {
     const bookingsRef = ref(database, "bookings");
     const snapshot = await get(bookingsRef);
 
-    if (!snapshot.exists()) {
-      todayList.textContent = "No consultations today.";
-      upcomingList.textContent = "No upcoming consultations.";
-      pastList.textContent = "No past consultations.";
-      return;
-    }
-
-    const data = snapshot.val();
+    // ✅ Clone shallowly to avoid recursive equality loops
+    const data = JSON.parse(JSON.stringify(snapshot.val() || {}));
     const allBookings = [];
 
-    // Flatten nested data safely
+    // Flatten nested Firebase data safely
     Object.entries(data).forEach(([key, val]) => {
       if (key === "connection-test") return;
+
       if (val && typeof val === "object" && val.email) {
         allBookings.push(val);
       } else if (val && typeof val === "object") {
@@ -81,7 +83,7 @@ async function loadBookings(email) {
       }
     });
 
-    // Filter for this user's bookings
+    // 🎯 Filter bookings for this user
     const userBookings = allBookings.filter(
       (b) => b.email && b.email.toLowerCase() === email.toLowerCase()
     );
@@ -96,7 +98,7 @@ async function loadBookings(email) {
     const duration = (performance.now() - startTime).toFixed(2);
     console.log(`✅ Found ${userBookings.length} bookings for ${email} in ${duration}ms`);
 
-    // Categorize
+    // Categorize bookings
     const now = new Date();
     const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const today = [], upcoming = [], past = [];
@@ -122,7 +124,6 @@ async function loadBookings(email) {
       }
     });
 
-    // Sort lists chronologically
     const sortByDate = (arr) =>
       arr.sort((a, b) => parseBookingDateTime(a.date, a.slot) - parseBookingDateTime(b.date, b.slot));
 
@@ -138,7 +139,7 @@ async function loadBookings(email) {
   }
 }
 
-// ================== RENDER LIST ==================
+// ================== RENDER BOOKINGS ==================
 function renderList(container, list, isUpcoming) {
   container.innerHTML = "";
   if (!list.length) {
@@ -147,6 +148,7 @@ function renderList(container, list, isUpcoming) {
   }
 
   const now = new Date();
+
   list.forEach((b) => {
     try {
       const div = document.createElement("div");
@@ -184,12 +186,6 @@ function renderList(container, list, isUpcoming) {
     }
   });
 }
-
-// 🔁 AUTO REFRESH LIST EVERY MINUTE
-setInterval(() => {
-  const user = auth.currentUser;
-  if (user) loadBookings(user.email);
-}, 60000);
 
 // ================== MENU + LOGOUT ==================
 window.toggleMenu = () => {
