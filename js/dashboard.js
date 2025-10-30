@@ -66,8 +66,23 @@ async function loadBookings(email) {
     const bookingsRef = ref(database, "bookings");
     const snapshot = await get(bookingsRef);
 
-    // ✅ Clone shallowly to avoid recursive equality loops
-    const data = JSON.parse(JSON.stringify(snapshot.val() || {}));
+   // ✅ Safe JSON clone that avoids Firebase circular structures
+const raw = snapshot.val() || {};
+const data = {};
+
+Object.keys(raw).forEach((key) => {
+  try {
+    const val = raw[key];
+
+    // skip unwanted Firebase meta or cyclic objects
+    if (!val || typeof val !== "object" || key.startsWith(".") || key === "connection-test") return;
+
+    // deep clone safely
+    data[key] = JSON.parse(JSON.stringify(val));
+  } catch (err) {
+    console.warn(`⚠️ Skipped problematic key "${key}":`, err.message);
+  }
+});
     const allBookings = [];
 
     // Flatten nested Firebase data safely
