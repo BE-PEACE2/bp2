@@ -1,20 +1,11 @@
-// ==================== dashboard.js (Final Debug + Optimized Version) ====================
+// ==================== dashboard.js (Stable Production Build) ====================
 
-// Import Firebase modules
+// Import Firebase
 import { auth, database } from "./firebase-init.js";
-import {
-  onAuthStateChanged,
-  signOut,
-} from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-import {
-  ref,
-  get,
-  query,
-  orderByChild,
-  equalTo,
-} from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+import { ref, get } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
 
-// Get DOM elements
+// DOM Elements
 const greeting = document.getElementById("greeting");
 const todayList = document.getElementById("todayList");
 const upcomingList = document.getElementById("upcomingList");
@@ -29,102 +20,86 @@ onAuthStateChanged(auth, (user) => {
 
   const name = user.displayName || user.email.split("@")[0];
   greeting.textContent = `Hello ${name.toUpperCase()} 👋`;
+
+  console.log(`📥 Fetching bookings for: ${user.email}`);
   loadBookings(user.email);
 });
 
-// ================== DATE PARSER ==================
+// ================== DATE PARSER (SAFE) ==================
 function parseBookingDateTime(datePart, slot) {
-  const dp = String(datePart || "").trim();
-  const sp = String(slot || "12:00 AM")
-    .toUpperCase()
-    .replace(/\s+/g, " ")
-    .trim();
+  if (!datePart) return new Date();
 
-  const dateParts = dp.split("-").map((n) => parseInt(n, 10));
-  if (dateParts.length !== 3 || dateParts.some(isNaN))
-    return new Date(`${dp} ${sp}`);
+  const sp = String(slot || "12:00 AM").trim().toUpperCase();
+  let [y, m, d] = [0, 0, 0];
 
-  let hour = 0,
-    minute = 0;
-  const m = sp.match(/(\d{1,2}):?(\d{2})?\s*([AP]M)?/);
-  if (m) {
-    hour = parseInt(m[1], 10);
-    minute = m[2] ? parseInt(m[2], 10) : 0;
-    const ampm = m[3];
-    if (ampm) {
-      if (ampm === "PM" && hour !== 12) hour += 12;
-      if (ampm === "AM" && hour === 12) hour = 0;
-    }
+  // ✅ Support "YYYY-MM-DD", "DD-MM-YYYY", "YYYY/MM/DD"
+  const parts = datePart.split(/[-/]/).map(Number);
+  if (parts[0] > 1900) [y, m, d] = parts;
+  else if (parts[2] > 1900) [d, m, y] = parts;
+  else return new Date(datePart + " " + sp);
+
+  // ✅ Handle 12-hour and 24-hour times
+  let hour = 0, minute = 0;
+  const match = sp.match(/(\d{1,2})(?::(\d{2}))?\s*([AP]M)?/);
+  if (match) {
+    hour = parseInt(match[1], 10);
+    minute = match[2] ? parseInt(match[2], 10) : 0;
+    const ampm = match[3];
+    if (ampm === "PM" && hour < 12) hour += 12;
+    if (ampm === "AM" && hour === 12) hour = 0;
   }
 
-  return new Date(dateParts[0], dateParts[1] - 1, dateParts[2], hour, minute);
+  return new Date(y, m - 1, d, hour, minute);
 }
 
 // ================== FETCH BOOKINGS ==================
 async function loadBookings(email) {
   const startTime = performance.now();
   try {
-    console.log(
-      `%c🔍 Fetching bookings for: %c${email}`,
-      "color: #7c3aed; font-weight: bold;",
-      "color: #2563eb;"
-    );
-
     const bookingsRef = ref(database, "bookings");
-    const userQuery = query(
-      bookingsRef,
-      orderByChild("email"),
-      equalTo(email.toLowerCase())
-    );
-    const snapshot = await get(userQuery);
-
-    const duration = ((performance.now() - startTime) / 1000).toFixed(2);
+    const snapshot = await get(bookingsRef);
 
     if (!snapshot.exists()) {
-      console.log(
-        `%c⚠️ No consultations found for ${email} (⏱️ ${duration}s)`,
-        "color: #f59e0b; font-weight: bold;"
-      );
       todayList.textContent = "No consultations today.";
       upcomingList.textContent = "No upcoming consultations.";
       pastList.textContent = "No past consultations.";
       return;
     }
 
-    const rawData = snapshot.val();
-    const jsonString = JSON.stringify(rawData);
-    const dataSizeKB = (jsonString.length / 1024).toFixed(2);
-    const userBookings = Object.values(rawData || {});
+    const data = snapshot.val();
+    const allBookings = [];
 
-    console.log(
-      `%c✅ Found %c${userBookings.length}%c bookings for %c${email}\n⏱️ %c${duration}s %c| 💾 ${dataSizeKB} KB fetched`,
-      "color: #22c55e; font-weight: bold;",
-      "color: #16a34a; font-weight: bold;",
-      "color: #22c55e;",
-      "color: #2563eb;",
-      "color: #10b981; font-weight: bold;",
-      "color: #6b7280;"
+    // Flatten nested data safely
+    Object.entries(data).forEach(([key, val]) => {
+      if (key === "connection-test") return;
+      if (val && typeof val === "object" && val.email) {
+        allBookings.push(val);
+      } else if (val && typeof val === "object") {
+        Object.values(val).forEach((v) => {
+          if (v && typeof v === "object" && v.email) allBookings.push(v);
+        });
+      }
+    });
+
+    // Filter for this user's bookings
+    const userBookings = allBookings.filter(
+      (b) => b.email && b.email.toLowerCase() === email.toLowerCase()
     );
 
-    console.table(
-      userBookings.map((b) => ({
-        Date: b.date,
-        Slot: b.slot,
-        Status: b.status,
-        Name: b.name,
-      }))
-    );
+    if (!userBookings.length) {
+      todayList.textContent = "No consultations found.";
+      upcomingList.textContent = "";
+      pastList.textContent = "";
+      return;
+    }
 
-    // ================= Categorize Consultations =================
+    const duration = (performance.now() - startTime).toFixed(2);
+    console.log(`✅ Found ${userBookings.length} bookings for ${email} in ${duration}ms`);
+
+    // Categorize
     const now = new Date();
-    const todayDate = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate()
-    );
-    const today = [],
-      upcoming = [],
-      past = [];
+    const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const today = [], upcoming = [], past = [];
 
     userBookings.forEach((b) => {
       try {
@@ -143,28 +118,20 @@ async function loadBookings(email) {
           past.push(b);
         }
       } catch (err) {
-        console.warn("%c⚠️ Skipping invalid booking:", "color: #eab308;", b);
+        console.warn("⚠️ Skipping invalid booking:", b);
       }
     });
 
-    // ================= Sort and Render =================
+    // Sort lists chronologically
     const sortByDate = (arr) =>
-      arr.sort(
-        (a, b) =>
-          parseBookingDateTime(a.date, a.slot) -
-          parseBookingDateTime(b.date, b.slot)
-      );
+      arr.sort((a, b) => parseBookingDateTime(a.date, a.slot) - parseBookingDateTime(b.date, b.slot));
 
     renderList(todayList, sortByDate(today), true);
     renderList(upcomingList, sortByDate(upcoming), true);
     renderList(pastList, sortByDate(past), false);
+
   } catch (error) {
-    const duration = ((performance.now() - startTime) / 1000).toFixed(2);
-    console.error(
-      `%c❌ Error fetching bookings after ${duration}s:`,
-      "color: #ef4444; font-weight: bold;",
-      error
-    );
+    console.error("❌ Error fetching bookings:", error);
     todayList.textContent = "Unable to load consultations.";
     upcomingList.textContent = "";
     pastList.textContent = "";
@@ -180,7 +147,6 @@ function renderList(container, list, isUpcoming) {
   }
 
   const now = new Date();
-
   list.forEach((b) => {
     try {
       const div = document.createElement("div");
@@ -219,7 +185,7 @@ function renderList(container, list, isUpcoming) {
   });
 }
 
-// 🔁 AUTO REFRESH LIST EVERY 1 MINUTE
+// 🔁 AUTO REFRESH LIST EVERY MINUTE
 setInterval(() => {
   const user = auth.currentUser;
   if (user) loadBookings(user.email);
