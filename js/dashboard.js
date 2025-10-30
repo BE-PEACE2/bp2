@@ -58,8 +58,26 @@ async function loadBookings(email) {
       return;
     }
 
-    const allBookings = snapshot.val();
-    const userBookings = Object.values(allBookings).filter(
+    const allBookingsRaw = snapshot.val();
+
+    // 🧠 Flatten nested bookings safely & skip unwanted nodes
+    const allBookings = [];
+    Object.entries(allBookingsRaw).forEach(([key, value]) => {
+      // 🚫 Skip connection-test or invalid nodes
+      if (key === "connection-test") return;
+
+      if (value && typeof value === "object" && !Array.isArray(value) && value.email) {
+        allBookings.push(value);
+      } else if (value && typeof value === "object") {
+        // handle nested Firebase structures
+        Object.values(value).forEach((v) => {
+          if (v && typeof v === "object" && v.email) allBookings.push(v);
+        });
+      }
+    });
+
+    // 🎯 Filter bookings for logged-in user
+    const userBookings = allBookings.filter(
       (b) => b.email && b.email.toLowerCase() === email.toLowerCase()
     );
 
@@ -77,6 +95,7 @@ async function loadBookings(email) {
 
     const today = [], upcoming = [], past = [];
 
+    // 🧭 Categorize bookings by time
     userBookings.forEach((b) => {
       try {
         const bookingDateTime = parseBookingDateTime(b.date, b.slot);
@@ -90,16 +109,18 @@ async function loadBookings(email) {
           past.push(b);
         }
       } catch (err) {
-        console.warn("⚠️ Invalid booking skipped:", b);
+        console.warn("⚠️ Skipping invalid booking:", b);
       }
     });
 
+    // 📅 Sort chronologically
     const sortByDate = (arr) =>
       arr.sort((a, b) => parseBookingDateTime(a.date, a.slot) - parseBookingDateTime(b.date, b.slot));
 
     renderList(todayList, sortByDate(today), true);
     renderList(upcomingList, sortByDate(upcoming), true);
     renderList(pastList, sortByDate(past), false);
+
   } catch (error) {
     console.error("❌ Error fetching bookings:", error);
     todayList.textContent = "Unable to load consultations.";
