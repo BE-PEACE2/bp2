@@ -63,50 +63,39 @@ function parseBookingDateTime(datePart, slot) {
 async function loadBookings(email) {
   const startTime = performance.now();
   todayList.textContent = "Loading consultations...";
-upcomingList.textContent = "";
-pastList.textContent = "";
+  upcomingList.textContent = "";
+  pastList.textContent = "";
+
   try {
     const bookingsRef = ref(database, "bookings");
     const snapshot = await get(bookingsRef);
-let raw = {};
 
-// 🧠 Safe snapshot extraction (prevents cyclic Firebase objects)
-try {
-  const val = snapshot.val();
-
-  if (val && typeof val === "object" && !Array.isArray(val)) {
-    // Instead of Object.assign (which can still trigger recursion),
-    // copy only plain JSON-safe keys manually
-    for (const key in val) {
-      if (
-        Object.prototype.hasOwnProperty.call(val, key) &&
-        typeof val[key] !== "function"
-      ) {
-        raw[key] = val[key];
-      }
+    // ✅ Hard-safe clone (prevents "ChildrenNode.equals" recursion)
+    let raw = {};
+    try {
+      const safeData = snapshot.exists() ? snapshot.toJSON() : {};
+      raw = JSON.parse(JSON.stringify(safeData));
+    } catch (err) {
+      console.warn("⚠️ Skipped cyclic Firebase snapshot:", err.message);
+      raw = {};
     }
-  }
-} catch (err) {
-  console.warn("⚠️ Skipped cyclic Firebase snapshot:", err.message);
-  raw = {};
-}
 
+    const data = {}; // ✅ important missing declaration added
 
-const data = {};
+    Object.keys(raw).forEach((key) => {
+      try {
+        const val = raw[key];
 
-Object.keys(raw).forEach((key) => {
-  try {
-    const val = raw[key];
+        // skip unwanted Firebase meta or cyclic objects
+        if (!val || typeof val !== "object" || key.startsWith(".") || key === "connection-test") return;
 
-    // skip unwanted Firebase meta or cyclic objects
-    if (!val || typeof val !== "object" || key.startsWith(".") || key === "connection-test") return;
+        // deep clone safely
+        data[key] = JSON.parse(JSON.stringify(val));
+      } catch (err) {
+        console.warn(`⚠️ Skipped problematic key "${key}":`, err.message);
+      }
+    });
 
-    // deep clone safely
-    data[key] = JSON.parse(JSON.stringify(val));
-  } catch (err) {
-    console.warn(`⚠️ Skipped problematic key "${key}":`, err.message);
-  }
-});
     const allBookings = [];
 
     // Flatten nested Firebase data safely
@@ -195,14 +184,21 @@ function renderList(container, list, isUpcoming) {
 
       const bookingTime = parseBookingDateTime(b.date, b.slot);
       const minutesUntil = (bookingTime - now) / 60000;
-      const canJoin = minutesUntil <= 10 && minutesUntil > -60;
 
-      let statusText =
-        minutesUntil > 10
-          ? `⏳ Starts in ${Math.floor(minutesUntil)} min`
-          : canJoin
-          ? "✅ Live now"
-          : "🔴 Completed";
+      // ✅ Only mark "Live now" for today’s date
+      const isSameDay = bookingTime.toDateString() === now.toDateString();
+      const canJoin = isSameDay && minutesUntil <= 10 && minutesUntil > -60;
+
+      let statusText;
+      if (!isSameDay && bookingTime < now) {
+        statusText = "🔴 Completed";
+      } else if (canJoin) {
+        statusText = "✅ Live now";
+      } else if (bookingTime > now) {
+        statusText = `⏳ Starts in ${Math.floor(minutesUntil)} min`;
+      } else {
+        statusText = "🔴 Completed";
+      }
 
       div.innerHTML = `
         <div>
@@ -219,6 +215,7 @@ function renderList(container, list, isUpcoming) {
             : ""
         }
       `;
+
       container.append(div);
     } catch (err) {
       console.warn("⚠️ Error rendering booking:", err);
