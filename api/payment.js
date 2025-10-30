@@ -14,8 +14,15 @@ import { db, authAdmin } from "../utils/firebase-admin.js";
 // =====================================================
 async function saveBookingToFirebase(paymentData) {
   try {
-    const ref = db.ref("bookings").push();
-    await ref.set({
+     const bookingRef = db.ref("bookings").child(paymentData.orderId); // unique node
+      // 🛑 Check if already exists
+    const snapshot = await bookingRef.once("value");
+    if (snapshot.exists()) {
+      console.log(`ℹ️ Firebase booking already exists for ${paymentData.orderId}`);
+      return;
+    }
+
+    await bookingRef.set({
       order_id: paymentData.orderId,
       name: paymentData.name,
       email: paymentData.email,
@@ -139,23 +146,43 @@ export default async function handler(req, res) {
         );
 
         // ✅ Auto-book if successful
-        if (["PAID", "SUCCESS"].includes(order_status)) {
-          await bookings.updateOne(
-            { date: payment.date, slot: payment.slot },
-            {
-              $setOnInsert: {
-                name: payment.name,
-                email: payment.email,
-                phone: payment.phone,
-                concern: payment.concern,
-                createdAt: new Date(),
-              },
-            },
-            { upsert: true }
-          );
-          console.log(`✅ Booking confirmed for ${payment.date} - ${payment.slot}`);
-          await saveBookingToFirebase(payment);
+if (["PAID", "SUCCESS"].includes(order_status)) {
+  // Reuse the same 'payment' object we already have above
+  if (!payment) return res.status(404).json({ error: "Payment not found" });
 
+  // 🛑 Prevent double-processing if already handled
+  if (payment.bookingSaved) {
+    console.log(`ℹ️ Booking already processed for ${order_id}`);
+    return res.status(200).json({ success: true, message: "Already processed" });
+  }
+
+  // ✅ Create booking in Mongo (if not already)
+  await bookings.updateOne(
+    { date: payment.date, slot: payment.slot },
+    {
+      $setOnInsert: {
+        name: payment.name,
+        email: payment.email,
+        phone: payment.phone,
+        concern: payment.concern,
+        createdAt: new Date(),
+      },
+    },
+    { upsert: true }
+  );
+
+  // ✅ Save to Firebase (unique key prevents duplicates)
+  await saveBookingToFirebase(payment);
+
+  // ✅ Mark Mongo payment as processed
+  await payments.updateOne(
+    { orderId: order_id },
+    { $set: { bookingSaved: true, bookingConfirmedAt: new Date() } }
+  );
+
+  console.log(`✅ Booking confirmed and flagged for ${order_id}`);
+
+ 
           // 👤 Auto-create patient account if not exists
 let existingUser = await users.findOne({ email: payment.email });
 let tempPass;
