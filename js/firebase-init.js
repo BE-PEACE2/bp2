@@ -1,6 +1,10 @@
-// ✅ Import Firebase SDKs (unified version)
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+// ✅ Import Firebase SDKs (v12 modular)
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+import {
+  getAuth,
+  setPersistence,
+  browserLocalPersistence
+} from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 import { getDatabase } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
 // ✅ BePeace Firebase Configuration (your unique keys)
@@ -15,10 +19,24 @@ const firebaseConfig = {
   measurementId: "G-CT6YH2ENVK"
 };
 
-// ✅ Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// ✅ Initialize Firebase (re-use if already exists)
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+
+// ✅ Initialize Auth + Database
 const auth = getAuth(app);
 const database = getDatabase(app);
 
+// ✅ Ensure login persistence across reloads
+setPersistence(auth, browserLocalPersistence).catch((err) =>
+  console.warn("⚠️ Auth persistence error:", err)
+);
+
+// 🌍 Make available globally for debugging & other scripts
+window.firebaseApp = app;
+window.auth = auth;
+window.database = database;
+
 // ✅ Export for use in login/signup/dashboard
 export { app, auth, database };
+
+console.log("✅ Firebase initialized successfully for BePeace.");
