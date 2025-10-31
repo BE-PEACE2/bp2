@@ -10,9 +10,12 @@ const upcomingList = document.getElementById("upcomingList");
 const pastList = document.getElementById("pastList");
 
 let refreshTimer = null;
+let hasInitialized = false;
 
-onAuthStateChanged(auth, (user) => {
+function startForUser(user) {
+  if (hasInitialized) return;
   if (!user) return (window.location.href = "login.html");
+  hasInitialized = true;
 
   const name = user.displayName || (user.email ? user.email.split("@")[0] : "");
   if (greeting) greeting.textContent = `Hello ${name.toUpperCase()} 👋`;
@@ -25,7 +28,13 @@ onAuthStateChanged(auth, (user) => {
       if (auth.currentUser) loadBookings(auth.currentUser.email);
     }, 60000);
   }
-});
+}
+
+// Initialize immediately if user is already available, else wait for auth state
+if (auth.currentUser) {
+  startForUser(auth.currentUser);
+}
+onAuthStateChanged(auth, (user) => startForUser(user));
 
 window.addEventListener("beforeunload", () => {
   if (refreshTimer) clearInterval(refreshTimer);
