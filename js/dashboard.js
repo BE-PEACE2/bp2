@@ -2,7 +2,7 @@
 
 import { auth, database } from "./firebase-init.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
-import { ref, get } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+import { ref, get, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
 const greeting = document.getElementById("greeting");
 const todayList = document.getElementById("todayList");
@@ -11,6 +11,7 @@ const pastList = document.getElementById("pastList");
 
 let refreshTimer = null;
 let hasInitialized = false;
+let unsubscribeBookings = null;
 
 function startForUser(user) {
   if (hasInitialized) return;
@@ -20,14 +21,8 @@ function startForUser(user) {
   const name = user.displayName || (user.email ? user.email.split("@")[0] : "");
   if (greeting) greeting.textContent = `Hello ${name.toUpperCase()} 👋`;
 
-  console.log(`📥 Fetching bookings for: ${user.email}`);
-  loadBookings(user.email);
-
-  if (!refreshTimer) {
-    refreshTimer = setInterval(() => {
-      if (auth.currentUser) loadBookings(auth.currentUser.email);
-    }, 60000);
-  }
+  console.log(`📥 Subscribing to bookings for: ${user.email}`);
+  subscribeToBookings(user.email);
 }
 
 // Initialize immediately if user is already available, else wait for auth state
@@ -38,6 +33,7 @@ onAuthStateChanged(auth, (user) => startForUser(user));
 
 window.addEventListener("beforeunload", () => {
   if (refreshTimer) clearInterval(refreshTimer);
+  if (typeof unsubscribeBookings === "function") unsubscribeBookings();
 });
 
 // 🕒 Parse date and slot
@@ -165,6 +161,80 @@ async function loadBookings(email) {
     console.error("❌ Error loading bookings:", err);
     if (todayList) todayList.textContent = "Error fetching consultations.";
   }
+}
+
+// 🔔 Realtime subscription for bookings
+function subscribeToBookings(email) {
+  if (typeof unsubscribeBookings === "function") unsubscribeBookings();
+  const bookingsRef = ref(database, "bookings");
+  unsubscribeBookings = onValue(bookingsRef, (snap) => {
+    try {
+      if (!snap.exists()) {
+        if (todayList) todayList.textContent = "No consultations yet.";
+        if (upcomingList) upcomingList.innerHTML = `<div class="small-muted">No consultations yet.</div>`;
+        if (pastList) pastList.innerHTML = `<div class=\"small-muted\">No consultations yet.</div>`;
+        return;
+      }
+
+      const data = snap.val();
+
+      const collectBookings = (root) => {
+        const result = [];
+        const stack = [root];
+        while (stack.length) {
+          const node = stack.pop();
+          if (!node) continue;
+          if (Array.isArray(node)) {
+            for (const item of node) stack.push(item);
+          } else if (typeof node === "object") {
+            if (extractBookingEmail(node)) {
+              result.push(node);
+            } else {
+              for (const k in node) stack.push(node[k]);
+            }
+          }
+        }
+        return result;
+      };
+
+      const flattened = collectBookings(data);
+      const allBookings = flattened.filter((b) => {
+        const be = extractBookingEmail(b);
+        return be && be.toLowerCase() === email.toLowerCase();
+      });
+
+      const now = new Date();
+      const today = [];
+      const upcoming = [];
+      const past = [];
+
+      for (const b of allBookings) {
+        const bookingTime = parseBookingDateTime(b.date, b.slot);
+        if (!bookingTime || isNaN(bookingTime)) continue;
+
+        const bookingDate = new Date(bookingTime.getFullYear(), bookingTime.getMonth(), bookingTime.getDate());
+        const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        if (bookingDate.getTime() === todayDate.getTime()) {
+          bookingTime >= now ? today.push(b) : past.push(b);
+        } else if (bookingTime > now) {
+          upcoming.push(b);
+        } else {
+          past.push(b);
+        }
+      }
+
+      const sortByTime = (arr) =>
+        arr.sort((a, b) => parseBookingDateTime(a.date, a.slot) - parseBookingDateTime(b.date, b.slot));
+
+      renderList(todayList, sortByTime(today), true);
+      renderList(upcomingList, sortByTime(upcoming), true);
+      renderList(pastList, sortByTime(past), false);
+    } catch (e) {
+      console.error("❌ Error rendering realtime bookings:", e);
+      if (todayList) todayList.textContent = "Error fetching consultations.";
+    }
+  });
 }
 
 // 💬 Render lists
