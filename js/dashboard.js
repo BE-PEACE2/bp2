@@ -233,6 +233,11 @@ function subscribeToBookings(email) {
       renderList(todayList, sortByTime(today), true);
       renderList(upcomingList, sortByTime(upcoming), true);
       renderList(pastList, sortByTime(past), false);
+
+      // 🌸 Update sidebar badges dynamically
+     document.getElementById("countToday").textContent = today.length;
+     document.getElementById("countUpcoming").textContent = upcoming.length;
+     document.getElementById("countPast").textContent = past.length;
     } catch (e) {
       console.error("❌ Error rendering realtime bookings:", e);
       if (todayList) todayList.textContent = "Error fetching consultations.";
