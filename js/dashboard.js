@@ -60,12 +60,37 @@ async function loadBookings(email) {
   try {
     const snap = await get(ref(database, "bookings"));
     if (!snap.exists()) {
-      todayList.textContent = "No consultations found.";
+      if (todayList) todayList.textContent = "No consultations yet.";
+      if (upcomingList) upcomingList.innerHTML = `<div class="small-muted">No consultations yet.</div>`;
+      if (pastList) pastList.innerHTML = `<div class="small-muted">No consultations yet.</div>`;
       return;
     }
 
     const data = snap.val();
-    const allBookings = Object.values(data).filter(
+
+    // Flatten any nested structure and collect leaf nodes that look like bookings
+    const collectBookings = (root) => {
+      const result = [];
+      const stack = [root];
+      while (stack.length) {
+        const node = stack.pop();
+        if (!node) continue;
+        if (Array.isArray(node)) {
+          for (const item of node) stack.push(item);
+        } else if (typeof node === "object") {
+          // Heuristic: treat as booking if it has an email field
+          if (node.email) {
+            result.push(node);
+          } else {
+            for (const k in node) stack.push(node[k]);
+          }
+        }
+      }
+      return result;
+    };
+
+    const flattened = collectBookings(data);
+    const allBookings = flattened.filter(
       (b) => b && b.email && b.email.toLowerCase() === email.toLowerCase()
     );
 
