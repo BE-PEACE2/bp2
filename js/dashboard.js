@@ -1,8 +1,8 @@
 // ==================== dashboard.js (Stable Clean Build) ====================
 
 import { auth, database } from "./firebase-init.js";
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-import { ref, get } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+import { ref, get } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
 const greeting = document.getElementById("greeting");
 const todayList = document.getElementById("todayList");
@@ -60,7 +60,7 @@ async function loadBookings(email) {
       return;
     }
 
-    const data = snap.toJSON();
+    const data = snap.val();
     const allBookings = Object.values(data).filter(
       (b) => b && b.email && b.email.toLowerCase() === email.toLowerCase()
     );
