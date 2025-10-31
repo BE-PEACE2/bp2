@@ -75,6 +75,10 @@ function parseBookingDateTime(date, slot) {
 
 // Extract email from various possible shapes
 function extractBookingEmail(b) {
+  // Debug once in a while, not for every item
+  if (b?.email || b?.userEmail || b?.user?.email || b?.contact?.email) {
+    console.log("📧 Booking detected with email:", b?.email || b?.userEmail || b?.user?.email || b?.contact?.email);
+  }
   return (
     b?.email ||
     b?.userEmail ||
