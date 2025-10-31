@@ -1,20 +1,9 @@
-// ==================== dashboard.js (Final Optimized Production Build) ====================
+// ==================== dashboard.js (Stable Clean Build) ====================
 
-// Import Firebase
 import { auth, database } from "./firebase-init.js";
-import {
-  onAuthStateChanged,
-  signOut,
-} from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-import {
-  ref,
-  get,
-  query,
-  orderByChild,
-  equalTo,
-} from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+import { ref, get } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
 
-// DOM elements
 const greeting = document.getElementById("greeting");
 const todayList = document.getElementById("todayList");
 const upcomingList = document.getElementById("upcomingList");
@@ -22,12 +11,8 @@ const pastList = document.getElementById("pastList");
 
 let refreshTimer = null;
 
-// ================== AUTH WATCH ==================
 onAuthStateChanged(auth, (user) => {
-  if (!user) {
-    window.location.href = "login.html";
-    return;
-  }
+  if (!user) return (window.location.href = "login.html");
 
   const name = user.displayName || user.email.split("@")[0];
   greeting.textContent = `Hello ${name.toUpperCase()} 👋`;
@@ -35,7 +20,6 @@ onAuthStateChanged(auth, (user) => {
   console.log(`📥 Fetching bookings for: ${user.email}`);
   loadBookings(user.email);
 
-  // Auto-refresh every 1 minute
   if (!refreshTimer) {
     refreshTimer = setInterval(() => {
       if (auth.currentUser) loadBookings(auth.currentUser.email);
@@ -43,25 +27,19 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-// ================== DATE PARSER ==================
-function parseBookingDateTime(datePart, slot) {
-  if (!datePart) return new Date();
+// 🕒 Parse date and slot
+function parseBookingDateTime(date, slot) {
+  if (!date) return new Date();
 
-  const sp = String(slot || "12:00 AM").trim().toUpperCase();
-  let [y, m, d] = [0, 0, 0];
-  const parts = datePart.split(/[-/]/).map(Number);
-
-  if (parts[0] > 1900) [y, m, d] = parts;
-  else if (parts[2] > 1900) [d, m, y] = parts;
-  else return new Date(datePart + " " + sp);
-
+  const [y, m, d] = date.split("-").map(Number);
+  const match = slot?.match(/(\d{1,2})(?::(\d{2}))?\s*([AP]M)?/i);
   let hour = 0,
     minute = 0;
-  const match = sp.match(/(\d{1,2})(?::(\d{2}))?\s*([AP]M)?/);
+
   if (match) {
-    hour = parseInt(match[1], 10);
-    minute = match[2] ? parseInt(match[2], 10) : 0;
-    const ampm = match[3];
+    hour = parseInt(match[1]);
+    minute = match[2] ? parseInt(match[2]) : 0;
+    const ampm = match[3]?.toUpperCase();
     if (ampm === "PM" && hour < 12) hour += 12;
     if (ampm === "AM" && hour === 12) hour = 0;
   }
@@ -69,74 +47,60 @@ function parseBookingDateTime(datePart, slot) {
   return new Date(y, m - 1, d, hour, minute);
 }
 
-// ================== LOAD BOOKINGS (Optimized) ==================
+// 🧠 Fetch all bookings
 async function loadBookings(email) {
-  const startTime = performance.now();
   todayList.textContent = "Loading consultations...";
   upcomingList.textContent = "";
   pastList.textContent = "";
 
   try {
-    // 🎯 Fetch only the bookings of the logged-in user
-    const bookingsRef = ref(database, "bookings");
-    const userQuery = query(bookingsRef, orderByChild("email"), equalTo(email));
-    const snapshot = await get(userQuery);
-
-    if (!snapshot.exists()) {
+    const snap = await get(ref(database, "bookings"));
+    if (!snap.exists()) {
       todayList.textContent = "No consultations found.";
       return;
     }
 
-    // ✅ Convert snapshot safely into plain JSON
-    const userBookings = Object.values(snapshot.val());
-    const duration = (performance.now() - startTime).toFixed(2);
-    console.log(`✅ Found ${userBookings.length} bookings for ${email} in ${duration}ms`);
+    const data = snap.toJSON();
+    const allBookings = Object.values(data).filter(
+      (b) => b && b.email && b.email.toLowerCase() === email.toLowerCase()
+    );
 
-    // Categorize bookings
+    console.log(`✅ Found ${allBookings.length} bookings for ${email}`);
+
     const now = new Date();
-    const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const today = [],
       upcoming = [],
       past = [];
 
-    userBookings.forEach((b) => {
-      try {
-        const bookingDateTime = parseBookingDateTime(b.date, b.slot);
-        const bookingDate = new Date(
-          bookingDateTime.getFullYear(),
-          bookingDateTime.getMonth(),
-          bookingDateTime.getDate()
-        );
+    for (const b of allBookings) {
+      const bookingTime = parseBookingDateTime(b.date, b.slot);
+      if (!bookingTime || isNaN(bookingTime)) continue;
 
-        if (bookingDate.getTime() === todayDate.getTime()) {
-          bookingDateTime >= now ? today.push(b) : past.push(b);
-        } else if (bookingDateTime > now) {
-          upcoming.push(b);
-        } else {
-          past.push(b);
-        }
-      } catch (err) {
-        console.warn("⚠️ Skipping invalid booking:", b);
+      const bookingDate = new Date(bookingTime.getFullYear(), bookingTime.getMonth(), bookingTime.getDate());
+      const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      if (bookingDate.getTime() === todayDate.getTime()) {
+        bookingTime >= now ? today.push(b) : past.push(b);
+      } else if (bookingTime > now) {
+        upcoming.push(b);
+      } else {
+        past.push(b);
       }
-    });
+    }
 
-    const sortByDate = (arr) =>
-      arr.sort(
-        (a, b) =>
-          parseBookingDateTime(a.date, a.slot) -
-          parseBookingDateTime(b.date, b.slot)
-      );
+    const sortByTime = (arr) =>
+      arr.sort((a, b) => parseBookingDateTime(a.date, a.slot) - parseBookingDateTime(b.date, b.slot));
 
-    renderList(todayList, sortByDate(today), true);
-    renderList(upcomingList, sortByDate(upcoming), true);
-    renderList(pastList, sortByDate(past), false);
-  } catch (error) {
-    console.error("❌ Error fetching bookings:", error);
-    todayList.textContent = "Unable to load consultations.";
+    renderList(todayList, sortByTime(today), true);
+    renderList(upcomingList, sortByTime(upcoming), true);
+    renderList(pastList, sortByTime(past), false);
+  } catch (err) {
+    console.error("❌ Error loading bookings:", err);
+    todayList.textContent = "Error fetching consultations.";
   }
 }
 
-// ================== RENDER BOOKINGS ==================
+// 💬 Render lists
 function renderList(container, list, isUpcoming) {
   container.innerHTML = "";
   if (!list.length) {
@@ -145,57 +109,43 @@ function renderList(container, list, isUpcoming) {
   }
 
   const now = new Date();
-
   list.forEach((b) => {
-    try {
-      const div = document.createElement("div");
-      div.className = "appointment";
+    const bookingTime = parseBookingDateTime(b.date, b.slot);
+    const minutesUntil = (bookingTime - now) / 60000;
+    const isSameDay = bookingTime.toDateString() === now.toDateString();
+    const canJoin = isSameDay && minutesUntil <= 10 && minutesUntil > -60;
 
-      const bookingTime = parseBookingDateTime(b.date, b.slot);
-      const minutesUntil = (bookingTime - now) / 60000;
+    let statusText =
+      !isSameDay && bookingTime < now
+        ? "🔴 Completed"
+        : canJoin
+        ? "✅ Live now"
+        : bookingTime > now
+        ? `⏳ Starts in ${Math.floor(minutesUntil)} min`
+        : "🔴 Completed";
 
-      // ✅ “Live now” only for today’s date
-      const isSameDay = bookingTime.toDateString() === now.toDateString();
-      const canJoin = isSameDay && minutesUntil <= 10 && minutesUntil > -60;
-
-      let statusText;
-      if (!isSameDay && bookingTime < now) {
-        statusText = "🔴 Completed";
-      } else if (canJoin) {
-        statusText = "✅ Live now";
-      } else if (bookingTime > now) {
-        statusText = `⏳ Starts in ${Math.floor(minutesUntil)} min`;
-      } else {
-        statusText = "🔴 Completed";
+    const div = document.createElement("div");
+    div.className = "appointment";
+    div.innerHTML = `
+      <div>
+        <strong>${b.name || "Consultation"}</strong><br>
+        ${b.date} • ${b.slot}<br>
+        <span class="status">${b.status || "confirmed"}</span><br>
+        <span class="countdown">${statusText}</span>
+      </div>
+      ${
+        isUpcoming && canJoin
+          ? `<button class="join-btn live" onclick="window.open('https://meet.bepeace.in/bepeace-${b.order_id}','_blank')">Join</button>`
+          : isUpcoming
+          ? `<button class="join-btn disabled" disabled>Join (10 min before)</button>`
+          : ""
       }
-
-      div.innerHTML = `
-        <div>
-          <strong>${b.name || "Consultation"}</strong><br>
-          ${b.date} • ${b.slot}<br>
-          <span class="status">${b.status || "confirmed"}</span><br>
-          <span class="countdown">${statusText}</span>
-        </div>
-        ${
-          isUpcoming && canJoin
-            ? `<button class="join-btn live" onclick="window.open('https://meet.bepeace.in/bepeace-${b.order_id}','_blank')">Join</button>`
-            : isUpcoming
-            ? `<button class="join-btn disabled" disabled>Join (available 10 min before)</button>`
-            : ""
-        }
-      `;
-      container.append(div);
-    } catch (err) {
-      console.warn("⚠️ Error rendering booking:", err);
-    }
+    `;
+    container.append(div);
   });
 }
 
-// ================== MENU + LOGOUT ==================
-window.toggleMenu = () => {
-  document.getElementById("sideMenu").classList.toggle("show");
-};
-
+window.toggleMenu = () => document.getElementById("sideMenu").classList.toggle("show");
 window.logout = async () => {
   await signOut(auth);
   window.location.href = "login.html";
