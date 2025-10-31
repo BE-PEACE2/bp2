@@ -44,7 +44,24 @@ window.addEventListener("beforeunload", () => {
 function parseBookingDateTime(date, slot) {
   if (!date) return new Date();
 
-  const [y, m, d] = date.split("-").map(Number);
+  // Support ISO date, YYYY-MM-DD, and DD-MM-YYYY / DD/MM/YYYY
+  let y, m, d;
+  if (typeof date === "string" && date.includes("T")) {
+    const iso = new Date(date);
+    if (!isNaN(iso)) {
+      y = iso.getFullYear();
+      m = iso.getMonth() + 1;
+      d = iso.getDate();
+    }
+  } else if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    [y, m, d] = date.split("-").map(Number);
+  } else if (/^\d{2}[\/-]\d{2}[\/-]\d{4}$/.test(date)) {
+    const parts = date.split(/[\/-]/).map(Number);
+    d = parts[0];
+    m = parts[1];
+    y = parts[2];
+  }
+
   const match = slot?.match(/(\d{1,2})(?::(\d{2}))?\s*([AP]M)?/i);
   let hour = 0,
     minute = 0;
@@ -58,6 +75,17 @@ function parseBookingDateTime(date, slot) {
   }
 
   return new Date(y, m - 1, d, hour, minute);
+}
+
+// Extract email from various possible shapes
+function extractBookingEmail(b) {
+  return (
+    b?.email ||
+    b?.userEmail ||
+    b?.user?.email ||
+    b?.contact?.email ||
+    null
+  );
 }
 
 // 🧠 Fetch all bookings
@@ -87,8 +115,8 @@ async function loadBookings(email) {
         if (Array.isArray(node)) {
           for (const item of node) stack.push(item);
         } else if (typeof node === "object") {
-          // Heuristic: treat as booking if it has an email field
-          if (node.email) {
+          // Heuristic: treat as booking if it exposes an email field in known locations
+          if (extractBookingEmail(node)) {
             result.push(node);
           } else {
             for (const k in node) stack.push(node[k]);
@@ -99,9 +127,10 @@ async function loadBookings(email) {
     };
 
     const flattened = collectBookings(data);
-    const allBookings = flattened.filter(
-      (b) => b && b.email && b.email.toLowerCase() === email.toLowerCase()
-    );
+    const allBookings = flattened.filter((b) => {
+      const be = extractBookingEmail(b);
+      return be && be.toLowerCase() === email.toLowerCase();
+    });
 
     console.log(`✅ Found ${allBookings.length} bookings for ${email}`);
 
