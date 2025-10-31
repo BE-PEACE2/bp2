@@ -14,8 +14,8 @@ let refreshTimer = null;
 onAuthStateChanged(auth, (user) => {
   if (!user) return (window.location.href = "login.html");
 
-  const name = user.displayName || user.email.split("@")[0];
-  greeting.textContent = `Hello ${name.toUpperCase()} 👋`;
+  const name = user.displayName || (user.email ? user.email.split("@")[0] : "");
+  if (greeting) greeting.textContent = `Hello ${name.toUpperCase()} 👋`;
 
   console.log(`📥 Fetching bookings for: ${user.email}`);
   loadBookings(user.email);
@@ -25,6 +25,10 @@ onAuthStateChanged(auth, (user) => {
       if (auth.currentUser) loadBookings(auth.currentUser.email);
     }, 60000);
   }
+});
+
+window.addEventListener("beforeunload", () => {
+  if (refreshTimer) clearInterval(refreshTimer);
 });
 
 // 🕒 Parse date and slot
@@ -49,9 +53,9 @@ function parseBookingDateTime(date, slot) {
 
 // 🧠 Fetch all bookings
 async function loadBookings(email) {
-  todayList.textContent = "Loading consultations...";
-  upcomingList.textContent = "";
-  pastList.textContent = "";
+  if (todayList) todayList.textContent = "Loading consultations...";
+  if (upcomingList) upcomingList.textContent = "";
+  if (pastList) pastList.textContent = "";
 
   try {
     const snap = await get(ref(database, "bookings"));
@@ -68,9 +72,9 @@ async function loadBookings(email) {
     console.log(`✅ Found ${allBookings.length} bookings for ${email}`);
 
     const now = new Date();
-    const today = [],
-      upcoming = [],
-      past = [];
+    const today = [];
+    const upcoming = [];
+    const past = [];
 
     for (const b of allBookings) {
       const bookingTime = parseBookingDateTime(b.date, b.slot);
@@ -96,53 +100,62 @@ async function loadBookings(email) {
     renderList(pastList, sortByTime(past), false);
   } catch (err) {
     console.error("❌ Error loading bookings:", err);
-    todayList.textContent = "Error fetching consultations.";
+    if (todayList) todayList.textContent = "Error fetching consultations.";
   }
 }
 
 // 💬 Render lists
 function renderList(container, list, isUpcoming) {
-  container.innerHTML = "";
-  if (!list.length) {
+  if (!container) return;
+
+  if (!Array.isArray(list) || list.length === 0) {
     container.innerHTML = `<div class="small-muted">No consultations yet.</div>`;
     return;
   }
 
+  const fragment = document.createDocumentFragment();
   const now = new Date();
-  list.forEach((b) => {
-    const bookingTime = parseBookingDateTime(b.date, b.slot);
+
+  for (const booking of list) {
+    const bookingTime = parseBookingDateTime(booking.date, booking.slot);
+    if (!bookingTime || isNaN(bookingTime)) continue;
+
     const minutesUntil = (bookingTime - now) / 60000;
     const isSameDay = bookingTime.toDateString() === now.toDateString();
     const canJoin = isSameDay && minutesUntil <= 10 && minutesUntil > -60;
 
-    let statusText =
-      !isSameDay && bookingTime < now
-        ? "🔴 Completed"
-        : canJoin
-        ? "✅ Live now"
-        : bookingTime > now
-        ? `⏳ Starts in ${Math.floor(minutesUntil)} min`
-        : "🔴 Completed";
+    let statusText = "";
+    if (!isSameDay && bookingTime < now) {
+      statusText = "🔴 Completed";
+    } else if (canJoin) {
+      statusText = "✅ Live now";
+    } else if (bookingTime > now && isFinite(minutesUntil)) {
+      statusText = `⏳ Starts in ${Math.max(0, Math.floor(minutesUntil))} min`;
+    } else {
+      statusText = "🔴 Completed";
+    }
 
-    const div = document.createElement("div");
-    div.className = "appointment";
-    div.innerHTML = `
+    const row = document.createElement("div");
+    row.className = "appointment";
+    row.innerHTML = `
       <div>
-        <strong>${b.name || "Consultation"}</strong><br>
-        ${b.date} • ${b.slot}<br>
-        <span class="status">${b.status || "confirmed"}</span><br>
+        <strong>${booking.name || "Consultation"}</strong><br>
+        ${booking.date || ""} • ${booking.slot || ""}<br>
+        <span class="status">${booking.status || "confirmed"}</span><br>
         <span class="countdown">${statusText}</span>
       </div>
       ${
         isUpcoming && canJoin
-          ? `<button class="join-btn live" onclick="window.open('https://meet.bepeace.in/bepeace-${b.order_id}','_blank')">Join</button>`
+          ? `<button class="join-btn live" onclick="window.open('https://meet.bepeace.in/bepeace-${booking.order_id}','_blank')">Join</button>`
           : isUpcoming
           ? `<button class="join-btn disabled" disabled>Join (10 min before)</button>`
           : ""
       }
     `;
-    container.append(div);
-  });
+    fragment.appendChild(row);
+  }
+
+  container.replaceChildren(fragment);
 }
 
 window.toggleMenu = () => document.getElementById("sideMenu").classList.toggle("show");
