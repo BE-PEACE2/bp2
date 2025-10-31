@@ -177,6 +177,7 @@ function subscribeToBookings(email) {
       }
 
       const data = snap.val();
+      console.log("[db] bookings snapshot received");
 
       const collectBookings = (root) => {
         const result = [];
@@ -198,10 +199,12 @@ function subscribeToBookings(email) {
       };
 
       const flattened = collectBookings(data);
+      console.log("[db] flattened count:", flattened.length);
       const allBookings = flattened.filter((b) => {
         const be = extractBookingEmail(b);
         return be && be.toLowerCase() === email.toLowerCase();
       });
+      console.log("[db] matched for", email, "count:", allBookings.length);
 
       const now = new Date();
       const today = [];
@@ -234,6 +237,9 @@ function subscribeToBookings(email) {
       console.error("❌ Error rendering realtime bookings:", e);
       if (todayList) todayList.textContent = "Error fetching consultations.";
     }
+  }, (error) => {
+    console.error("❌ Realtime DB listener error:", error?.code || error);
+    if (todayList) todayList.textContent = "Error fetching consultations.";
   });
 }
 

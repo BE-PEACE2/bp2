@@ -320,7 +320,7 @@
   <!-- 🌿 FILTER & LABEL SCRIPT -->
   <script type="module">
     import { auth, database } from "./js/firebase-init.js";
-    import { ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
+    import { ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
     const todayBadge = document.getElementById("countToday");
     const upcomingBadge = document.getElementById("countUpcoming");
@@ -400,6 +400,7 @@
       const bookingsRef = ref(database, "bookings");
       onValue(bookingsRef, (snapshot) => {
         const data = snapshot.val() || {};
+        console.log("🔥 Raw Firebase data:", snapshot.val());
         const now = new Date();
         const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         let countToday = 0, countUpcoming = 0, countPast = 0;
@@ -432,5 +433,6 @@
       badge.addEventListener("dblclick", showAllSections);
     });
   </script>
+  <script type="module" src="js/dashboard.js"></script>
 </body>
 </html>
