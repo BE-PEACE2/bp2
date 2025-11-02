@@ -75,6 +75,27 @@ footer h2:hover {
       z-index: 999;
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
+    .prescription-field {
+  margin-bottom: 8px;
+}
+.prescription-label {
+  font-weight: 600;
+  color: #c71585;
+  display: block;
+  margin-bottom: 2px;
+}
+.prescription-value {
+  background: #faf5f8;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #333;
+  transition: background 0.4s ease;
+}
+.prescription-value.updated {
+  background: #fff0f6;
+}
+
   </style>
 </head>
 <body>
@@ -155,7 +176,7 @@ footer h2:hover {
     if (role === "doctor") {
       // 👨‍⚕️ Doctor: editable + auto-save on call end
       openBtn.style.display = "block";
-      box.style.display = "block";
+      box.style.display = "none";
 
       const updateLive = () => {
         set(liveRef, {
@@ -196,40 +217,55 @@ api.addEventListener("readyToClose", async () => {
   }
 
   alert("✅ Consultation ended. Prescription saved with signature.");
-  window.location.href = "/thank-you.html";
-      });
+  window.location.href = "/doctor-dashboard.html?tab=prescriptions";
+});
     } else {
       // 👩‍🦰 Patient: live read-only
-      openBtn.style.display = "none";
-      box.style.display = "block";
-      box.innerHTML = `
-        <h4>💊 Live Prescription</h4>
-        <div class="prescription-field">
-          <span class="prescription-label">Diagnosis:</span>
-          <div id="liveDiagnosis" class="prescription-value">Waiting...</div>
-        </div>
-        <div class="prescription-field">
-          <span class="prescription-label">Medicines:</span>
-          <div id="liveMedicines" class="prescription-value">–</div>
-        </div>
-        <div class="prescription-field">
-          <span class="prescription-label">Advice:</span>
-          <div id="liveAdvice" class="prescription-value">–</div>
-        </div>
-        <p style="font-size:12px;text-align:center;color:#999;">Auto-updating 🩺</p>
-      `;
+openBtn.style.display = "none";
+box.style.display = "block";
+box.innerHTML = `
+  <h4>💊 Live Prescription</h4>
+  <div class="prescription-field">
+    <span class="prescription-label">Diagnosis:</span>
+    <div id="liveDiagnosis" class="prescription-value">Waiting...</div>
+  </div>
+  <div class="prescription-field">
+    <span class="prescription-label">Medicines:</span>
+    <div id="liveMedicines" class="prescription-value">–</div>
+  </div>
+  <div class="prescription-field">
+    <span class="prescription-label">Advice:</span>
+    <div id="liveAdvice" class="prescription-value">–</div>
+  </div>
+  <p style="font-size:12px;text-align:center;color:#999;">Auto-updating 🩺</p>
+`;
 
-      const liveDiagnosis = document.getElementById("liveDiagnosis");
-      const liveMedicines = document.getElementById("liveMedicines");
-      const liveAdvice = document.getElementById("liveAdvice");
+// 🩺 Define references *after* creating innerHTML
+const liveDiagnosis = document.getElementById("liveDiagnosis");
+const liveMedicines = document.getElementById("liveMedicines");
+const liveAdvice = document.getElementById("liveAdvice");
 
-      onValue(liveRef, (snapshot) => {
-        const data = snapshot.val() || {};
-        liveDiagnosis.textContent = data.diagnosis || "Waiting...";
-        liveMedicines.textContent = data.medicines || "–";
-        liveAdvice.textContent = data.advice || "–";
-      });
+// ✨ Live calm animation
+onValue(liveRef, (snapshot) => {
+  const data = snapshot.val() || {};
+
+  [liveDiagnosis, liveMedicines, liveAdvice].forEach((el) => el.classList.remove("updated"));
+  
+  setTimeout(() => {
+    liveDiagnosis.textContent = data.diagnosis || "Waiting...";
+    liveMedicines.textContent = data.medicines || "–";
+    liveAdvice.textContent = data.advice || "–";
+
+    [liveDiagnosis, liveMedicines, liveAdvice].forEach((el) => el.classList.add("updated"));
+  }, 100);
+});
     }
+
+    // 🌸 When patient meeting ends
+api.addEventListener("readyToClose", () => {
+  alert("🌸 Your consultation has ended. You can view your prescription in the dashboard.");
+  window.location.href = "/dashboard.html?tab=prescriptions";
+});
 
     openBtn.onclick = () => {
       box.style.display = box.style.display === "none" ? "block" : "none";

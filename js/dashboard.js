@@ -279,10 +279,10 @@ function renderList(container, list, isUpcoming) {
       </div>
       ${
         isUpcoming && canJoin
-          ? `<button class="join-btn live" onclick="window.open('https://meet.bepeace.in/bepeace-${booking.order_id}','_blank')">Join</button>`
-          : isUpcoming
-          ? `<button class="join-btn disabled" disabled>Join (10 min before)</button>`
-          : ""
+         ? `<button class="join-btn live" onclick="joinConsultation('${booking.order_id}', '${booking.bookingId || ""}', '${booking.doctorId || ""}')">Join</button>`
+         : isUpcoming
+         ? `<button class="join-btn disabled" disabled>Join (10 min before)</button>`
+         : ""
       }
     `;
     fragment.appendChild(row);
@@ -290,6 +290,26 @@ function renderList(container, list, isUpcoming) {
 
   container.replaceChildren(fragment);
 }
+
+// 🌿 Calm BePeace consultation room link
+window.joinConsultation = function (roomId, bookingId, doctorId) {
+  const user = auth.currentUser;
+  if (!user) {
+    alert("Please log in again to continue.");
+    return;
+  }
+
+  const uid = user.uid;
+  const url = new URL(window.location.origin + "/consultation-room.html");
+  url.searchParams.set("room", roomId);
+  url.searchParams.set("bookingId", bookingId);
+  url.searchParams.set("doctorId", doctorId);
+  url.searchParams.set("role", "patient");
+  url.searchParams.set("uid", uid);
+
+  // 🌸 Redirect to calm consultation room
+  window.location.href = url.toString();
+};
 
 window.toggleMenu = () => document.getElementById("sideMenu").classList.toggle("show");
 window.logout = async () => {
