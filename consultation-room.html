@@ -116,102 +116,123 @@ footer h2:hover {
   <script src="https://meet.bepeace.in/external_api.js"></script>
   
   <script type="module">
-    import { auth, database } from "/js/firebase-init.js";
-    import { ref, push } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
-    
-    // ✅ Read parameters from URL
+    import { database } from "/js/firebase-init.js";
+    import { ref, set, push, onValue } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
+
     const urlParams = new URLSearchParams(window.location.search);
     const roomName = urlParams.get("room") || "BePeaceConsultation";
+    const role = urlParams.get("role") || "patient";
+    const name = urlParams.get("name") || "User";
     const orderId = urlParams.get("orderId") || "manual";
-    const patientUid = urlParams.get("uid") || ""; // from booking if passed
-    const name = urlParams.get("name") || "Patient";
+    const patientUid = urlParams.get("uid") || ""; // if known
 
-    console.log("Joining Room:", roomName, "as", name, "Order:", orderId);
+    console.log("Joining Room:", roomName, "as", role);
 
-    // ✅ Embed Jitsi directly (skip second page)
+    // ✅ Jitsi setup
     const domain = "meet.bepeace.in";
     const options = {
-      roomName: roomName,
+      roomName,
       width: "100%",
       height: "100%",
       parentNode: document.querySelector("#meet"),
       userInfo: { displayName: name },
-      configOverwrite: {
-        prejoinPageEnabled: false, // 👈 Skips the second screen
-        disableDeepLinking: true,
-        startWithAudioMuted: false,
-        startWithVideoMuted: false,
-        disableInviteFunctions: true,
-      },
+      configOverwrite: { prejoinPageEnabled: false },
       interfaceConfigOverwrite: {
         SHOW_JITSI_WATERMARK: false,
-        SHOW_BRAND_WATERMARK: false,
-        SHOW_WATERMARK_FOR_GUESTS: false,
-        TOOLBAR_BUTTONS: [
-          'microphone', 'camera', 'chat', 'desktop', 'hangup', 'tileview'
-        ],
+        TOOLBAR_BUTTONS: ["microphone", "camera", "chat", "desktop", "hangup", "tileview"]
       }
     };
-
     const api = new JitsiMeetExternalAPI(domain, options);
 
-    // ✅ When the doctor or patient ends the call
-    api.addEventListener("readyToClose", async () => {
-      if (orderId) {
-        await fetch("/api/waiting?path=end", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId })
-        });
-      }
-      alert("Consultation ended. Thank you for using BE PEACE.");
-      window.location.href = "/thank-you.html";
-    });
-
-    // 💊 Prescription Logic
-    const openBtn = document.getElementById("openPrescBtn");
+    // Firebase live reference
+    const liveRef = ref(database, `livePrescription/${roomName}`);
     const box = document.getElementById("prescriptionBox");
-    const saveBtn = document.getElementById("savePrescBtn");
+    const openBtn = document.getElementById("openPrescBtn");
+    const diagnosisEl = document.getElementById("diagnosis");
+    const medicinesEl = document.getElementById("medicines");
+    const adviceEl = document.getElementById("advice");
+
+    if (role === "doctor") {
+      // 👨‍⚕️ Doctor: editable + auto-save on call end
+      openBtn.style.display = "block";
+      box.style.display = "block";
+
+      const updateLive = () => {
+        set(liveRef, {
+          diagnosis: diagnosisEl.value,
+          medicines: medicinesEl.value,
+          advice: adviceEl.value,
+          updatedAt: new Date().toISOString()
+        });
+      };
+      [diagnosisEl, medicinesEl, adviceEl].forEach(el => el.addEventListener("input", updateLive));
+
+      // ✅ Save final copy when call ends — now includes digital signature + date
+api.addEventListener("readyToClose", async () => {
+  const now = new Date();
+  const formattedDate = now.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  });
+
+  const finalData = {
+  doctorName: name,
+  patientName: urlParams.get("patientName") || "Patient",
+  patientAge: urlParams.get("patientAge") || "",
+  patientGender: urlParams.get("patientGender") || "",
+  diagnosis: diagnosisEl.value,
+  medicines: medicinesEl.value,
+  advice: adviceEl.value,
+  doctorSignature: `Digitally signed by ${name} (BE PEACE)`,
+  date: formattedDate,
+  orderId,
+  createdAt: now.toISOString()
+};
+
+  if (patientUid) {
+    const presRef = push(ref(database, `prescriptions/${patientUid}`));
+    await set(presRef, finalData);
+  }
+
+  alert("✅ Consultation ended. Prescription saved with signature.");
+  window.location.href = "/thank-you.html";
+      });
+    } else {
+      // 👩‍🦰 Patient: live read-only
+      openBtn.style.display = "none";
+      box.style.display = "block";
+      box.innerHTML = `
+        <h4>💊 Live Prescription</h4>
+        <div class="prescription-field">
+          <span class="prescription-label">Diagnosis:</span>
+          <div id="liveDiagnosis" class="prescription-value">Waiting...</div>
+        </div>
+        <div class="prescription-field">
+          <span class="prescription-label">Medicines:</span>
+          <div id="liveMedicines" class="prescription-value">–</div>
+        </div>
+        <div class="prescription-field">
+          <span class="prescription-label">Advice:</span>
+          <div id="liveAdvice" class="prescription-value">–</div>
+        </div>
+        <p style="font-size:12px;text-align:center;color:#999;">Auto-updating 🩺</p>
+      `;
+
+      const liveDiagnosis = document.getElementById("liveDiagnosis");
+      const liveMedicines = document.getElementById("liveMedicines");
+      const liveAdvice = document.getElementById("liveAdvice");
+
+      onValue(liveRef, (snapshot) => {
+        const data = snapshot.val() || {};
+        liveDiagnosis.textContent = data.diagnosis || "Waiting...";
+        liveMedicines.textContent = data.medicines || "–";
+        liveAdvice.textContent = data.advice || "–";
+      });
+    }
 
     openBtn.onclick = () => {
       box.style.display = box.style.display === "none" ? "block" : "none";
-    };
-
-    saveBtn.onclick = async () => {
-      const diagnosis = document.getElementById("diagnosis").value.trim();
-      const medicines = document.getElementById("medicines").value.trim();
-      const advice = document.getElementById("advice").value.trim();
-
-      if (!diagnosis || !medicines) {
-        alert("Please fill diagnosis and medicines.");
-        return;
-      }
-
-      const user = auth.currentUser;
-      if (!user) {
-        alert("Please log in again.");
-        return;
-      }
-
-      const path = patientUid
-        ? `prescriptions/${patientUid}/${orderId}`
-        : `prescriptions/${user.uid}/${orderId}`;
-
-      await push(ref(database, path), {
-        doctorUid: user.uid,
-        doctorName: user.displayName || "Dr. Unknown",
-        diagnosis,
-        medicines,
-        advice,
-        orderId,
-        createdAt: new Date().toISOString(),
-      });
-
-      alert("✅ Prescription saved successfully!");
-      box.style.display = "none";
-      document.getElementById("diagnosis").value = "";
-      document.getElementById("medicines").value = "";
-      document.getElementById("advice").value = "";
     };
   </script>
 </body>
