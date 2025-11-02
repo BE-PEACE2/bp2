@@ -131,77 +131,97 @@
 
   <!-- Firebase Logic -->
   <script type="module">
-    import { auth, database } from '/js/firebase-init.js';
-    import { 
-      signInWithEmailAndPassword, 
-      GoogleAuthProvider, 
-      signInWithPopup, 
-      sendPasswordResetEmail 
-    } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
-    import { ref, set, get } 
-      from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+  import { auth, database } from '/js/firebase-init.js';
+  import { 
+    signInWithEmailAndPassword, 
+    GoogleAuthProvider, 
+    signInWithPopup, 
+    sendPasswordResetEmail 
+  } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+  import { ref, set, get } 
+    from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
-    const loginBtn = document.getElementById('loginBtn');
-    const googleLogin = document.getElementById('googleLogin');
-    const forgotPassword = document.getElementById('forgotPassword');
+  const loginBtn = document.getElementById('loginBtn');
+  const googleLogin = document.getElementById('googleLogin');
+  const forgotPassword = document.getElementById('forgotPassword');
 
-    // ===== Email + Password Login =====
-    loginBtn.addEventListener('click', async () => {
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value.trim();
+  // ===== Email + Password Login =====
+  loginBtn.addEventListener('click', async () => {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value.trim();
 
-      if (!email || !password) {
-        alert('Please enter email and password.');
-        return;
-      }
+    if (!email || !password) {
+      alert('Please enter email and password.');
+      return;
+    }
 
-      try {
-        await signInWithEmailAndPassword(auth, email, password);
-        alert('Login successful! Redirecting...');
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // 🔍 Fetch user role from Firebase Database
+      const userSnap = await get(ref(database, 'users/' + user.uid));
+      const userData = userSnap.val() || {};
+      const role = userData.role || "patient"; // Default to patient if not set
+
+      alert(`Welcome back, ${user.displayName || 'User'}!`);
+
+      if (role === "doctor") {
+        window.location.href = "/doctor-dashboard.html";
+      } else {
         window.location.href = "/dashboard.html";
-      } catch (error) {
-        alert("Error: " + error.message);
       }
-    });
+    } catch (error) {
+      console.error("❌ Login failed:", error.code, error.message);
+      alert("Login failed: " + error.message);
+    }
+  });
 
-    // ===== Google Login =====
-    googleLogin.addEventListener('click', async () => {
-      try {
-        const provider = new GoogleAuthProvider();
-        const result = await signInWithPopup(auth, provider);
-        const user = result.user;
+  // ===== Google Login =====
+  googleLogin.addEventListener('click', async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
 
-        // Save new users in database
-        const snapshot = await get(ref(database, 'users/' + user.uid));
-        if (!snapshot.exists()) {
-          await set(ref(database, 'users/' + user.uid), {
-            name: user.displayName || "Patient",
-            email: user.email,
-            createdAt: new Date().toISOString(),
-            provider: "google"
-          });
-        }
+      // Save or update user in database
+      const userRef = ref(database, 'users/' + user.uid);
+      const snapshot = await get(userRef);
+      if (!snapshot.exists()) {
+        await set(userRef, {
+          name: user.displayName || "Patient",
+          email: user.email,
+          role: "patient",
+          createdAt: new Date().toISOString(),
+          provider: "google"
+        });
+      }
 
-        alert(`Welcome back, ${user.displayName || 'User'}!`);
+      // Redirect based on role
+      const role = snapshot.val()?.role || "patient";
+      alert(`Welcome ${user.displayName || 'User'}!`);
+      if (role === "doctor") {
+        window.location.href = "/doctor-dashboard.html";
+      } else {
         window.location.href = "/dashboard.html";
-      } catch (error) {
-        alert("Google login failed: " + error.message);
       }
-    });
+    } catch (error) {
+      alert("Google login failed: " + error.message);
+    }
+  });
 
-    // ===== Forgot Password =====
-    forgotPassword.addEventListener('click', async (e) => {
-      e.preventDefault();
-      const email = prompt("Enter your registered email address:");
-      if (!email) return;
-      try {
-        await sendPasswordResetEmail(auth, email);
-        alert("Password reset link sent! Check your inbox.");
-      } catch (error) {
-        alert("Error: " + error.message);
-      }
-    });
-  </script>
-
+  // ===== Forgot Password =====
+  forgotPassword.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const email = prompt("Enter your registered email address:");
+    if (!email) return;
+    try {
+      await sendPasswordResetEmail(auth, email);
+      alert("Password reset link sent! Check your inbox.");
+    } catch (error) {
+      alert("Error: " + error.message);
+    }
+  });
+</script>
 </body>
 </html>
