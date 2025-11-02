@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Doctor Login | BE PEACE</title>
+  <link rel="stylesheet" href="/style.css" />
+  <script type="module" src="/js/firebase-init.js"></script>
+  <style>
+    body, html {
+      margin: 0;
+      height: 100%;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(180deg, #ffffff, #f7f7f7);
+    }
+    main {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 75vh;
+    }
+    .login-box {
+      background: #fff;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+    .login-box h2 {
+      color: #c71585;
+      margin-bottom: 20px;
+      letter-spacing: 0.5px;
+    }
+    .login-box input {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 15px;
+      outline: none;
+    }
+    .login-box button {
+      background: #c71585;
+      color: white;
+      padding: 12px;
+      width: 100%;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.3s ease;
+    }
+    .login-box button:hover {
+      background: #a2126d;
+    }
+    footer p {
+      text-align: center;
+      color: #999;
+      font-size: 14px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Dynamic Header -->
+  <div id="header"></div>
+
+  <!-- Main Doctor Login Box -->
+  <main>
+    <div class="login-box">
+      <h2>Doctor Login</h2>
+
+      <input type="email" id="email" placeholder="Doctor Email" required />
+      <input type="password" id="password" placeholder="Password" required />
+
+      <button id="loginBtn">Login</button>
+    </div>
+  </main>
+
+  <!-- Dynamic Footer -->
+  <div id="footer"></div>
+
+  <!-- Load header/footer automatically -->
+  <script src="/js/load-partials.js"></script>
+
+  <!-- Firebase Doctor Login Logic -->
+  <script type="module">
+    import { auth, database } from '/js/firebase-init.js';
+    import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    import { ref, get } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+
+    const loginBtn = document.getElementById('loginBtn');
+
+    loginBtn.addEventListener('click', async () => {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+
+      if (!email || !password) {
+        alert('Please enter your email and password.');
+        return;
+      }
+
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        const userSnap = await get(ref(database, 'users/' + user.uid));
+        const userData = userSnap.val();
+
+        if (!userData) {
+          alert("No user data found in database.");
+          return;
+        }
+
+        if (userData.role === "doctor") {
+          alert(`Welcome Doctor ${userData.name || 'User'}!`);
+          window.location.href = "/doctor-dashboard.html";
+        } else {
+          alert("Access denied: This login is for doctors only.");
+          await auth.signOut();
+        }
+      } catch (error) {
+        alert("Login failed: " + error.message);
+      }
+    });
+  </script>
+</body>
+</html>
