@@ -145,37 +145,49 @@
   const googleLogin = document.getElementById('googleLogin');
   const forgotPassword = document.getElementById('forgotPassword');
 
-  // ===== Email + Password Login =====
-  loginBtn.addEventListener('click', async () => {
-    const email = document.getElementById('email').value.trim();
-    const password = document.getElementById('password').value.trim();
+  // ===== Email + Password Login (with Doctor Whitelist) =====
+loginBtn.addEventListener('click', async () => {
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value.trim();
 
-    if (!email || !password) {
-      alert('Please enter email and password.');
-      return;
+  if (!email || !password) {
+    alert('Please enter email and password.');
+    return;
+  }
+
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    // 🌿 Whitelist for doctors
+    const doctorEmails = [
+      "drmaheshyadav010145@gmail.com" // your main doctor email
+    ];
+
+    let role = doctorEmails.includes(email.toLowerCase()) ? "doctor" : "patient";
+
+    // ✅ Save or update user role
+    const userRef = ref(database, 'users/' + user.uid);
+    const userSnap = await get(userRef);
+    if (!userSnap.exists()) {
+      await set(userRef, {
+        email,
+        role,
+        createdAt: new Date().toISOString(),
+        provider: "email"
+      });
     }
 
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+    alert(`Welcome back, ${role === 'doctor' ? 'Doctor' : 'Dear User'} 🌿`);
+    window.location.href = role === "doctor"
+      ? "/doctor-dashboard.html"
+      : "/dashboard.html";
 
-      // 🔍 Fetch user role from Firebase Database
-      const userSnap = await get(ref(database, 'users/' + user.uid));
-      const userData = userSnap.val() || {};
-      const role = userData.role || "patient"; // Default to patient if not set
-
-      alert(`Welcome back, ${user.displayName || 'User'}!`);
-
-      if (role === "doctor") {
-        window.location.href = "/doctor-dashboard.html";
-      } else {
-        window.location.href = "/dashboard.html";
-      }
-    } catch (error) {
-      console.error("❌ Login failed:", error.code, error.message);
-      alert("Login failed: " + error.message);
-    }
-  });
+  } catch (error) {
+    console.error("❌ Login failed:", error);
+    alert("Login failed: " + error.message);
+  }
+});
 
   // ===== Google Login =====
   googleLogin.addEventListener('click', async () => {
