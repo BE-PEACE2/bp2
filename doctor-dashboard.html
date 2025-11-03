@@ -125,226 +125,121 @@
   <!-- SCRIPT -->
   <script type="module">
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
-import { getDatabase, ref, get, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 import { app } from "/js/firebase-init.js";
 
 const auth = getAuth(app);
 const db = getDatabase(app);
-const token = localStorage.getItem("doctorToken");
 
-// ====== Gentle Alert Sound ======
-const alertSound = new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_578bcb1c33.mp3?filename=soft-notification-1-106163.mp3");
-alertSound.volume = 0.3;
-
-// ====== Auth Check ======
+// ===== AUTH CHECK =====
 onAuthStateChanged(auth, async (user) => {
-  if (!user || user.uid !== token) {
-    localStorage.removeItem("doctorToken");
+  if (!user) {
     window.location.href = "login.html";
     return;
   }
 
-  // Load doctor profile
-  const userRef = ref(db, "users/" + user.uid);
-  const snap = await get(userRef);
-  if (snap.exists()) {
-    const data = snap.val();
-    const header = document.querySelector("h2");
-    header.innerHTML = `👨‍⚕️ Welcome, Dr. ${data.name || "Mahesh Yadav"}<br><small style="font-size:14px;color:#555;">${data.email}</small>`;
-  }
+  // 👨‍⚕️ Display doctor info
+  const header = document.querySelector("h2");
+  header.innerHTML = `👨‍⚕️ Welcome, Dr. MAHESH YADAV <br><small style="font-size:14px;color:#555;">${user.email}</small>`;
 
-  initDashboard();
+  // Live data listener
+  liveBookings();
 });
 
-// ====== Initialize Dashboard ======
-function initDashboard() {
-  setupRealtimeBookings();
-  setupRealtimeQueue();
-  loadWalkinSummary();
-  setInterval(loadWalkinSummary, 8000);
-}
-
-// ====== Flag Helper ======
-const flags = { 
-  India:"🇮🇳", 
-  "United States":"🇺🇸", 
-  "United Arab Emirates":"🇦🇪", 
-  "United Kingdom":"🇬🇧", 
-  Unknown:"🌍" 
-};
-const flag = c => flags[c] || "🌍";
-
-// ====== Realtime Bookings ======
-let oldBookingCount = 0;
-function setupRealtimeBookings() {
-  const doctorEmail = "drmaheshyadav010145@gmail.com";
+// ===== LIVE BOOKINGS LISTENER =====
+function liveBookings() {
   const bookingsRef = ref(db, "bookings");
 
   onValue(bookingsRef, (snapshot) => {
     const data = snapshot.val() || {};
-    const status = document.getElementById("status").value;
+    const statusFilter = document.getElementById("status").value;
     const search = document.getElementById("search").value.trim().toLowerCase();
-    const country = document.getElementById("country").value;
 
-    const bookings = Object.values(data).filter((b) => {
-      const matchDoctor = b.doctorEmail?.toLowerCase() === doctorEmail;
-      const matchStatus = status === "ALL" || b.status === status;
-      const matchCountry = country === "ALL" || b.country === country;
+    const all = Object.values(data).filter((b) => {
+      const matchStatus =
+        statusFilter === "ALL" ||
+        b.status?.toLowerCase() === statusFilter.toLowerCase();
       const matchSearch =
         !search ||
         b.name?.toLowerCase().includes(search) ||
         b.email?.toLowerCase().includes(search);
-      return matchDoctor && matchStatus && matchCountry && matchSearch;
+      return matchStatus && matchSearch;
     });
 
-    // 🔔 Play sound for new bookings
-    if (bookings.length > oldBookingCount) {
-      alertSound.play().catch(() => {});
-    }
-    oldBookingCount = bookings.length;
-
-    // === Update Summary ===
-    const todayStr = new Date().toISOString().split("T")[0];
-    const today = bookings.filter((b) => b.date === todayStr);
-    const upcoming = bookings.filter((b) => b.date > todayStr);
-    const monthRevenue = bookings.reduce((t, b) => t + (b.amount || 0), 0);
-    const todayRevenue = today.reduce((t, b) => t + (b.amount || 0), 0);
-
-    document.getElementById("todayBookings").innerText = today.length;
-    document.getElementById("upcomingBookings").innerText = upcoming.length;
-    document.getElementById("todayRevenue").innerText = "₹" + todayRevenue;
-    document.getElementById("monthRevenue").innerText = "₹" + monthRevenue;
-
-    // === Render Bookings Table ===
-    const container = document.getElementById("bookingContainer");
-    if (!bookings.length) {
-      container.innerHTML = "<p>✅ No bookings found.</p>";
-      return;
-    }
-
-    let html = "<table><tr><th>Date</th><th>Time</th><th>Patient</th><th>Country</th><th>Contact</th><th>Status</th><th>Join</th></tr>";
-    bookings.forEach((b) => {
-      const past = b.date < todayStr;
-      html += `
-        <tr class="${past ? "past-row" : ""}">
-          <td>${b.date}</td>
-          <td><div>${b.slotIST || "-"}</div><small>🕒 ${b.slotLocal || ""}</small></td>
-          <td>${b.name || "-"}</td>
-          <td>${flag(b.country)} ${b.country || "🌍"}</td>
-          <td>${b.email || ""}<br>${b.phone || ""}</td>
-          <td><span class="status ${b.status}">${b.status}</span></td>
-          <td>${b.meetingLink && !past ? `<a class='btn btn-join' href='${b.meetingLink}' target='_blank'>Join</a>` : "-"}</td>
-        </tr>`;
-    });
-    html += "</table>";
-    container.innerHTML = html;
+    renderDashboard(all);
   });
 }
 
-// ====== Walk-in Summary ======
-async function loadWalkinSummary() {
-  const token = localStorage.getItem("doctorToken");
-  try {
-    const res = await fetch("/api/waiting?path=summary", { headers: { Authorization: `Bearer ${token}` } });
-    const d = await res.json();
-    if (!d.success) return;
-    waitingCount.innerText = d.waitingCount;
-    consultingCount.innerText = d.consultingCount;
-    completedCount.innerText = d.completedToday;
-    revenueToday.innerText = "₹" + d.revenueToday;
-  } catch (e) {
-    console.error("Summary error:", e);
+// ===== RENDER DASHBOARD =====
+function renderDashboard(all) {
+  const todayStr = new Date().toISOString().split("T")[0];
+  const todayBookings = all.filter((b) => b.date === todayStr);
+  const upcoming = all.filter((b) => b.date > todayStr);
+  const waiting = all.filter((b) => b.status?.toLowerCase() === "waiting");
+  const consulting = all.filter((b) => b.status?.toLowerCase() === "consulting");
+  const completedToday = all.filter(
+    (b) => b.status?.toLowerCase() === "completed" && b.date === todayStr
+  );
+
+  const todayRevenue = todayBookings.reduce(
+    (t, b) => t + (Number(b.amount) || 0),
+    0
+  );
+  const monthRevenue = all.reduce((t, b) => t + (Number(b.amount) || 0), 0);
+
+  // ===== UPDATE COUNTERS =====
+  document.getElementById("todayBookings").innerText = todayBookings.length;
+  document.getElementById("upcomingBookings").innerText = upcoming.length;
+  document.getElementById("todayRevenue").innerText = "₹" + todayRevenue;
+  document.getElementById("monthRevenue").innerText = "₹" + monthRevenue;
+
+  document.getElementById("waitingCount").innerText = waiting.length;
+  document.getElementById("consultingCount").innerText = consulting.length;
+  document.getElementById("completedCount").innerText = completedToday.length;
+  document.getElementById("revenueToday").innerText = "₹" + todayRevenue;
+
+  // ===== TABLE DISPLAY =====
+  const container = document.getElementById("bookingContainer");
+  if (!all.length) {
+    container.innerHTML = "<p>✅ No bookings found.</p>";
+    return;
   }
-}
 
-// ====== Realtime Walk-in Queue ======
-let oldQueueCount = 0;
-function setupRealtimeQueue() {
-  const queueRef = ref(db, "waitingRoom");
-  const liveQueue = document.getElementById("liveQueue");
+  let html =
+    "<table><tr><th>Date</th><th>Time</th><th>Patient</th><th>Concern</th><th>Contact</th><th>Status</th><th>Join</th></tr>";
 
-  onValue(queueRef, (snapshot) => {
-    const data = snapshot.val() || {};
-    const list = Object.values(data);
-
-    if (list.length > oldQueueCount) {
-      alertSound.play().catch(() => {});
-    }
-    oldQueueCount = list.length;
-
-    if (!list.length) {
-      liveQueue.innerHTML = "<p>No walk-in patients waiting.</p>";
-      return;
-    }
-
-    let html = "<table><tr><th>#</th><th>Name</th><th>Joined</th><th>Action</th></tr>";
-    list.forEach((p, i) => {
-      html += `
-        <tr>
-          <td>${i + 1}</td>
-          <td>${p.name}</td>
-          <td>${new Date(p.createdAt).toLocaleTimeString()}</td>
-          <td>
-            <button class='btn btn-join' onclick="startConsult('${p.orderId}')">Start</button>
-            <button class='btn btn-end' onclick="endConsult('${p.orderId}')">End</button>
-          </td>
-        </tr>`;
-    });
-    html += "</table>";
-    liveQueue.innerHTML = html;
+  all.forEach((b) => {
+    const past = b.date < todayStr;
+    const joinButton =
+      b.meetingLink && !past
+        ? `<a class='btn btn-join' href='${b.meetingLink}' target='_blank'>Join</a>`
+        : "-";
+    html += `
+      <tr class="${past ? "past-row" : ""}">
+        <td>${b.date}</td>
+        <td>${b.slot || "-"}</td>
+        <td>${b.name || "-"}</td>
+        <td>${b.concern || "-"}</td>
+        <td>${b.email || ""}<br>${b.phone || ""}</td>
+        <td><span class="status ${b.status}">${b.status}</span></td>
+        <td>${joinButton}</td>
+      </tr>`;
   });
+  html += "</table>";
+  container.innerHTML = html;
 }
 
-// ====== Start Consultation ======
-window.startConsult = async function (orderId) {
-  const token = localStorage.getItem("doctorToken");
-  if (!confirm("Start consultation for this patient?")) return;
-  try {
-    const res = await fetch("/api/waiting?path=start", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ orderId })
+// ===== LOGOUT =====
+window.logout = function () {
+  signOut(auth)
+    .then(() => {
+      localStorage.removeItem("doctorToken");
+      window.location.href = "login.html";
+    })
+    .catch((err) => {
+      console.error("Logout failed:", err);
+      alert("Logout failed. Try again.");
     });
-    const d = await res.json();
-    if (!d.success) {
-      alert(d.message || "Error starting consultation.");
-      return;
-    }
-    window.open(`/consult-room.html?room=${encodeURIComponent(d.roomName)}&orderId=${encodeURIComponent(orderId)}`, "_blank");
-  } catch (err) {
-    console.error(err);
-  }
-};
-
-// ====== End Consultation ======
-window.endConsult = async function (orderId) {
-  const token = localStorage.getItem("doctorToken");
-  if (!confirm("End this consultation?")) return;
-  try {
-    const res = await fetch("/api/waiting?path=end", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ orderId })
-    });
-    const d = await res.json();
-    if (d.success) alert("✅ Consultation marked as done.");
-    else alert("❌ " + (d.message || "Unable to end consultation."));
-  } catch (err) {
-    console.error(err);
-  }
-};
-
-// ====== LOGOUT (Fixed) ======
-window.logout = async function () {
-  try {
-    localStorage.removeItem("doctorToken");
-    await signOut(auth);
-    alert("You have been logged out successfully 🌿");
-    window.location.href = "login.html";
-  } catch (err) {
-    console.error("Logout error:", err);
-    alert("Error while logging out. Please try again.");
-  }
 };
 </script>
 </body>
