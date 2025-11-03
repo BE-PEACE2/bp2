@@ -62,13 +62,7 @@
       <div><h3>This Month</h3><p id="monthRevenue">₹0</p></div>
     </div>
 
-    <!-- 🩺 Walk-in Summary -->
-    <div id="walkinSummary">
-      <div><h3>🟢 Waiting</h3><p id="waitingCount">0</p></div>
-      <div><h3>🟡 Consulting</h3><p id="consultingCount">0</p></div>
-      <div><h3>🟣 Completed Today</h3><p id="completedCount">0</p></div>
-      <div><h3>💰 Revenue Today</h3><p id="revenueToday">₹0</p></div>
-    </div>
+  
 
     <!-- 🔍 Filters -->
     <div class="filters">
@@ -105,13 +99,6 @@
 
     <!-- 📅 Appointment Table -->
     <div id="bookingContainer"><p>⏳ Loading bookings...</p></div>
-
-    <!-- 👥 Walk-in Waiting Room -->
-    <section style="margin-top:30px;">
-      <h3>👥 Live Walk-in Waiting Room</h3>
-      <div id="liveQueue">Loading queue...</div>
-    </section>
-  </div>
 
   <!-- FOOTER -->
   <footer>
@@ -175,11 +162,7 @@ function renderDashboard(all) {
   const todayStr = new Date().toISOString().split("T")[0];
   const todayBookings = all.filter((b) => b.date === todayStr);
   const upcoming = all.filter((b) => b.date > todayStr);
-  const waiting = all.filter((b) => b.status?.toLowerCase() === "waiting");
-  const consulting = all.filter((b) => b.status?.toLowerCase() === "consulting");
-  const completedToday = all.filter(
-    (b) => b.status?.toLowerCase() === "completed" && b.date === todayStr
-  );
+
 
   const todayRevenue = todayBookings.reduce(
     (t, b) => t + (Number(b.amount) || 0),
@@ -193,11 +176,7 @@ function renderDashboard(all) {
   document.getElementById("todayRevenue").innerText = "₹" + todayRevenue;
   document.getElementById("monthRevenue").innerText = "₹" + monthRevenue;
 
-  document.getElementById("waitingCount").innerText = waiting.length;
-  document.getElementById("consultingCount").innerText = consulting.length;
-  document.getElementById("completedCount").innerText = completedToday.length;
-  document.getElementById("revenueToday").innerText = "₹" + todayRevenue;
-
+  
   // ===== TABLE DISPLAY =====
   const container = document.getElementById("bookingContainer");
   if (!all.length) {
