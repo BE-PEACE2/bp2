@@ -123,162 +123,38 @@
   </footer>
 
   <!-- SCRIPT -->
-  <script>
-    const token = localStorage.getItem("doctorToken");
-    if (!token) {
+  <script type="module">
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+  import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+  import { app } from "/js/firebase-init.js";
+
+  const auth = getAuth(app);
+  const db = getDatabase(app);
+  const token = localStorage.getItem("doctorToken");
+
+  // ===== AUTH CHECK =====
+  onAuthStateChanged(auth, async (user) => {
+    if (!user || user.uid !== token) {
       localStorage.removeItem("doctorToken");
       window.location.href = "login.html";
+      return;
     }
 
-    const flags = { India:"🇮🇳", "United States":"🇺🇸", "United Arab Emirates":"🇦🇪", "United Kingdom":"🇬🇧", Unknown:"🌍" };
-    const flag = c => flags[c] || "🌍";
-
-    // ===== LOAD BOOKINGS =====
-    async function loadBookings() {
-      const status = document.getElementById("status").value;
-      const range = document.getElementById("range").value;
-      const search = document.getElementById("search").value.trim();
-      const country = document.getElementById("country").value;
-
-      try {
-        const res = await fetch(`/api/doctor?path=bookings&status=${status}&range=${range}&search=${encodeURIComponent(search)}&country=${encodeURIComponent(country)}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = await res.json();
-
-        if (data.summary) {
-          todayBookings.innerText = data.summary.todayBookings;
-          upcomingBookings.innerText = data.summary.upcoming;
-          todayRevenue.innerText = "₹" + data.summary.todayRevenue;
-          monthRevenue.innerText = "₹" + data.summary.monthRevenue;
-        }
-
-        const container = document.getElementById("bookingContainer");
-        if (!data.bookings || !data.bookings.length) {
-          container.innerHTML = "<p>✅ No bookings found.</p>";
-          return;
-        }
-
-        const todayStr = new Date().toISOString().split("T")[0];
-        let html = "<table><tr><th>Date</th><th>Time</th><th>Patient</th><th>Country</th><th>Contact</th><th>Status</th><th>Join</th></tr>";
-        data.bookings.forEach(b => {
-          const past = b.date < todayStr;
-          html += `
-            <tr class="${past ? "past-row" : ""}">
-              <td>${b.date}</td>
-              <td><div>${b.slotIST || "-"}</div><small>🕒 ${b.slotLocal || ""}</small></td>
-              <td>${b.name || "-"}</td>
-              <td>${flag(b.country)} ${b.country || "🌍"}</td>
-              <td>${b.email || ""}<br>${b.phone || ""}</td>
-              <td><span class="status ${b.status}">${b.status}</span></td>
-              <td>${b.meetingLink && !past ? `<a class='btn btn-join' href='${b.meetingLink}' target='_blank'>Join</a>` : "-"}</td>
-            </tr>`;
-        });
-        html += "</table>";
-        container.innerHTML = html;
-      } catch (err) {
-        console.error(err);
-        document.getElementById("bookingContainer").innerHTML = "<p>❌ Failed to load bookings.</p>";
-      }
+    // 👨‍⚕️ Show doctor info
+    const userRef = ref(db, "users/" + user.uid);
+    const snap = await get(userRef);
+    if (snap.exists()) {
+      const data = snap.val();
+      const header = document.querySelector("h2");
+      header.innerHTML = `👨‍⚕️ Welcome, Dr. ${data.name || "Mahesh Yadav"} <br><small style="font-size:14px;color:#555;">${data.email}</small>`;
     }
 
-    // ===== WALK-IN SUMMARY =====
-    async function loadWalkinSummary() {
-      try {
-        const res = await fetch("/api/waiting?path=summary", { headers: { Authorization: `Bearer ${token}` } });
-        const d = await res.json();
-        if (!d.success) return;
-        waitingCount.innerText = d.waitingCount;
-        consultingCount.innerText = d.consultingCount;
-        completedCount.innerText = d.completedToday;
-        revenueToday.innerText = "₹" + d.revenueToday;
-      } catch (e) {
-        console.error("Summary error", e);
-      }
-    }
+    // Load dashboard after verifying auth
+    initDashboard();
+  });
 
-    // ===== WALK-IN QUEUE =====
-    async function loadLiveQueue() {
-      try {
-        const res = await fetch("/api/waiting?path=list", { headers: { Authorization: `Bearer ${token}` } });
-        const d = await res.json();
-        if (!d.success) {
-          liveQueue.innerText = "Error loading queue.";
-          return;
-        }
-        const list = d.waiting;
-        if (!list || !list.length) {
-          liveQueue.innerHTML = "<p>No walk-in patients waiting.</p>";
-          return;
-        }
-        let h = "<table><tr><th>#</th><th>Name</th><th>Joined</th><th>Action</th></tr>";
-        list.forEach(p => {
-          h += `<tr><td>${p.position}</td><td>${p.name}</td><td>${new Date(p.createdAt).toLocaleTimeString()}</td>
-          <td>
-            <button class='btn btn-join' onclick="startConsult('${p.orderId}')">Start</button>
-            <button class='btn btn-end' onclick="endConsult('${p.orderId}')">End</button>
-          </td></tr>`;
-        });
-        h += "</table>";
-        liveQueue.innerHTML = h;
-      } catch (e) {
-        console.error(e);
-        liveQueue.innerText = "Error loading waiting room.";
-      }
-    }
-
-    // ===== START CONSULT =====
-    async function startConsult(orderId) {
-      if (!confirm("Start consultation for this patient?")) return;
-      try {
-        const res = await fetch("/api/waiting?path=start", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId })
-        });
-        const d = await res.json();
-        if (!d.success) {
-          alert(d.message || "Error starting consultation.");
-          return;
-        }
-        window.open(`/consult-room.html?room=${encodeURIComponent(d.roomName)}&orderId=${encodeURIComponent(orderId)}`, "_blank");
-        loadLiveQueue();
-        loadWalkinSummary();
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    // ===== END CONSULT =====
-    async function endConsult(orderId) {
-      if (!confirm("End this consultation?")) return;
-      try {
-        const res = await fetch("/api/waiting?path=end", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId })
-        });
-        const d = await res.json();
-        if (d.success) {
-          alert("✅ Consultation marked as done.");
-          loadLiveQueue();
-          loadWalkinSummary();
-        } else {
-          alert("❌ " + (d.message || "Unable to end consultation."));
-        }
-      } catch (err) {
-        console.error(err);
-        alert("Server error while ending consultation.");
-      }
-    }
-
-    // ===== LOGOUT =====
-    function logout() {
-      localStorage.removeItem("doctorToken");
-      window.location.href = "login.html";
-    }
-
-    // ===== INIT =====
+  // ===== INIT DASHBOARD =====
+  function initDashboard() {
     loadBookings();
     loadWalkinSummary();
     loadLiveQueue();
@@ -286,6 +162,162 @@
       loadWalkinSummary();
       loadLiveQueue();
     }, 8000);
-  </script>
+  }
+
+  // ===== FLAG HELPER =====
+  const flags = { India:"🇮🇳", "United States":"🇺🇸", "United Arab Emirates":"🇦🇪", "United Kingdom":"🇬🇧", Unknown:"🌍" };
+  const flag = c => flags[c] || "🌍";
+
+  // ===== LOAD BOOKINGS =====
+  async function loadBookings() {
+    const status = document.getElementById("status").value;
+    const range = document.getElementById("range").value;
+    const search = document.getElementById("search").value.trim();
+    const country = document.getElementById("country").value;
+    const token = localStorage.getItem("doctorToken");
+
+    try {
+      const res = await fetch(`/api/doctor?path=bookings&status=${status}&range=${range}&search=${encodeURIComponent(search)}&country=${encodeURIComponent(country)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+
+      if (data.summary) {
+        todayBookings.innerText = data.summary.todayBookings;
+        upcomingBookings.innerText = data.summary.upcoming;
+        todayRevenue.innerText = "₹" + data.summary.todayRevenue;
+        monthRevenue.innerText = "₹" + data.summary.monthRevenue;
+      }
+
+      const container = document.getElementById("bookingContainer");
+      if (!data.bookings || !data.bookings.length) {
+        container.innerHTML = "<p>✅ No bookings found.</p>";
+        return;
+      }
+
+      const todayStr = new Date().toISOString().split("T")[0];
+      let html = "<table><tr><th>Date</th><th>Time</th><th>Patient</th><th>Country</th><th>Contact</th><th>Status</th><th>Join</th></tr>";
+      data.bookings.forEach(b => {
+        const past = b.date < todayStr;
+        html += `
+          <tr class="${past ? "past-row" : ""}">
+            <td>${b.date}</td>
+            <td><div>${b.slotIST || "-"}</div><small>🕒 ${b.slotLocal || ""}</small></td>
+            <td>${b.name || "-"}</td>
+            <td>${flag(b.country)} ${b.country || "🌍"}</td>
+            <td>${b.email || ""}<br>${b.phone || ""}</td>
+            <td><span class="status ${b.status}">${b.status}</span></td>
+            <td>${b.meetingLink && !past ? `<a class='btn btn-join' href='${b.meetingLink}' target='_blank'>Join</a>` : "-"}</td>
+          </tr>`;
+      });
+      html += "</table>";
+      container.innerHTML = html;
+    } catch (err) {
+      console.error(err);
+      document.getElementById("bookingContainer").innerHTML = "<p>❌ Failed to load bookings.</p>";
+    }
+  }
+
+  // ===== WALK-IN SUMMARY =====
+  async function loadWalkinSummary() {
+    const token = localStorage.getItem("doctorToken");
+    try {
+      const res = await fetch("/api/waiting?path=summary", { headers: { Authorization: `Bearer ${token}` } });
+      const d = await res.json();
+      if (!d.success) return;
+      waitingCount.innerText = d.waitingCount;
+      consultingCount.innerText = d.consultingCount;
+      completedCount.innerText = d.completedToday;
+      revenueToday.innerText = "₹" + d.revenueToday;
+    } catch (e) {
+      console.error("Summary error", e);
+    }
+  }
+
+  // ===== LIVE QUEUE =====
+  async function loadLiveQueue() {
+    const token = localStorage.getItem("doctorToken");
+    try {
+      const res = await fetch("/api/waiting?path=list", { headers: { Authorization: `Bearer ${token}` } });
+      const d = await res.json();
+      if (!d.success) {
+        liveQueue.innerText = "Error loading queue.";
+        return;
+      }
+      const list = d.waiting;
+      if (!list || !list.length) {
+        liveQueue.innerHTML = "<p>No walk-in patients waiting.</p>";
+        return;
+      }
+      let h = "<table><tr><th>#</th><th>Name</th><th>Joined</th><th>Action</th></tr>";
+      list.forEach(p => {
+        h += `<tr><td>${p.position}</td><td>${p.name}</td><td>${new Date(p.createdAt).toLocaleTimeString()}</td>
+        <td>
+          <button class='btn btn-join' onclick="startConsult('${p.orderId}')">Start</button>
+          <button class='btn btn-end' onclick="endConsult('${p.orderId}')">End</button>
+        </td></tr>`;
+      });
+      h += "</table>";
+      liveQueue.innerHTML = h;
+    } catch (e) {
+      console.error(e);
+      liveQueue.innerText = "Error loading waiting room.";
+    }
+  }
+
+  // ===== START CONSULT =====
+  async function startConsult(orderId) {
+    const token = localStorage.getItem("doctorToken");
+    if (!confirm("Start consultation for this patient?")) return;
+    try {
+      const res = await fetch("/api/waiting?path=start", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId })
+      });
+      const d = await res.json();
+      if (!d.success) {
+        alert(d.message || "Error starting consultation.");
+        return;
+      }
+      window.open(`/consult-room.html?room=${encodeURIComponent(d.roomName)}&orderId=${encodeURIComponent(orderId)}`, "_blank");
+      loadLiveQueue();
+      loadWalkinSummary();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  // ===== END CONSULT =====
+  async function endConsult(orderId) {
+    const token = localStorage.getItem("doctorToken");
+    if (!confirm("End this consultation?")) return;
+    try {
+      const res = await fetch("/api/waiting?path=end", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId })
+      });
+      const d = await res.json();
+      if (d.success) {
+        alert("✅ Consultation marked as done.");
+        loadLiveQueue();
+        loadWalkinSummary();
+      } else {
+        alert("❌ " + (d.message || "Unable to end consultation."));
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Server error while ending consultation.");
+    }
+  }
+
+  // ===== LOGOUT =====
+  function logout() {
+    localStorage.removeItem("doctorToken");
+    auth.signOut();
+    window.location.href = "login.html";
+  }
+</script>
 </body>
 </html>

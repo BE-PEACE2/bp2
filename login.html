@@ -178,10 +178,17 @@ loginBtn.addEventListener('click', async () => {
       });
     }
 
-    alert(`Welcome back, ${role === 'doctor' ? 'Doctor' : 'Dear User'} 🌿`);
-    window.location.href = role === "doctor"
-      ? "/doctor-dashboard.html"
-      : "/dashboard.html";
+    if (role === "doctor") {
+  // Save doctor session for dashboard
+  localStorage.setItem("doctorToken", user.uid);
+  alert("Welcome back, Doctor 🌿");
+  window.location.href = "/doctor-dashboard.html";
+} else {
+  // Clear doctor token if patient logs in
+  localStorage.removeItem("doctorToken");
+  alert("Welcome back, Dear User 🌿");
+  window.location.href = "/dashboard.html";
+}
 
   } catch (error) {
     console.error("❌ Login failed:", error);
