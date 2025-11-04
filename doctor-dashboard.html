@@ -282,8 +282,10 @@ renderBookings(bookings);
           todayCount++;
           status = "Today";
           rowStyle = "background:#f3f8ff;";
-          const isLive =
-            now >= bookingDate && now < new Date(bookingDate.getTime() + 24 * 60 * 60 * 1000);
+          // Show Join 30 minutes before and up to 1 hour after the slot
+const isLive =
+  now >= new Date(bookingDate.getTime() - 30 * 60 * 1000) &&
+  now <= new Date(bookingDate.getTime() + 60 * 60 * 1000);
           if (isLive) {
             joinButton = `<a href="/consultation-room.html?room=${encodeURIComponent(
               b.order_id || b.email
@@ -292,8 +294,19 @@ renderBookings(bookings);
             )}" target="_blank" 
               style="background:#22c55e;color:#fff;padding:6px 12px;border-radius:6px;text-decoration:none;">Join</a>`;
           } else {
-            joinButton = `<button disabled style="background:#ccc;color:#555;padding:6px 12px;border-radius:6px;">Inactive</button>`;
-          }
+  const timeDiff = bookingDate - now;
+  if (timeDiff > 0) {
+    // Future consultation → not yet started
+    joinButton = `<button disabled style="background:#e5e7eb;color:#555;padding:6px 12px;border-radius:6px;">
+      Available 30 min before consultation
+    </button>`;
+  } else {
+    // Past consultation → time expired
+    joinButton = `<button disabled style="background:#f3f4f6;color:#777;padding:6px 12px;border-radius:6px;">
+      Consultation window closed
+    </button>`;
+  }
+}
         } else if (new Date(b.date) > todayStart) {
           upcomingCount++;
           status = "Upcoming";
