@@ -93,6 +93,13 @@
       text-align: center;
       color: #555;
     }
+    .filters {
+  position: sticky;
+  top: 10px;
+  background: #fff;
+  z-index: 100;
+  padding: 10px 0;
+}
   </style>
 </head>
 
@@ -127,6 +134,29 @@
       </div>
     </div>
 
+    <!-- 🔍 Filters -->
+<div class="filters" style="margin-top:30px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+  <label><strong>Status:</strong></label>
+  <select id="statusFilter" style="padding:6px 10px;border-radius:8px;border:1px solid #ddd;">
+    <option value="all">All</option>
+    <option value="in_progress">Live</option>
+    <option value="upcoming">Upcoming</option>
+    <option value="completed">Completed</option>
+  </select>
+
+  <label><strong>Date:</strong></label>
+  <select id="dateFilter" style="padding:6px 10px;border-radius:8px;border:1px solid #ddd;">
+    <option value="all">All</option>
+    <option value="today">Today</option>
+    <option value="upcoming">Upcoming</option>
+    <option value="past">Past</option>
+  </select>
+  <button id="resetFilters" 
+  style="background:#f3f4f6;border:1px solid #ccc;padding:6px 12px;border-radius:8px;cursor:pointer;">
+  🧹 Reset
+</button>
+</div>
+
     <!-- Placeholder for consultation table -->
     <div id="bookingContainer">
       <p>Consultations will appear here soon...</p>
@@ -147,6 +177,22 @@
 
     const container = document.getElementById("bookingContainer");
     const cards = document.querySelectorAll(".card p");
+
+    // 🧩 Filter dropdowns
+const statusFilter = document.getElementById("statusFilter");
+const dateFilter = document.getElementById("dateFilter");
+let LAST_BOOKINGS = [];
+
+// Trigger re-render when filter changes
+statusFilter.addEventListener("change", () => renderBookings(LAST_BOOKINGS));
+dateFilter.addEventListener("change", () => renderBookings(LAST_BOOKINGS));
+
+// 🧹 Reset filters
+document.getElementById("resetFilters").addEventListener("click", () => {
+  statusFilter.value = "all";
+  dateFilter.value = "all";
+  renderBookings(LAST_BOOKINGS);
+});
 
     // Helper to parse time (12-hour → 24-hour)
     function parseTimeTo24H(timeStr) {
@@ -176,17 +222,35 @@
           return;
         }
 
-        renderBookings(bookings);
+        LAST_BOOKINGS = bookings;
+renderBookings(bookings);
       });
     });
-
     function renderBookings(bookings) {
-      const now = new Date();
-      const todayStr = now.toISOString().split("T")[0];
-      const todayStart = new Date(todayStr);
-      const tomorrow = new Date(todayStart);
-      tomorrow.setDate(todayStart.getDate() + 1);
+  const now = new Date();
+  const todayStr = now.toISOString().split("T")[0];
+  const todayStart = new Date(todayStr);
 
+  // 🌸 Apply filters
+  const selectedStatus = statusFilter.value;
+  const selectedDate = dateFilter.value;
+
+  bookings = bookings.filter((b) => {
+    const { hours, minutes } = parseTimeTo24H(b.slot);
+    const bookingDate = new Date(`${b.date}T${hours}:${minutes}:00`);
+    const bStatus = b.status || "upcoming";
+
+    // Filter by status
+    if (selectedStatus !== "all" && bStatus !== selectedStatus) return false;
+
+    // Filter by date
+    if (selectedDate === "today" && b.date !== todayStr) return false;
+    if (selectedDate === "upcoming" && new Date(b.date) <= todayStart) return false;
+    if (selectedDate === "past" && new Date(b.date) >= todayStart) return false;
+
+    return true;
+  });
+    
       let todayCount = 0;
       let upcomingCount = 0;
       let totalRevenue = 0;
