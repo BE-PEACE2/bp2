@@ -184,6 +184,40 @@ const statusFilter = document.getElementById("statusFilter");
 const dateFilter = document.getElementById("dateFilter");
 let LAST_BOOKINGS = [];
 
+// 🌍 Country → Timezone map
+  const COUNTRY_TIMEZONES = {
+    "India": "Asia/Kolkata",
+    "UAE": "Asia/Dubai",
+    "Singapore": "Asia/Singapore",
+    "Qatar": "Asia/Qatar",
+    "Saudi Arabia": "Asia/Riyadh",
+    "Oman": "Asia/Muscat",
+    "Kuwait": "Asia/Kuwait",
+    "USA": "America/New_York",
+    "Unknown": "Asia/Kolkata"
+  };
+
+  // 🕒 Convert slot (local time) to IST
+  function convertSlotToIST(dateStr, slotStr, country) {
+    if (!slotStr || !dateStr) return { istDate: new Date(), istTime: "-" };
+    const tz = COUNTRY_TIMEZONES[country] || "Asia/Kolkata";
+    const [time, modifier] = slotStr.split(" ");
+    let [hours, minutes] = time.split(":").map(Number);
+    if (modifier === "PM" && hours !== 12) hours += 12;
+    if (modifier === "AM" && hours === 12) hours = 0;
+
+    // Create patient’s local date
+    const localDate = new Date(`${dateStr}T${hours.toString().padStart(2,"0")}:${minutes.toString().padStart(2,"0")}:00`);
+    const utcDate = new Date(localDate.toLocaleString("en-US", { timeZone: "UTC" }));
+    const istDate = new Date(utcDate.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+
+    const istTime = istDate.toLocaleTimeString("en-IN", {
+      hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata"
+    });
+    return { istDate, istTime };
+  }
+
+
 // Trigger re-render when filter changes
 statusFilter.addEventListener("change", () => renderBookings(LAST_BOOKINGS));
 dateFilter.addEventListener("change", () => renderBookings(LAST_BOOKINGS));
@@ -195,6 +229,26 @@ document.getElementById("resetFilters").addEventListener("click", () => {
   renderBookings(LAST_BOOKINGS);
 });
 
+// 🔄 Auth and data load
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      window.location.href = "login.html";
+      return;
+    }
+
+    const bookingsRef = ref(db, "bookings");
+    onValue(bookingsRef, (snapshot) => {
+      const data = snapshot.val() || {};
+      const bookings = Object.values(data);
+      if (!bookings.length) {
+        container.innerHTML = "<p>No consultations yet.</p>";
+        return;
+      }
+      LAST_BOOKINGS = bookings;
+      renderBookings(bookings);
+    });
+  });
+
     // Helper to parse time (12-hour → 24-hour)
     function parseTimeTo24H(timeStr) {
       if (!timeStr) return { hours: 0, minutes: 0 };
@@ -205,32 +259,11 @@ document.getElementById("resetFilters").addEventListener("click", () => {
       return { hours, minutes };
     }
 
-    onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        window.location.href = "login.html";
-        return;
-      }
-
-      const doctorEmail = user.email;
-      const bookingsRef = ref(db, "bookings");
-
-      onValue(bookingsRef, (snapshot) => {
-        const data = snapshot.val() || {};
-        const bookings = Object.values(data);
-
-        if (!bookings.length) {
-          container.innerHTML = "<p>No consultations yet.</p>";
-          return;
-        }
-
-        LAST_BOOKINGS = bookings;
-renderBookings(bookings);
-      });
-    });
-    function renderBookings(bookings) {
-  const now = new Date();
-  const todayStr = now.toISOString().split("T")[0];
-  const todayStart = new Date(todayStr);
+   // 🩺 Render Bookings
+  function renderBookings(bookings) {
+    const nowIST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+    const todayStr = nowIST.toISOString().split("T")[0];
+    const todayStart = new Date(todayStr);
 
   // 🌸 Apply filters
   const selectedStatus = statusFilter.value;
@@ -273,6 +306,7 @@ renderBookings(bookings);
           <tbody>`;
 
       bookings.forEach((b) => {
+        const { istDate, istTime } = convertSlotToIST(b.date, b.slot, b.country);
         const { hours, minutes } = parseTimeTo24H(b.slot);
         const bookingDate = new Date(`${b.date}T${hours}:${minutes}:00`);
 
@@ -284,10 +318,13 @@ renderBookings(bookings);
           todayCount++;
           status = "Today";
           rowStyle = "background:#f3f8ff;";
-          // Show Join 30 minutes before and up to 1 hour after the slot
+          
+
+const nowIST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+
 const isLive =
-  now >= new Date(bookingDate.getTime() - 30 * 60 * 1000) &&
-  now <= new Date(bookingDate.getTime() + 60 * 60 * 1000);
+  nowIST >= new Date(istDate.getTime() - 30 * 60 * 1000) &&
+  nowIST <= new Date(istDate.getTime() + 60 * 60 * 1000);
           if (isLive) {
             joinButton = `<a href="/consultation-room.html?room=${encodeURIComponent(
               b.order_id || b.email
@@ -296,7 +333,7 @@ const isLive =
             )}" target="_blank" 
               style="background:#22c55e;color:#fff;padding:6px 12px;border-radius:6px;text-decoration:none;">Join</a>`;
           } else {
-  const timeDiff = bookingDate - now;
+  const timeDiff = istDate - nowIST;
   if (timeDiff > 0) {
     // Future consultation → not yet started
     joinButton = `<button disabled style="background:#e5e7eb;color:#555;padding:6px 12px;border-radius:6px;">
@@ -323,10 +360,12 @@ const isLive =
         html += `
           <tr style="${rowStyle}">
             <td style="padding:10px;border:1px solid #eee;">${b.date}</td>
-            <td style="padding:10px;border:1px solid #eee;">
-             ${b.country && b.country !== "Unknown" ? b.country : "—"}
-           </td>
-            <td style="padding:10px;border:1px solid #eee;">${b.slot || "-"}</td>
+            <td style="padding:10px;border:1px solid #eee;">${b.country || "—"}</td>
+          <td style="padding:10px;border:1px solid #eee;">
+            ${b.slot || "-"}
+            ${b.country && b.country !== "India"
+              ? `<br><small style='color:#666;'>(${istTime} IST)</small>` : ""}
+          </td>
             <td style="padding:10px;border:1px solid #eee;">${b.name || "-"}</td>
             <td style="padding:10px;border:1px solid #eee;">${b.concern || "-"}</td>
             <td style="padding:10px;border:1px solid #eee;">${status}</td>
