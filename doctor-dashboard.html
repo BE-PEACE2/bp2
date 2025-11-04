@@ -169,9 +169,7 @@
 
       onValue(bookingsRef, (snapshot) => {
         const data = snapshot.val() || {};
-        const bookings = Object.values(data).filter(
-          (b) => b.doctorEmail === doctorEmail
-        );
+        const bookings = Object.values(data);
 
         if (!bookings.length) {
           container.innerHTML = "<p>No consultations yet.</p>";
