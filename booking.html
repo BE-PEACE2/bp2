@@ -377,7 +377,9 @@ payBtn.addEventListener("click", async()=>{
         sex=document.getElementById("sex").value,
         concern=document.getElementById("concern").value.trim(),
         date=document.getElementById("date").value,
-        slot=document.getElementById("slot").value;
+        slot=document.getElementById("slot").value,
+        country = $("#country").find("option:selected").text().trim(),
+        flagCode = $("#country").val().toLowerCase();
 
   localStorage.setItem("name", name);
   localStorage.setItem("email", email);
@@ -387,12 +389,14 @@ payBtn.addEventListener("click", async()=>{
   localStorage.setItem("concern", concern);
   localStorage.setItem("date", date);
   localStorage.setItem("slot", slot);
+  localStorage.setItem("country", country);
+  localStorage.setItem("flag", `fi fi-${flagCode}`);
 
   try{
     const res=await fetch("/api/payment?path=create",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({name,email,phone,amount,currency,date,slot,age,sex,concern})
+      body:JSON.stringify({name,email,phone,amount,currency,date,slot,age,sex,concern,country})
     });
     const data=await res.json();
     if(!data.success){

@@ -6,6 +6,7 @@
   <title>Doctor Dashboard | BePeace</title>
   <link rel="stylesheet" href="style.css" />
   <script src="js/load-partials.js" defer></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/6.6.6/css/flag-icons.min.css" />
 
   <style>
     body {
@@ -261,6 +262,7 @@ renderBookings(bookings);
           <thead>
             <tr style="background:#f9fafb;">
               <th style="padding:10px; border:1px solid #eee;">Date</th>
+              <th style="padding:10px; border:1px solid #eee;">Country</th>
               <th style="padding:10px; border:1px solid #eee;">Time</th>
               <th style="padding:10px; border:1px solid #eee;">Patient</th>
               <th style="padding:10px; border:1px solid #eee;">Concern</th>
@@ -321,6 +323,10 @@ const isLive =
         html += `
           <tr style="${rowStyle}">
             <td style="padding:10px;border:1px solid #eee;">${b.date}</td>
+            <td style="padding:10px;border:1px solid #eee;">
+             ${b.flag ? `<span class="${b.flag}" style="margin-right:6px;"></span>` : ""}
+             ${b.country || "-"}
+           </td>
             <td style="padding:10px;border:1px solid #eee;">${b.slot || "-"}</td>
             <td style="padding:10px;border:1px solid #eee;">${b.name || "-"}</td>
             <td style="padding:10px;border:1px solid #eee;">${b.concern || "-"}</td>
