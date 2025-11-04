@@ -396,7 +396,20 @@ payBtn.addEventListener("click", async()=>{
     const res=await fetch("/api/payment?path=create",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({name,email,phone,amount,currency,date,slot,age,sex,concern,country})
+       body: JSON.stringify({
+        name,
+        email,
+        phone,
+        amount,
+        currency,
+        date,
+        slot,
+        age,
+        sex,
+        concern,
+        country,
+        flag: `fi fi-${flagCode}`
+      })
     });
     const data=await res.json();
     if(!data.success){

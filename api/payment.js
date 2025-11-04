@@ -31,6 +31,8 @@ async function saveBookingToFirebase(paymentData) {
       slot: paymentData.slot,
       concern: paymentData.concern,
       amount: paymentData.amount,
+      country: paymentData.country || "Unknown",
+      flag: paymentData.flag || "fi fi-xx",
       status: "confirmed",
       createdAt: new Date().toISOString(),
     });
@@ -54,8 +56,30 @@ export default async function handler(req, res) {
 
     // ===== CREATE ORDER =====
     if (path === "create" && req.method === "POST") {
-      const { name, email, phone, amount, currency, date, slot, age, sex, concern } = req.body;
+      // ✅ Extract + fallback defaults (auto-fix missing fields)
+let {
+  name,
+  email,
+  phone,
+  amount,
+  currency,
+  date,
+  slot,
+  age,
+  sex,
+  concern,
+  country,
+  flag
+} = req.body;
 
+// 🩵 Safe defaults for older frontends
+if (!country) {
+  country = "Unknown";
+}
+if (!flag) {
+  // Use neutral flag if missing (fi fi-xx)
+  flag = "fi fi-xx";
+}
       if (!date || !slot)
         return res.status(400).json({ error: "Date and slot required" });
 
@@ -108,6 +132,7 @@ export default async function handler(req, res) {
           date,
           slot,
           concern,
+          country,
           status: "CREATED",
           createdAt: new Date(),
         });
