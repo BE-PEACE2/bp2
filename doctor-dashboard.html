@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="style.css" />
   <style>
-    body { font-family: Arial, Helvetica, sans-serif; margin: 0; background: #f9f9f9; }
+    body { font-family: 'Poppins', sans-serif; margin: 0; background: #f9f9f9; }
     h2 { text-align: center; margin: 20px 0; color: #c71585; }
     .dashboard { max-width: 1200px; margin: 20px auto; background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
     table { width: 100%; border-collapse: collapse; margin-top: 15px; }
@@ -17,21 +17,16 @@
     .btn-end { background: #888; }
     .btn-logout { background: #c00; float: right; margin-bottom: 10px; }
     .status { font-weight: bold; padding: 4px 8px; border-radius: 5px; }
-    .status.SUCCESS, .status.PAID { background: #d4edda; color: #155724; }
+    .status.SUCCESS, .status.PAID, .status.CONFIRMED { background: #d4edda; color: #155724; }
     .status.FAILED { background: #f8d7da; color: #721c24; }
     .status.PENDING { background: #fff3cd; color: #856404; }
     .filters { margin-bottom: 15px; flex-wrap: wrap; display: flex; align-items: center; gap: 10px; }
     .filters label { font-weight: bold; }
-    .filters select, .filters input { padding: 6px; }
-    #summaryPanel, #walkinSummary { display: flex; justify-content: space-between; flex-wrap: wrap; margin: 20px 0; text-align: center; }
-    #summaryPanel div, #walkinSummary div { flex: 1; padding: 15px; margin: 5px; border-radius: 8px; }
-    #summaryPanel div { background: #f2f2f2; }
-    #walkinSummary div:nth-child(1) { background: #e8f5e9; }
-    #walkinSummary div:nth-child(2) { background: #fff8e1; }
-    #walkinSummary div:nth-child(3) { background: #e3f2fd; }
-    #walkinSummary div:nth-child(4) { background: #fce4ec; }
-    #summaryPanel h3, #walkinSummary h3 { margin: 0 0 10px; color: #333; }
-    #summaryPanel p, #walkinSummary p { font-size: 20px; font-weight: bold; margin: 0; }
+    .filters select, .filters input { padding: 6px; border-radius: 6px; border: 1px solid #ddd; }
+    #summaryPanel { display: flex; justify-content: space-between; flex-wrap: wrap; margin: 20px 0; text-align: center; }
+    #summaryPanel div { flex: 1; padding: 15px; margin: 5px; border-radius: 8px; background: #f2f2f2; }
+    #summaryPanel h3 { margin: 0 0 10px; color: #333; }
+    #summaryPanel p { font-size: 20px; font-weight: bold; margin: 0; }
     .past-row { background: #f8f9fa; color: #888; }
     td small { font-size: 13px; color: #555; }
     @media (max-width: 768px) {
@@ -62,43 +57,32 @@
       <div><h3>This Month</h3><p id="monthRevenue">₹0</p></div>
     </div>
 
-  
-
     <!-- 🔍 Filters -->
     <div class="filters">
       <label>Status:</label>
-      <select id="status" onchange="loadBookings()">
-        <option value="ALL" selected>All</option>
+      <select id="status" onchange="applyFilters()">
+        <option value="ALL">All</option>
+        <option value="CONFIRMED">Confirmed</option>
         <option value="PAID">Paid</option>
-        <option value="SUCCESS">Success</option>
-        <option value="FAILED">Failed</option>
         <option value="PENDING">Pending</option>
+        <option value="FAILED">Failed</option>
       </select>
 
       <label>Date Range:</label>
-      <select id="range" onchange="loadBookings()">
+      <select id="range" onchange="applyFilters()">
+        <option value="ALL">All</option>
         <option value="TODAY">Today</option>
-        <option value="7DAYS">Next 7 Days</option>
-        <option value="30DAYS">Next 30 Days</option>
-        <option value="ALL" selected>All Future</option>
+        <option value="UPCOMING">Upcoming</option>
         <option value="PAST">Past</option>
       </select>
 
-      <label>Country:</label>
-      <select id="country" onchange="loadBookings()">
-        <option value="ALL" selected>All</option>
-        <option value="India">India 🇮🇳</option>
-        <option value="United States">United States 🇺🇸</option>
-        <option value="United Arab Emirates">UAE 🇦🇪</option>
-        <option value="United Kingdom">UK 🇬🇧</option>
-      </select>
-
       <label>🔍</label>
-      <input type="text" id="search" placeholder="Patient name or email" oninput="loadBookings()" />
+      <input type="text" id="search" placeholder="Patient name or email" oninput="applyFilters()" />
     </div>
 
     <!-- 📅 Appointment Table -->
     <div id="bookingContainer"><p>⏳ Loading bookings...</p></div>
+  </div>
 
   <!-- FOOTER -->
   <footer>
@@ -111,115 +95,97 @@
 
   <!-- SCRIPT -->
   <script type="module">
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
-import { app } from "/js/firebase-init.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+    import { app } from "/js/firebase-init.js";
 
-const auth = getAuth(app);
-const db = getDatabase(app);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
 
-// ===== AUTH CHECK =====
-onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    window.location.href = "login.html";
-    return;
-  }
+    let BOOKINGS = [];
 
-  // 👨‍⚕️ Display doctor info
-  const header = document.querySelector("h2");
-  header.innerHTML = `👨‍⚕️ Welcome, Dr. MAHESH YADAV <br><small style="font-size:14px;color:#555;">${user.email}</small>`;
+    const statusEl = document.getElementById("status");
+    const rangeEl = document.getElementById("range");
+    const searchEl = document.getElementById("search");
+    const container = document.getElementById("bookingContainer");
 
-  // Live data listener
-  liveBookings();
-});
+    const todayBookingsEl = document.getElementById("todayBookings");
+    const upcomingBookingsEl = document.getElementById("upcomingBookings");
+    const todayRevenueEl = document.getElementById("todayRevenue");
+    const monthRevenueEl = document.getElementById("monthRevenue");
 
-// ===== LIVE BOOKINGS LISTENER =====
-function liveBookings() {
-  const bookingsRef = ref(db, "bookings");
-
-  onValue(bookingsRef, (snapshot) => {
-    const data = snapshot.val() || {};
-    const statusFilter = document.getElementById("status").value;
-    const search = document.getElementById("search").value.trim().toLowerCase();
-
-    const all = Object.values(data).filter((b) => {
-      const matchStatus =
-        statusFilter === "ALL" ||
-        b.status?.toLowerCase() === statusFilter.toLowerCase();
-      const matchSearch =
-        !search ||
-        b.name?.toLowerCase().includes(search) ||
-        b.email?.toLowerCase().includes(search);
-      return matchStatus && matchSearch;
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+        return;
+      }
+      document.querySelector("h2").innerHTML = `👨‍⚕️ Welcome, Dr. MAHESH YADAV <br><small style="font-size:14px;color:#555;">${user.email}</small>`;
+      const bookingsRef = ref(db, "bookings");
+      onValue(bookingsRef, (snapshot) => {
+        const val = snapshot.val() || {};
+        BOOKINGS = Object.values(val).filter(b => b.doctorEmail === user.email || true);
+        renderBookings();
+      });
     });
 
-    renderDashboard(all);
-  });
-}
+    function renderBookings() {
+      const status = statusEl.value;
+      const range = rangeEl.value;
+      const search = searchEl.value.trim().toLowerCase();
+      const now = new Date();
+      const todayStr = now.toISOString().split("T")[0];
 
-// ===== RENDER DASHBOARD =====
-function renderDashboard(all) {
-  const todayStr = new Date().toISOString().split("T")[0];
-  const todayBookings = all.filter((b) => b.date === todayStr);
-  const upcoming = all.filter((b) => b.date > todayStr);
+      let filtered = BOOKINGS.filter(b => {
+        if (status !== "ALL" && (b.status || "").toUpperCase() !== status) return false;
+        if (search && !((b.name || "").toLowerCase().includes(search) || (b.email || "").toLowerCase().includes(search))) return false;
+        if (range === "TODAY" && b.date !== todayStr) return false;
+        if (range === "UPCOMING" && b.date <= todayStr) return false;
+        if (range === "PAST" && b.date >= todayStr) return false;
+        return true;
+      });
 
+      // Summary
+      const todayBookings = BOOKINGS.filter(b => b.date === todayStr);
+      const upcoming = BOOKINGS.filter(b => b.date > todayStr);
+      const todayRevenue = todayBookings.reduce((t, b) => t + (Number(b.amount) || 0), 0);
+      const monthRevenue = BOOKINGS.reduce((t, b) => t + (Number(b.amount) || 0), 0);
 
-  const todayRevenue = todayBookings.reduce(
-    (t, b) => t + (Number(b.amount) || 0),
-    0
-  );
-  const monthRevenue = all.reduce((t, b) => t + (Number(b.amount) || 0), 0);
+      todayBookingsEl.textContent = todayBookings.length;
+      upcomingBookingsEl.textContent = upcoming.length;
+      todayRevenueEl.textContent = "₹" + todayRevenue;
+      monthRevenueEl.textContent = "₹" + monthRevenue;
 
-  // ===== UPDATE COUNTERS =====
-  document.getElementById("todayBookings").innerText = todayBookings.length;
-  document.getElementById("upcomingBookings").innerText = upcoming.length;
-  document.getElementById("todayRevenue").innerText = "₹" + todayRevenue;
-  document.getElementById("monthRevenue").innerText = "₹" + monthRevenue;
+      if (!filtered.length) {
+        container.innerHTML = "<p>No bookings found.</p>";
+        return;
+      }
 
-  
-  // ===== TABLE DISPLAY =====
-  const container = document.getElementById("bookingContainer");
-  if (!all.length) {
-    container.innerHTML = "<p>✅ No bookings found.</p>";
-    return;
-  }
+      let html = "<table><tr><th>Date</th><th>Time</th><th>Patient</th><th>Concern</th><th>Status</th><th>Join</th></tr>";
+      filtered.forEach(b => {
+        const joinLink =
+          b.status?.toLowerCase() === "confirmed" && b.meetingLink
+            ? `<a class='btn btn-join' href='/consult-room.html?room=${encodeURIComponent(b.meetingLink)}&role=doctor&patientName=${encodeURIComponent(b.name || "")}&orderId=${encodeURIComponent(b.order_id || "")}' target='_blank'>Join</a>`
+            : "-";
+        html += `<tr>
+          <td>${b.date || "-"}</td>
+          <td>${b.slot || "-"}</td>
+          <td>${b.name || "-"}</td>
+          <td>${b.concern || "-"}</td>
+          <td><span class="status ${b.status}">${b.status || "-"}</span></td>
+          <td>${joinLink}</td>
+        </tr>`;
+      });
+      html += "</table>";
+      container.innerHTML = html;
+    }
 
-  let html =
-    "<table><tr><th>Date</th><th>Time</th><th>Patient</th><th>Concern</th><th>Contact</th><th>Status</th><th>Join</th></tr>";
+    window.applyFilters = renderBookings;
 
-  all.forEach((b) => {
-    const past = b.date < todayStr;
-    const joinButton =
-      b.meetingLink && !past
-        ? `<a class='btn btn-join' href='${b.meetingLink}' target='_blank'>Join</a>`
-        : "-";
-    html += `
-      <tr class="${past ? "past-row" : ""}">
-        <td>${b.date}</td>
-        <td>${b.slot || "-"}</td>
-        <td>${b.name || "-"}</td>
-        <td>${b.concern || "-"}</td>
-        <td>${b.email || ""}<br>${b.phone || ""}</td>
-        <td><span class="status ${b.status}">${b.status}</span></td>
-        <td>${joinButton}</td>
-      </tr>`;
-  });
-  html += "</table>";
-  container.innerHTML = html;
-}
-
-// ===== LOGOUT =====
-window.logout = function () {
-  signOut(auth)
-    .then(() => {
-      localStorage.removeItem("doctorToken");
-      window.location.href = "login.html";
-    })
-    .catch((err) => {
-      console.error("Logout failed:", err);
-      alert("Logout failed. Try again.");
-    });
-};
-</script>
+    window.logout = function() {
+      signOut(auth).then(() => {
+        window.location.href = "login.html";
+      });
+    };
+  </script>
 </body>
 </html>
