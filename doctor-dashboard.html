@@ -163,8 +163,8 @@
       let html = "<table><tr><th>Date</th><th>Time</th><th>Patient</th><th>Concern</th><th>Status</th><th>Join</th></tr>";
       filtered.forEach(b => {
         const joinLink =
-          b.status?.toLowerCase() === "confirmed" && b.meetingLink
-            ? `<a class='btn btn-join' href='/consult-room.html?room=${encodeURIComponent(b.meetingLink)}&role=doctor&patientName=${encodeURIComponent(b.name || "")}&orderId=${encodeURIComponent(b.order_id || "")}' target='_blank'>Join</a>`
+           b.status?.toLowerCase() === "confirmed"
+            ? `<a class='btn btn-join' href='/consult-room.html?room=${encodeURIComponent(b.meetingLink || b.order_id || b.email || b.name)}&role=doctor&patientName=${encodeURIComponent(b.name || "")}&orderId=${encodeURIComponent(b.order_id || "")}' target='_blank'>Join</a>`
             : "-";
         html += `<tr>
           <td>${b.date || "-"}</td>
