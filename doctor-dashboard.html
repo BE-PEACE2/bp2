@@ -6,41 +6,58 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="style.css" />
   <style>
-    body { font-family: 'Poppins', sans-serif; margin: 0; background: #f9f9f9; }
+    body { font-family: 'Poppins', sans-serif; margin: 0; background: #f9f9f9; overflow-x: hidden; }
     h2 { text-align: center; margin: 20px 0; color: #c71585; }
     .dashboard { max-width: 1200px; margin: 20px auto; background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
     table { width: 100%; border-collapse: collapse; margin-top: 15px; }
     table th, table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
     table th { background: #f2f2f2; }
     .btn { display: inline-block; padding: 8px 12px; border-radius: 5px; text-decoration: none; color: #fff; font-size: 14px; border: none; cursor: pointer; }
-    .btn-join { background: #28a745; }
-    .btn-end { background: #888; }
+    .btn-join { background: #22c55e; }
+    .btn-end { background: #ef4444; }
+    .btn-disabled { background: #aaa; color: white; cursor: not-allowed; }
     .btn-logout { background: #c00; float: right; margin-bottom: 10px; }
-    .status { font-weight: bold; padding: 4px 8px; border-radius: 5px; }
-    .status.SUCCESS, .status.PAID, .status.CONFIRMED { background: #d4edda; color: #155724; }
-    .status.FAILED { background: #f8d7da; color: #721c24; }
-    .status.PENDING { background: #fff3cd; color: #856404; }
-    .filters { margin-bottom: 15px; flex-wrap: wrap; display: flex; align-items: center; gap: 10px; }
-    .filters label { font-weight: bold; }
-    .filters select, .filters input { padding: 6px; border-radius: 6px; border: 1px solid #ddd; }
+    .status { font-weight: bold; padding: 4px 8px; border-radius: 6px; display: inline-block; text-transform: uppercase; }
+    .status.LIVE { background: #22c55e; color: white; animation: pulse 1.5s infinite; }
+    .status.IN_PROGRESS { background: #facc15; color: #78350f; }
+    .status.UPCOMING { background: #60a5fa; color: white; }
+    .status.COMPLETED { background: #cbd5e1; color: #1e293b; }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(34,197,94,0); }
+      100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+    }
     #summaryPanel { display: flex; justify-content: space-between; flex-wrap: wrap; margin: 20px 0; text-align: center; }
     #summaryPanel div { flex: 1; padding: 15px; margin: 5px; border-radius: 8px; background: #f2f2f2; }
     #summaryPanel h3 { margin: 0 0 10px; color: #333; }
     #summaryPanel p { font-size: 20px; font-weight: bold; margin: 0; }
-    .past-row { background: #f8f9fa; color: #888; }
     td small { font-size: 13px; color: #555; }
-    @media (max-width: 768px) {
-      table, thead, tbody, th, td, tr { display: block; }
-      tr { margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; padding: 8px; }
-      td { border: none; }
+
+    /* 🔔 Popup Notification */
+    #notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #22c55e;
+      color: white;
+      padding: 14px 18px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: all 0.4s ease;
+      z-index: 1000;
+    }
+    #notification.show {
+      opacity: 1;
+      transform: translateY(0);
     }
   </style>
 </head>
+
 <body>
-  <!-- HEADER -->
   <header>
     <div class="logo-container">
-      <div class="earth"></div>
       <h1 class="peach-text">BE PEACE</h1>
     </div>
   </header>
@@ -49,7 +66,6 @@
     <h2>👨‍⚕️ Doctor Dashboard</h2>
     <button class="btn btn-logout" onclick="logout()">Logout</button>
 
-    <!-- 📊 Appointment Summary -->
     <div id="summaryPanel">
       <div><h3>Today’s Bookings</h3><p id="todayBookings">0</p></div>
       <div><h3>Upcoming</h3><p id="upcomingBookings">0</p></div>
@@ -57,158 +73,171 @@
       <div><h3>This Month</h3><p id="monthRevenue">₹0</p></div>
     </div>
 
-    <!-- 🔍 Filters -->
-    <div class="filters">
-      <label>Status:</label>
-      <select id="status" onchange="applyFilters()">
-        <option value="ALL">All</option>
-        <option value="CONFIRMED">Confirmed</option>
-        <option value="PAID">Paid</option>
-        <option value="PENDING">Pending</option>
-        <option value="FAILED">Failed</option>
-      </select>
-
-      <label>Date Range:</label>
-      <select id="range" onchange="applyFilters()">
-        <option value="ALL">All</option>
-        <option value="TODAY">Today</option>
-        <option value="UPCOMING">Upcoming</option>
-        <option value="PAST">Past</option>
-      </select>
-
-      <label>🔍</label>
-      <input type="text" id="search" placeholder="Patient name or email" oninput="applyFilters()" />
-    </div>
-
-    <!-- 📅 Appointment Table -->
     <div id="bookingContainer"><p>⏳ Loading bookings...</p></div>
   </div>
 
-  <!-- FOOTER -->
+  <div id="notification"></div>
+  <audio id="notifySound" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"></audio>
+
   <footer>
-    <div class="footer-logo">
-      <div class="earth slow"></div>
-      <h1 class="peach-text">BE PEACE</h1>
-    </div>
     <p>© 2025 BE PEACE. All rights reserved.</p>
   </footer>
 
-  <!-- SCRIPT -->
   <script type="module">
-  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
-  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
-  import { app } from "/js/firebase-init.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+    import { app } from "/js/firebase-init.js";
 
-  const auth = getAuth(app);
-  const db = getDatabase(app);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+    const container = document.getElementById("bookingContainer");
+    const notifySound = document.getElementById("notifySound");
+    const notifyPopup = document.getElementById("notification");
+    let prevBookings = [];
 
-  let BOOKINGS = [];
-
-  const statusEl = document.getElementById("status");
-  const rangeEl = document.getElementById("range");
-  const searchEl = document.getElementById("search");
-  const container = document.getElementById("bookingContainer");
-
-  const todayBookingsEl = document.getElementById("todayBookings");
-  const upcomingBookingsEl = document.getElementById("upcomingBookings");
-  const todayRevenueEl = document.getElementById("todayRevenue");
-  const monthRevenueEl = document.getElementById("monthRevenue");
-
-  onAuthStateChanged(auth, (user) => {
-    if (!user) {
-      window.location.href = "login.html";
-      return;
-    }
-    document.querySelector("h2").innerHTML = `👨‍⚕️ Welcome, Dr. MAHESH YADAV <br><small style="font-size:14px;color:#555;">${user.email}</small>`;
-    const bookingsRef = ref(db, "bookings");
-    onValue(bookingsRef, (snapshot) => {
-      const val = snapshot.val() || {};
-      BOOKINGS = Object.values(val).filter(b => b.doctorEmail === user.email);
-      renderBookings();
-    });
-  });
-
-  function renderBookings() {
-    const status = statusEl.value;
-    const range = rangeEl.value;
-    const search = searchEl.value.trim().toLowerCase();
-    const now = new Date();
-    const todayStr = now.toISOString().split("T")[0];
-    const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const nextDay = new Date(todayDate);
-    nextDay.setDate(todayDate.getDate() + 1);
-
-    let filtered = BOOKINGS.filter(b => {
-      if (status !== "ALL" && (b.status || "").toUpperCase() !== status) return false;
-      if (search && !((b.name || "").toLowerCase().includes(search) || (b.email || "").toLowerCase().includes(search))) return false;
-      if (range === "TODAY" && b.date !== todayStr) return false;
-      if (range === "UPCOMING" && b.date <= todayStr) return false;
-      if (range === "PAST" && b.date >= todayStr) return false;
-      return true;
-    });
-
-    // Summary
-    const todayBookings = BOOKINGS.filter(b => b.date === todayStr);
-    const upcoming = BOOKINGS.filter(b => b.date > todayStr);
-    const todayRevenue = todayBookings.reduce((t, b) => t + (Number(b.amount) || 0), 0);
-    const monthRevenue = BOOKINGS.reduce((t, b) => t + (Number(b.amount) || 0), 0);
-
-    todayBookingsEl.textContent = todayBookings.length;
-    upcomingBookingsEl.textContent = upcoming.length;
-    todayRevenueEl.textContent = "₹" + todayRevenue;
-    monthRevenueEl.textContent = "₹" + monthRevenue;
-
-    if (!filtered.length) {
-      container.innerHTML = "<p>No bookings found.</p>";
-      return;
+    function showNotification(msg) {
+      notifyPopup.textContent = msg;
+      notifyPopup.classList.add("show");
+      notifySound.play().catch(()=>{});
+      setTimeout(() => notifyPopup.classList.remove("show"), 5000);
     }
 
-    let html = "<table><tr><th>Date</th><th>Time</th><th>Patient</th><th>Concern</th><th>Status</th><th>Join</th></tr>";
+    onAuthStateChanged(auth, (user) => {
+      if (!user) return window.location.href = "login.html";
+      const bookingsRef = ref(db, "bookings");
 
-    filtered.forEach(b => {
-      const bookingDate = new Date(b.date);
-      const isTodayBooking = bookingDate.getTime() === todayDate.getTime();
-      const within24hWindow = now >= todayDate && now < nextDay;
-      const canJoin = isTodayBooking && within24hWindow;
-
-      const joinLink = canJoin
-  ? `<a class='btn btn-join' 
-        href='/consultation-room.html?room=${encodeURIComponent(
-          b.order_id || b.meetingLink || b.email || b.name
-        )}&role=doctor
-        &name=${encodeURIComponent("Dr. Mahesh Yadav")}
-        &patientName=${encodeURIComponent(b.name || "")}
-        &orderId=${encodeURIComponent(b.order_id || "")}
-        &doctorEmail=${encodeURIComponent(user.email || "")}'
-        target='_blank'>Join</a>`
-  : "-";
-
-      const statusDisplay = canJoin ? "✅ Live (Active 24 hrs)" : b.status || "—";
-
-      html += `<tr>
-        <td>${b.date || "-"}</td>
-        <td>${b.slot || "-"}</td>
-        <td>${b.name || "-"}</td>
-        <td>${b.concern || "-"}</td>
-        <td><span class="status ${b.status}">${statusDisplay}</span></td>
-        <td>${joinLink}</td>
-      </tr>`;
+      onValue(bookingsRef, (snapshot) => {
+        const data = snapshot.val() || {};
+        const doctorBookings = Object.values(data).filter(b => b.doctorEmail === user.email);
+        detectNewOrLive(doctorBookings);
+        renderBookings(doctorBookings);
+      });
     });
 
-    html += "</table>";
-    container.innerHTML = html;
-  }
+    function parseTimeTo24H(timeStr) {
+      if (!timeStr) return { hours: 0, minutes: 0 };
+      const [time, modifier] = timeStr.split(" ");
+      let [hours, minutes] = time.split(":").map(Number);
+      if (modifier === "PM" && hours !== 12) hours += 12;
+      if (modifier === "AM" && hours === 12) hours = 0;
+      return { hours, minutes };
+    }
 
-  window.applyFilters = renderBookings;
+    function detectNewOrLive(bookings) {
+      if (!prevBookings.length) {
+        prevBookings = bookings;
+        return;
+      }
 
-  window.logout = function () {
-    signOut(auth).then(() => {
-      window.location.href = "login.html";
-    });
-  };
+      // 🔔 Check for new bookings
+      bookings.forEach(b => {
+        if (!prevBookings.find(p => p.order_id === b.order_id)) {
+          showNotification(`🆕 New booking: ${b.name} at ${b.slot}`);
+        }
 
-  // 🔄 Auto refresh every 1 minute for live updates
-  setInterval(() => renderBookings(), 60000);
-</script>
+        // 🔔 Check for new LIVE
+        const { hours, minutes } = parseTimeTo24H(b.slot);
+        const start = new Date(`${b.date}T${String(hours).padStart(2,"0")}:${String(minutes).padStart(2,"0")}:00`);
+        const end = new Date(start.getTime() + 24*60*60*1000);
+        const now = new Date();
+        if (now >= start && now <= end && !b._wasLiveNotified) {
+          showNotification(`🔴 LIVE consultation: ${b.name}`);
+          b._wasLiveNotified = true;
+        }
+      });
+
+      prevBookings = bookings;
+    }
+
+    function renderBookings(bookings) {
+      const now = new Date();
+      container.innerHTML = "<table><tr><th>Date</th><th>Time</th><th>Patient</th><th>Concern</th><th>Status</th><th>Actions</th></tr>";
+
+      let countToday = 0, countUpcoming = 0, todayRevenue = 0, monthRevenue = 0;
+      const todayStr = now.toISOString().split("T")[0];
+      const currentMonth = now.getMonth();
+
+      bookings.forEach(b => {
+        const { hours, minutes } = parseTimeTo24H(b.slot);
+        const start = new Date(`${b.date}T${String(hours).padStart(2,"0")}:${String(minutes).padStart(2,"0")}:00`);
+        const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+        const canJoin = now >= start && now <= end;
+        let statusClass = "UPCOMING", statusText = "🕒 Upcoming", actionHTML = "";
+
+        if (canJoin) {
+          statusClass = "LIVE";
+          statusText = "🟢 LIVE (24h)";
+          countToday++;
+        } else if (now > end) {
+          statusClass = "COMPLETED";
+          statusText = "🔵 Completed";
+        } else {
+          countUpcoming++;
+        }
+
+        if (b.status === "IN_PROGRESS") {
+          statusClass = "IN_PROGRESS";
+          statusText = "🟡 In Progress";
+        }
+
+        if (canJoin && (!b.status || b.status === "CONFIRMED")) {
+          actionHTML = `
+            <button class='btn btn-join' onclick="startConsultation('${b.order_id}', '${b.name}')">Start</button>
+            <a href='/consultation-room.html?room=${b.order_id}&role=doctor&patientName=${b.name}' target='_blank' class='btn btn-join'>Join</a>`;
+        } else if (b.status === "IN_PROGRESS" && now <= end) {
+          actionHTML = `
+            <button class='btn btn-end' onclick="endConsultation('${b.order_id}', '${b.name}')">End</button>
+            <a href='/consultation-room.html?room=${b.order_id}&role=doctor&patientName=${b.name}' target='_blank' class='btn btn-join'>Rejoin</a>`;
+        } else {
+          actionHTML = `<button class='btn btn-disabled' disabled>Closed</button>`;
+        }
+
+        const fee = Number(b.fee || 0);
+        const bDate = new Date(b.date);
+        if (bDate.toISOString().split("T")[0] === todayStr) todayRevenue += fee;
+        if (bDate.getMonth() === currentMonth) monthRevenue += fee;
+
+        container.innerHTML += `
+          <tr>
+            <td>${b.date}</td>
+            <td>${b.slot}</td>
+            <td>${b.name}</td>
+            <td>${b.concern || "-"}</td>
+            <td><span class="status ${statusClass}">${statusText}</span></td>
+            <td>${actionHTML}</td>
+          </tr>`;
+      });
+
+      document.getElementById("todayBookings").textContent = countToday;
+      document.getElementById("upcomingBookings").textContent = countUpcoming;
+      document.getElementById("todayRevenue").textContent = `₹${todayRevenue}`;
+      document.getElementById("monthRevenue").textContent = `₹${monthRevenue}`;
+      container.innerHTML += "</table>";
+    }
+
+    window.startConsultation = async function (orderId, name) {
+      const bookingsRef = ref(db, "bookings");
+      onValue(bookingsRef, (snapshot) => {
+        const data = snapshot.val() || {};
+        const key = Object.keys(data).find(k => data[k].order_id === orderId);
+        if (key) update(ref(db, "bookings/" + key), { status: "IN_PROGRESS" });
+      }, { onlyOnce: true });
+      showNotification(`✅ Started consultation with ${name}`);
+    };
+
+    window.endConsultation = async function (orderId, name) {
+      const bookingsRef = ref(db, "bookings");
+      onValue(bookingsRef, (snapshot) => {
+        const data = snapshot.val() || {};
+        const key = Object.keys(data).find(k => data[k].order_id === orderId);
+        if (key) update(ref(db, "bookings/" + key), { status: "COMPLETED" });
+      }, { onlyOnce: true });
+      showNotification(`🏁 Ended consultation with ${name}`);
+    };
+
+    window.logout = function () {
+      signOut(auth).then(() => window.location.href = "login.html");
+    };
+  </script>
 </body>
 </html>

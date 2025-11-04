@@ -14,11 +14,7 @@
 
   <!-- MAIN DASHBOARD CONTENT -->
   <div class="dashboard-content">
-
-    <!-- HAMBURGER BUTTON -->
     <button class="menu-btn" onclick="toggleMenu()">☰</button>
-
-    <!-- 🌸 SOFT PINK BACKGROUND OVERLAY -->
     <div id="menuOverlay" class="menu-overlay" onclick="toggleMenu()"></div>
 
     <!-- SIDE MENU -->
@@ -27,7 +23,7 @@
       <ul>
         <li><a href="dashboard.html" class="active">🏠 Dashboard</a></li>
         <li>
-          <details>
+          <details open>
             <summary>📅 Consultations</summary>
             <ul style="margin-top: 8px; list-style: none; padding-left: 12px;">
               <li><a href="#today" onclick="scrollToSection('today')">Today <span id="countToday" class="badge">0</span></a></li>
@@ -42,29 +38,23 @@
       </ul>
     </nav>
 
-    <!-- MAIN DASHBOARD AREA -->
+    <!-- MAIN AREA -->
     <main class="dashboard-main">
       <section class="greeting">
         <h1 id="greeting">Hello 👋</h1>
-        <p>Welcome to your <span style="color:#c71585;font-weight:bold;">BePeace</span> Dashboard — view your consultations and updates here.</p>
+        <p>Welcome to your <span style="color:#c71585;font-weight:bold;">BePeace</span> Dashboard.</p>
       </section>
 
-      <!-- FILTER LABEL -->
-      <!-- Will be added dynamically via JS -->
-
-      <!-- TODAY CONSULTATIONS -->
       <section id="today" class="panel">
         <h2>📅 Today’s Consultations</h2>
         <div id="todayList" class="booking-list">Loading...</div>
       </section>
 
-      <!-- UPCOMING CONSULTATIONS -->
       <section id="upcoming" class="panel">
         <h2>🔮 Upcoming Consultations</h2>
         <div id="upcomingList" class="booking-list">Loading...</div>
       </section>
 
-      <!-- PAST CONSULTATIONS -->
       <section id="past" class="panel">
         <h2>🕓 Past Consultations</h2>
         <div id="pastList" class="booking-list"></div>
@@ -75,217 +65,7 @@
   <!-- FOOTER -->
   <div id="footer"></div>
 
-  <!-- SCRIPTS -->
-  <script src="js/load-partials.js"></script>
-
-  <!-- 🌸 STYLE -->
-  <style>
-    body.dashboard-page {
-      margin: 0;
-      font-family: "Poppins", sans-serif;
-      background: linear-gradient(180deg, #f3f8ff 0%, #f9fbfd 100%);
-      color: #0f172a;
-    }
-
-    .dashboard-content {
-      display: flex;
-      max-width: 1200px;
-      margin: 40px auto;
-      padding: 20px;
-      position: relative;
-      gap: 20px;
-    }
-
-    .menu-btn {
-      position: absolute;
-      top: 0;
-      left: 0;
-      background: var(--accent, #c71585);
-      color: white;
-      border: none;
-      padding: 10px 14px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 20px;
-      z-index: 300;
-      box-shadow: 0 2px 8px rgba(199, 21, 133, 0.25);
-      transition: background 0.3s ease;
-    }
-    .menu-btn:hover {
-      background: #a50f6e;
-      transform: translateY(-2px);
-    }
-
-    .side-menu {
-      width: 0;
-      overflow: hidden;
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-      transition: width 0.3s ease, padding 0.3s ease;
-      padding: 0;
-      flex-shrink: 0;
-      z-index: 400;
-    }
-
-    .side-menu.show {
-      width: 220px;
-      padding: 20px;
-    }
-
-    .side-menu h2 {
-      margin: 0 0 10px;
-      color: var(--accent, #c71585);
-      text-align: center;
-      font-weight: 700;
-    }
-
-    .side-menu ul {
-      list-style: none;
-      padding: 0;
-      margin: 20px 0 0;
-    }
-
-    .side-menu li {
-      margin-bottom: 12px;
-    }
-
-    .side-menu a {
-      text-decoration: none;
-      color: #333;
-      font-weight: 500;
-      padding: 8px 12px;
-      display: block;
-      border-radius: 6px;
-      transition: 0.2s ease;
-    }
-
-    .side-menu a:hover,
-    .side-menu a.active {
-      background: #c71585;
-      color: white;
-    }
-
-    .badge {
-      background: #c71585;
-      color: white;
-      border-radius: 8px;
-      padding: 2px 8px;
-      font-size: 0.8rem;
-      float: right;
-      margin-left: 8px;
-      transition: background 0.3s ease;
-    }
-
-    .menu-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(253, 221, 230, 0.28);
-      backdrop-filter: blur(4px);
-      opacity: 0;
-      visibility: hidden;
-      transition: all 0.3s ease;
-      z-index: 200;
-    }
-
-    .menu-overlay.show {
-      opacity: 1;
-      visibility: visible;
-    }
-
-    .dashboard-main {
-      flex: 1;
-      transition: margin-left 0.3s ease;
-    }
-
-    .greeting {
-      text-align: center;
-      margin-bottom: 40px;
-    }
-
-    .panel {
-      background: white;
-      border-radius: 16px;
-      padding: 20px;
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
-      margin-bottom: 24px;
-    }
-
-    .booking-list {
-      margin-top: 12px;
-      color: #555;
-    }
-
-    .appointment {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid #eee;
-      padding: 12px 0;
-    }
-
-    .appointment strong {
-      color: #c71585;
-    }
-
-    .countdown {
-      display: block;
-      margin-top: 4px;
-      font-size: 0.9rem;
-      color: #444;
-    }
-
-    .join-btn {
-      padding: 8px 14px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      transition: 0.2s ease;
-      font-size: 0.9rem;
-    }
-
-    .join-btn.live {
-      background: #22c55e;
-      color: white;
-      font-weight: 600;
-    }
-
-    .join-btn.disabled {
-      background: #d1d5db;
-      color: #666;
-      cursor: not-allowed;
-    }
-
-    @media (max-width: 768px) {
-      .dashboard-content {
-        flex-direction: column;
-        margin-top: 20px;
-      }
-
-      .side-menu {
-        width: 100%;
-        display: none;
-        border-radius: 10px;
-      }
-
-      .side-menu.show {
-        display: block;
-        width: 100%;
-      }
-
-      .menu-btn {
-        position: relative;
-        margin-bottom: 10px;
-      }
-    }
-
-    html { scroll-behavior: smooth; }
-  </style>
-
-  <!-- 🌸 INLINE MENU CONTROL -->
+  <!-- MENU SCRIPT -->
   <script>
     window.toggleMenu = function () {
       const menu = document.getElementById("sideMenu");
@@ -299,214 +79,111 @@
       document.getElementById("menuOverlay").classList.remove("show");
     }
 
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") closeMenu();
-    });
-
     window.scrollToSection = function (id) {
-      const sectionMap = {
-        today: document.querySelector("#today"),
-        upcoming: document.querySelector("#upcoming"),
-        past: document.querySelector("#past"),
-      };
-      const target = sectionMap[id];
-      if (target) {
-        target.scrollIntoView({ behavior: "smooth" });
+      const el = document.querySelector("#" + id);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth" });
         closeMenu();
       }
     };
   </script>
 
-  <!-- 🌿 FILTER & LABEL SCRIPT -->
-<script type="module">
-  import { auth, database } from "./js/firebase-init.js";
-  import { ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+  <!-- 🌿 FIREBASE LOGIC -->
+  <script type="module">
+    import { auth, database } from "./js/firebase-init.js";
+    import { ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
 
-  const todayBadge = document.getElementById("countToday");
-  const upcomingBadge = document.getElementById("countUpcoming");
-  const pastBadge = document.getElementById("countPast");
+    const todayBadge = document.getElementById("countToday");
+    const upcomingBadge = document.getElementById("countUpcoming");
+    const pastBadge = document.getElementById("countPast");
 
-  const todaySection = document.querySelector("#today");
-  const upcomingSection = document.querySelector("#upcoming");
-  const pastSection = document.querySelector("#past");
+    const todayList = document.getElementById("todayList");
+    const upcomingList = document.getElementById("upcomingList");
+    const pastList = document.getElementById("pastList");
 
-  // 🌸 Dynamic Filter Label
-  const label = document.createElement("div");
-  label.id = "filterLabel";
-  label.style.textAlign = "center";
-  label.style.fontSize = "1rem";
-  label.style.marginBottom = "20px";
-  label.style.padding = "8px 16px";
-  label.style.borderRadius = "10px";
-  label.style.display = "inline-block";
-  label.style.color = "#fff";
-  label.style.background = "#c71585";
-  label.style.boxShadow = "0 3px 8px rgba(199,21,133,0.25)";
-  label.style.transition = "opacity 0.6s ease, transform 0.6s ease, background 0.3s ease";
-  label.style.opacity = "0";
-  label.style.transform = "translateY(-10px)";
-  label.textContent = "Showing: All Consultations";
-  document.querySelector(".dashboard-main").insertBefore(label, document.querySelector("#today"));
-
-  function animateLabel() {
-    label.style.opacity = "0";
-    label.style.transform = "translateY(-10px)";
-    setTimeout(() => {
-      label.style.opacity = "1";
-      label.style.transform = "translateY(0)";
-    }, 50);
-  }
-
-  function showAllSections() {
-    todaySection.style.display = "block";
-    upcomingSection.style.display = "block";
-    pastSection.style.display = "block";
-    localStorage.setItem("dashboardFilter", "all");
-    label.textContent = "Showing: All Consultations";
-    label.style.background = "#c71585";
-    animateLabel();
-  }
-
-  function showOnly(section) {
-    todaySection.style.display = section === "today" ? "block" : "none";
-    upcomingSection.style.display = section === "upcoming" ? "block" : "none";
-    pastSection.style.display = section === "past" ? "block" : "none";
-    localStorage.setItem("dashboardFilter", section);
-    const titles = {
-      today: "📅 Today’s Consultations",
-      upcoming: "🔮 Upcoming Consultations",
-      past: "🕓 Past Consultations",
-    };
-    label.textContent = `Showing: ${titles[section]}`;
-    label.style.background =
-      section === "today" ? "#22c55e" :
-      section === "upcoming" ? "#3b82f6" :
-      section === "past" ? "#9ca3af" : "#c71585";
-    animateLabel();
-  }
-
-  function applySavedFilter() {
-    const saved = localStorage.getItem("dashboardFilter");
-    if (saved && ["today", "upcoming", "past"].includes(saved)) {
-      showOnly(saved);
-    } else {
-      showAllSections();
+    function parseTimeTo24H(timeStr) {
+      if (!timeStr) return { hours: 0, minutes: 0 };
+      const [time, modifier] = timeStr.split(" ");
+      let [hours, minutes] = time.split(":").map(Number);
+      if (modifier === "PM" && hours !== 12) hours += 12;
+      if (modifier === "AM" && hours === 12) hours = 0;
+      return { hours, minutes };
     }
-  }
 
-  // 🕒 Convert 12-hour slot to 24-hour Date
-  function parseTimeTo24H(timeStr) {
-    const [time, modifier] = timeStr.split(" ");
-    let [hours, minutes] = time.split(":").map(Number);
-    if (modifier === "PM" && hours !== 12) hours += 12;
-    if (modifier === "AM" && hours === 12) hours = 0;
-    return { hours, minutes };
-  }
+    auth.onAuthStateChanged((user) => {
+      if (!user) return;
+      const userEmail = user.email;
+      const bookingsRef = ref(database, "bookings");
 
-  auth.onAuthStateChanged((user) => {
-    if (!user) return;
-    const userEmail = user.email;
-    const bookingsRef = ref(database, "bookings");
+      onValue(bookingsRef, (snapshot) => {
+        const data = snapshot.val() || {};
+        const now = new Date();
 
-    onValue(bookingsRef, (snapshot) => {
-      const data = snapshot.val() || {};
-      const now = new Date();
+        todayList.innerHTML = "";
+        upcomingList.innerHTML = "";
+        pastList.innerHTML = "";
 
-      let countToday = 0, countUpcoming = 0, countPast = 0;
+        let countToday = 0, countUpcoming = 0, countPast = 0;
 
-      const todayList = document.getElementById("todayList");
-      const upcomingList = document.getElementById("upcomingList");
-      const pastList = document.getElementById("pastList");
+        Object.values(data).forEach((b) => {
+          if (b.email !== userEmail) return;
+          if (!b.date || !b.slot) return;
 
-      todayList.innerHTML = "";
-      upcomingList.innerHTML = "";
-      pastList.innerHTML = "";
+          const { hours, minutes } = parseTimeTo24H(b.slot);
+          const consultStart = new Date(`${b.date}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`);
+          const consultEnd = new Date(consultStart.getTime() + 24 * 60 * 60 * 1000); // +24h
+          
+          let statusText = "";
+          let targetList;
+          let joinHTML = "";
 
-      Object.values(data).forEach((b) => {
-        if (b.email !== userEmail) return;
-        if (!b.date || !b.slot) return;
+          if (now < consultStart) {
+            statusText = "🕒 Upcoming";
+            targetList = upcomingList;
+            countUpcoming++;
+          } else if (now >= consultStart && now <= consultEnd) {
+            statusText = "✅ Live (Active for 24 hours)";
+            targetList = todayList;
+            countToday++;
 
-        // Convert booking date and time
-        const { hours, minutes } = parseTimeTo24H(b.slot);
-        const consultDateTime = new Date(`${b.date}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`);
-        const bookingDate = new Date(b.date);
-        const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const nextDay = new Date(todayDate);
-        nextDay.setDate(todayDate.getDate() + 1);
+            const joinURL = `/consultation-room.html?room=${encodeURIComponent(b.order_id || b.email || b.name)}&role=patient&doctor=${encodeURIComponent(b.doctorEmail || "")}&patientName=${encodeURIComponent(b.name || "")}`;
+            joinHTML = `<a href="${joinURL}" target="_blank" class="join-btn live">Join Now</a>`;
+          } else {
+            statusText = "🔴 Completed";
+            targetList = pastList;
+            countPast++;
+          }
 
-        // ✅ Allow patient to join for 24 hours on the booking day
-        const isTodayBooking = bookingDate.getTime() === todayDate.getTime();
-        const within24hWindow = now >= todayDate && now < nextDay;
-        const canJoin = isTodayBooking && within24hWindow;
+          const div = document.createElement("div");
+          div.className = "appointment";
+          div.innerHTML = `
+            <div>
+              <strong>${b.name || "Patient"}</strong><br/>
+              ${b.date} • ${b.slot}<br/>
+              <small>${b.concern || ""}</small><br/>
+              <small>${b.status || ""}</small>
+            </div>
+            <div style="text-align:right;">
+              ${statusText}<br/>
+              ${joinHTML}
+            </div>`;
+          targetList.appendChild(div);
+        });
 
-        let statusText = "";
-        let targetList;
+        todayBadge.textContent = countToday;
+        upcomingBadge.textContent = countUpcoming;
+        pastBadge.textContent = countPast;
 
-        if (canJoin) {
-          statusText = "✅ Live (Active for 24 hours)";
-          countToday++;
-          targetList = todayList;
-        } else if (bookingDate > todayDate) {
-          countUpcoming++;
-          statusText = "🕒 Upcoming";
-          targetList = upcomingList;
-        } else {
-          countPast++;
-          statusText = "🔴 Completed";
-          targetList = pastList;
-        }
-
-        const div = document.createElement("div");
-        div.className = "appointment";
-
-        // Add join button if Live
-        let joinHTML = "";
-        if (canJoin) {
-          const joinURL = `/consultation-room.html?room=${encodeURIComponent(
-            b.order_id || b.email || b.name
-          )}&role=patient&doctor=${encodeURIComponent(
-            b.doctorEmail || ""
-          )}&patientName=${encodeURIComponent(b.name || "")}`;
-          joinHTML = `<a href="${joinURL}" target="_blank" class="join-btn live">Join Now</a>`;
-        }
-
-        div.innerHTML = `
-          <div>
-            <strong>${b.name || "Patient"}</strong><br/>
-            ${b.date} • ${b.slot}<br/>
-            <small>${b.concern || ""}</small><br/>
-            <span>${b.status || ""}</span>
-          </div>
-          <div style="text-align:right;">
-            ${statusText}<br/>
-            ${joinHTML}
-          </div>
-        `;
-        targetList.appendChild(div);
-      });
-
-      todayBadge.textContent = countToday;
-      upcomingBadge.textContent = countUpcoming;
-      pastBadge.textContent = countPast;
-
-      [todayBadge, upcomingBadge, pastBadge].forEach((el) => {
-        el.style.background = el.textContent === "0" ? "#aaa" : "#c71585";
+        [todayBadge, upcomingBadge, pastBadge].forEach((el) => {
+          el.style.background = el.textContent === "0" ? "#aaa" : "#c71585";
+        });
       });
     });
 
-    applySavedFilter();
-  });
+    // optional: gentle refresh every 5 minutes
+    setInterval(() => window.location.reload(), 5 * 60 * 1000);
+  </script>
 
-  todayBadge.parentElement.addEventListener("click", (e) => { e.preventDefault(); showOnly("today"); closeMenu(); });
-  upcomingBadge.parentElement.addEventListener("click", (e) => { e.preventDefault(); showOnly("upcoming"); closeMenu(); });
-  pastBadge.parentElement.addEventListener("click", (e) => { e.preventDefault(); showOnly("past"); closeMenu(); });
-  document.querySelectorAll(".badge").forEach((badge) => {
-    badge.addEventListener("dblclick", showAllSections);
-  });
-
-  // ♻️ Auto refresh every 1 minute (so Live updates)
-  setInterval(() => location.reload(), 60000);
-</script>
-  <script type="module" src="js/dashboard.js"></script>
+  <script src="js/load-partials.js"></script>
 </body>
 </html>
