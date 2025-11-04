@@ -164,7 +164,7 @@
       filtered.forEach(b => {
         const joinLink =
            b.status?.toLowerCase() === "confirmed"
-            ? `<a class='btn btn-join' href='/consult-room.html?room=${encodeURIComponent(b.meetingLink || b.order_id || b.email || b.name)}&role=doctor&patientName=${encodeURIComponent(b.name || "")}&orderId=${encodeURIComponent(b.order_id || "")}' target='_blank'>Join</a>`
+            ? `<a class='btn btn-join' href='/consultation-room.html?room=${encodeURIComponent(b.meetingLink || b.order_id || b.email || b.name)}&role=doctor&patientName=${encodeURIComponent(b.name || "")}&orderId=${encodeURIComponent(b.order_id || "")}' target='_blank'>Join</a>`
             : "-";
         html += `<tr>
           <td>${b.date || "-"}</td>
