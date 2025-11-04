@@ -136,12 +136,135 @@
   <!-- ✅ Shared BePeace Footer -->
   <div id="footer"></div>
 
-  <!-- 🔐 Firebase Logout -->
+    <!-- 🔐 Firebase Logic -->
   <script type="module">
-    import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
     import { app } from "./js/firebase-init.js";
-    const auth = getAuth(app);
 
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    const container = document.getElementById("bookingContainer");
+    const cards = document.querySelectorAll(".card p");
+
+    // Helper to parse time (12-hour → 24-hour)
+    function parseTimeTo24H(timeStr) {
+      if (!timeStr) return { hours: 0, minutes: 0 };
+      const [time, modifier] = timeStr.split(" ");
+      let [hours, minutes] = time.split(":").map(Number);
+      if (modifier === "PM" && hours !== 12) hours += 12;
+      if (modifier === "AM" && hours === 12) hours = 0;
+      return { hours, minutes };
+    }
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+        return;
+      }
+
+      const doctorEmail = user.email;
+      const bookingsRef = ref(db, "bookings");
+
+      onValue(bookingsRef, (snapshot) => {
+        const data = snapshot.val() || {};
+        const bookings = Object.values(data).filter(
+          (b) => b.doctorEmail === doctorEmail
+        );
+
+        if (!bookings.length) {
+          container.innerHTML = "<p>No consultations yet.</p>";
+          return;
+        }
+
+        renderBookings(bookings);
+      });
+    });
+
+    function renderBookings(bookings) {
+      const now = new Date();
+      const todayStr = now.toISOString().split("T")[0];
+      const todayStart = new Date(todayStr);
+      const tomorrow = new Date(todayStart);
+      tomorrow.setDate(todayStart.getDate() + 1);
+
+      let todayCount = 0;
+      let upcomingCount = 0;
+      let totalRevenue = 0;
+      let totalPatients = bookings.length;
+
+      let html = `
+        <table style="width:100%; border-collapse:collapse; margin-top:30px;">
+          <thead>
+            <tr style="background:#f9fafb;">
+              <th style="padding:10px; border:1px solid #eee;">Date</th>
+              <th style="padding:10px; border:1px solid #eee;">Time</th>
+              <th style="padding:10px; border:1px solid #eee;">Patient</th>
+              <th style="padding:10px; border:1px solid #eee;">Concern</th>
+              <th style="padding:10px; border:1px solid #eee;">Status</th>
+              <th style="padding:10px; border:1px solid #eee;">Action</th>
+            </tr>
+          </thead>
+          <tbody>`;
+
+      bookings.forEach((b) => {
+        const { hours, minutes } = parseTimeTo24H(b.slot);
+        const bookingDate = new Date(`${b.date}T${hours}:${minutes}:00`);
+
+        let status = "Upcoming";
+        let rowStyle = "";
+        let joinButton = "-";
+
+        if (b.date === todayStr) {
+          todayCount++;
+          status = "Today";
+          rowStyle = "background:#f3f8ff;";
+          const isLive =
+            now >= bookingDate && now < new Date(bookingDate.getTime() + 24 * 60 * 60 * 1000);
+          if (isLive) {
+            joinButton = `<a href="/consultation-room.html?room=${encodeURIComponent(
+              b.order_id || b.email
+            )}&role=doctor&patientName=${encodeURIComponent(
+              b.name
+            )}" target="_blank" 
+              style="background:#22c55e;color:#fff;padding:6px 12px;border-radius:6px;text-decoration:none;">Join</a>`;
+          } else {
+            joinButton = `<button disabled style="background:#ccc;color:#555;padding:6px 12px;border-radius:6px;">Inactive</button>`;
+          }
+        } else if (new Date(b.date) > todayStart) {
+          upcomingCount++;
+          status = "Upcoming";
+          rowStyle = "";
+        } else {
+          status = "Completed";
+          rowStyle = "background:#fafafa;color:#666;";
+        }
+
+        totalRevenue += Number(b.amount) || 0;
+
+        html += `
+          <tr style="${rowStyle}">
+            <td style="padding:10px;border:1px solid #eee;">${b.date}</td>
+            <td style="padding:10px;border:1px solid #eee;">${b.slot || "-"}</td>
+            <td style="padding:10px;border:1px solid #eee;">${b.name || "-"}</td>
+            <td style="padding:10px;border:1px solid #eee;">${b.concern || "-"}</td>
+            <td style="padding:10px;border:1px solid #eee;">${status}</td>
+            <td style="padding:10px;border:1px solid #eee;">${joinButton}</td>
+          </tr>`;
+      });
+
+      html += "</tbody></table>";
+      container.innerHTML = html;
+
+      // Update summary cards
+      cards[0].textContent = todayCount;
+      cards[1].textContent = upcomingCount;
+      cards[2].textContent = "₹" + totalRevenue;
+      cards[3].textContent = totalPatients;
+    }
+
+    // ✅ Logout
     window.logout = function () {
       signOut(auth).then(() => (window.location.href = "login.html"));
     };
