@@ -95,97 +95,120 @@
 
   <!-- SCRIPT -->
   <script type="module">
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
-    import { app } from "/js/firebase-init.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+  import { app } from "/js/firebase-init.js";
 
-    const auth = getAuth(app);
-    const db = getDatabase(app);
+  const auth = getAuth(app);
+  const db = getDatabase(app);
 
-    let BOOKINGS = [];
+  let BOOKINGS = [];
 
-    const statusEl = document.getElementById("status");
-    const rangeEl = document.getElementById("range");
-    const searchEl = document.getElementById("search");
-    const container = document.getElementById("bookingContainer");
+  const statusEl = document.getElementById("status");
+  const rangeEl = document.getElementById("range");
+  const searchEl = document.getElementById("search");
+  const container = document.getElementById("bookingContainer");
 
-    const todayBookingsEl = document.getElementById("todayBookings");
-    const upcomingBookingsEl = document.getElementById("upcomingBookings");
-    const todayRevenueEl = document.getElementById("todayRevenue");
-    const monthRevenueEl = document.getElementById("monthRevenue");
+  const todayBookingsEl = document.getElementById("todayBookings");
+  const upcomingBookingsEl = document.getElementById("upcomingBookings");
+  const todayRevenueEl = document.getElementById("todayRevenue");
+  const monthRevenueEl = document.getElementById("monthRevenue");
 
-    onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        window.location.href = "login.html";
-        return;
-      }
-      document.querySelector("h2").innerHTML = `👨‍⚕️ Welcome, Dr. MAHESH YADAV <br><small style="font-size:14px;color:#555;">${user.email}</small>`;
-      const bookingsRef = ref(db, "bookings");
-      onValue(bookingsRef, (snapshot) => {
-        const val = snapshot.val() || {};
-        BOOKINGS = Object.values(val).filter(b => b.doctorEmail === user.email || true);
-        renderBookings();
-      });
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      window.location.href = "login.html";
+      return;
+    }
+    document.querySelector("h2").innerHTML = `👨‍⚕️ Welcome, Dr. MAHESH YADAV <br><small style="font-size:14px;color:#555;">${user.email}</small>`;
+    const bookingsRef = ref(db, "bookings");
+    onValue(bookingsRef, (snapshot) => {
+      const val = snapshot.val() || {};
+      BOOKINGS = Object.values(val).filter(b => b.doctorEmail === user.email);
+      renderBookings();
+    });
+  });
+
+  function renderBookings() {
+    const status = statusEl.value;
+    const range = rangeEl.value;
+    const search = searchEl.value.trim().toLowerCase();
+    const now = new Date();
+    const todayStr = now.toISOString().split("T")[0];
+    const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const nextDay = new Date(todayDate);
+    nextDay.setDate(todayDate.getDate() + 1);
+
+    let filtered = BOOKINGS.filter(b => {
+      if (status !== "ALL" && (b.status || "").toUpperCase() !== status) return false;
+      if (search && !((b.name || "").toLowerCase().includes(search) || (b.email || "").toLowerCase().includes(search))) return false;
+      if (range === "TODAY" && b.date !== todayStr) return false;
+      if (range === "UPCOMING" && b.date <= todayStr) return false;
+      if (range === "PAST" && b.date >= todayStr) return false;
+      return true;
     });
 
-    function renderBookings() {
-      const status = statusEl.value;
-      const range = rangeEl.value;
-      const search = searchEl.value.trim().toLowerCase();
-      const now = new Date();
-      const todayStr = now.toISOString().split("T")[0];
+    // Summary
+    const todayBookings = BOOKINGS.filter(b => b.date === todayStr);
+    const upcoming = BOOKINGS.filter(b => b.date > todayStr);
+    const todayRevenue = todayBookings.reduce((t, b) => t + (Number(b.amount) || 0), 0);
+    const monthRevenue = BOOKINGS.reduce((t, b) => t + (Number(b.amount) || 0), 0);
 
-      let filtered = BOOKINGS.filter(b => {
-        if (status !== "ALL" && (b.status || "").toUpperCase() !== status) return false;
-        if (search && !((b.name || "").toLowerCase().includes(search) || (b.email || "").toLowerCase().includes(search))) return false;
-        if (range === "TODAY" && b.date !== todayStr) return false;
-        if (range === "UPCOMING" && b.date <= todayStr) return false;
-        if (range === "PAST" && b.date >= todayStr) return false;
-        return true;
-      });
+    todayBookingsEl.textContent = todayBookings.length;
+    upcomingBookingsEl.textContent = upcoming.length;
+    todayRevenueEl.textContent = "₹" + todayRevenue;
+    monthRevenueEl.textContent = "₹" + monthRevenue;
 
-      // Summary
-      const todayBookings = BOOKINGS.filter(b => b.date === todayStr);
-      const upcoming = BOOKINGS.filter(b => b.date > todayStr);
-      const todayRevenue = todayBookings.reduce((t, b) => t + (Number(b.amount) || 0), 0);
-      const monthRevenue = BOOKINGS.reduce((t, b) => t + (Number(b.amount) || 0), 0);
-
-      todayBookingsEl.textContent = todayBookings.length;
-      upcomingBookingsEl.textContent = upcoming.length;
-      todayRevenueEl.textContent = "₹" + todayRevenue;
-      monthRevenueEl.textContent = "₹" + monthRevenue;
-
-      if (!filtered.length) {
-        container.innerHTML = "<p>No bookings found.</p>";
-        return;
-      }
-
-      let html = "<table><tr><th>Date</th><th>Time</th><th>Patient</th><th>Concern</th><th>Status</th><th>Join</th></tr>";
-      filtered.forEach(b => {
-        const joinLink =
-           b.status?.toLowerCase() === "confirmed"
-            ? `<a class='btn btn-join' href='/consultation-room.html?room=${encodeURIComponent(b.meetingLink || b.order_id || b.email || b.name)}&role=doctor&patientName=${encodeURIComponent(b.name || "")}&orderId=${encodeURIComponent(b.order_id || "")}' target='_blank'>Join</a>`
-            : "-";
-        html += `<tr>
-          <td>${b.date || "-"}</td>
-          <td>${b.slot || "-"}</td>
-          <td>${b.name || "-"}</td>
-          <td>${b.concern || "-"}</td>
-          <td><span class="status ${b.status}">${b.status || "-"}</span></td>
-          <td>${joinLink}</td>
-        </tr>`;
-      });
-      html += "</table>";
-      container.innerHTML = html;
+    if (!filtered.length) {
+      container.innerHTML = "<p>No bookings found.</p>";
+      return;
     }
 
-    window.applyFilters = renderBookings;
+    let html = "<table><tr><th>Date</th><th>Time</th><th>Patient</th><th>Concern</th><th>Status</th><th>Join</th></tr>";
 
-    window.logout = function() {
-      signOut(auth).then(() => {
-        window.location.href = "login.html";
-      });
-    };
-  </script>
+    filtered.forEach(b => {
+      const bookingDate = new Date(b.date);
+      const isTodayBooking = bookingDate.getTime() === todayDate.getTime();
+      const within24hWindow = now >= todayDate && now < nextDay;
+      const canJoin = isTodayBooking && within24hWindow;
+
+      const joinLink = canJoin
+  ? `<a class='btn btn-join' 
+        href='/consultation-room.html?room=${encodeURIComponent(
+          b.order_id || b.meetingLink || b.email || b.name
+        )}&role=doctor
+        &name=${encodeURIComponent("Dr. Mahesh Yadav")}
+        &patientName=${encodeURIComponent(b.name || "")}
+        &orderId=${encodeURIComponent(b.order_id || "")}
+        &doctorEmail=${encodeURIComponent(user.email || "")}'
+        target='_blank'>Join</a>`
+  : "-";
+
+      const statusDisplay = canJoin ? "✅ Live (Active 24 hrs)" : b.status || "—";
+
+      html += `<tr>
+        <td>${b.date || "-"}</td>
+        <td>${b.slot || "-"}</td>
+        <td>${b.name || "-"}</td>
+        <td>${b.concern || "-"}</td>
+        <td><span class="status ${b.status}">${statusDisplay}</span></td>
+        <td>${joinLink}</td>
+      </tr>`;
+    });
+
+    html += "</table>";
+    container.innerHTML = html;
+  }
+
+  window.applyFilters = renderBookings;
+
+  window.logout = function () {
+    signOut(auth).then(() => {
+      window.location.href = "login.html";
+    });
+  };
+
+  // 🔄 Auto refresh every 1 minute for live updates
+  setInterval(() => renderBookings(), 60000);
+</script>
 </body>
 </html>

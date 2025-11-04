@@ -318,7 +318,6 @@
   </script>
 
   <!-- 🌿 FILTER & LABEL SCRIPT -->
-<!-- 🌿 FILTER & LABEL SCRIPT (UPDATED) -->
 <script type="module">
   import { auth, database } from "./js/firebase-init.js";
   import { ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
@@ -331,7 +330,7 @@
   const upcomingSection = document.querySelector("#upcoming");
   const pastSection = document.querySelector("#past");
 
-  // 🔖 Dynamic Label
+  // 🌸 Dynamic Filter Label
   const label = document.createElement("div");
   label.id = "filterLabel";
   label.style.textAlign = "center";
@@ -427,59 +426,63 @@
         if (b.email !== userEmail) return;
         if (!b.date || !b.slot) return;
 
+        // Convert booking date and time
         const { hours, minutes } = parseTimeTo24H(b.slot);
         const consultDateTime = new Date(`${b.date}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`);
-        const timeDiff = consultDateTime - now; // ms difference
+        const bookingDate = new Date(b.date);
+        const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const nextDay = new Date(todayDate);
+        nextDay.setDate(todayDate.getDate() + 1);
+
+        // ✅ Allow patient to join for 24 hours on the booking day
+        const isTodayBooking = bookingDate.getTime() === todayDate.getTime();
+        const within24hWindow = now >= todayDate && now < nextDay;
+        const canJoin = isTodayBooking && within24hWindow;
 
         let statusText = "";
         let targetList;
 
-        // Check role from booking data
-const isDoctor = b.role === "doctor" || userEmail === b.doctorEmail;
-
-// Define join availability
-const canJoin =
-  (isDoctor && consultDateTime <= now && now - consultDateTime <= 3 * 60 * 60 * 1000) || // doctor: 3 hours after
-  (!isDoctor && Math.abs(consultDateTime - now) <= 45 * 60 * 1000); // patient: ±45 min window
-
-if (canJoin) {
-  statusText = "✅ Live now";
-  countToday++;
-  targetList = todayList;
-} else if (consultDateTime > now) {
-  if (consultDateTime.toDateString() === now.toDateString()) countToday++;
-  else countUpcoming++;
-  statusText = "🕒 Upcoming";
-  targetList = consultDateTime.toDateString() === now.toDateString() ? todayList : upcomingList;
-} else {
-  countPast++;
-  statusText = "🔴 Completed";
-  targetList = pastList;
-}
+        if (canJoin) {
+          statusText = "✅ Live (Active for 24 hours)";
+          countToday++;
+          targetList = todayList;
+        } else if (bookingDate > todayDate) {
+          countUpcoming++;
+          statusText = "🕒 Upcoming";
+          targetList = upcomingList;
+        } else {
+          countPast++;
+          statusText = "🔴 Completed";
+          targetList = pastList;
+        }
 
         const div = document.createElement("div");
-div.className = "appointment";
+        div.className = "appointment";
 
-// Add join button if Live
-let joinHTML = "";
-if (canJoin) {
-  const joinURL = `/consultation-room.html?room=${encodeURIComponent(b.order_id || b.email || b.name)}&role=patient&doctor=${encodeURIComponent(b.doctorEmail || "")}&patientName=${encodeURIComponent(b.name || "")}`;
-  joinHTML = `<a href="${joinURL}" target="_blank" class="join-btn live">Join Now</a>`;
-}
+        // Add join button if Live
+        let joinHTML = "";
+        if (canJoin) {
+          const joinURL = `/consultation-room.html?room=${encodeURIComponent(
+            b.order_id || b.email || b.name
+          )}&role=patient&doctor=${encodeURIComponent(
+            b.doctorEmail || ""
+          )}&patientName=${encodeURIComponent(b.name || "")}`;
+          joinHTML = `<a href="${joinURL}" target="_blank" class="join-btn live">Join Now</a>`;
+        }
 
-div.innerHTML = `
-  <div>
-    <strong>${b.name || "Patient"}</strong><br/>
-    ${b.date} • ${b.slot}<br/>
-    <small>${b.concern || ""}</small><br/>
-    <span>${b.status || ""}</span>
-  </div>
-  <div style="text-align:right;">
-    ${statusText}<br/>
-    ${joinHTML}
-  </div>
-`;
-targetList.appendChild(div);
+        div.innerHTML = `
+          <div>
+            <strong>${b.name || "Patient"}</strong><br/>
+            ${b.date} • ${b.slot}<br/>
+            <small>${b.concern || ""}</small><br/>
+            <span>${b.status || ""}</span>
+          </div>
+          <div style="text-align:right;">
+            ${statusText}<br/>
+            ${joinHTML}
+          </div>
+        `;
+        targetList.appendChild(div);
       });
 
       todayBadge.textContent = countToday;

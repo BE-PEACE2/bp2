@@ -1,275 +1,448 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
   <title>BE PEACE | Consultation Room</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="/style.css" />
   <style>
-    body, html { margin: 0; height: 100%; background: #f9f9f9; font-family: Arial, sans-serif; }
-    header, footer { text-align: center; padding: 10px 0; }
-    main { height: 85vh; display: flex; justify-content: center; align-items: center; }
-    #meet { width: 95%; height: 90%; border-radius: 10px; overflow: hidden; }
-    footer h2 {
-  font-family: "Segoe UI", sans-serif;
-  font-size: 18px;
-  font-weight: 500;
-  color: #c71585;
-  text-shadow: 0 0 8px rgba(217, 27, 96, 0.2);
-  margin-top: 6px;
-  transition: all 0.3s ease;
-}
-
-footer h2:hover {
-  text-shadow: 0 0 12px rgba(217, 27, 96, 0.4);
-  transform: scale(1.02);
-}
-
-/* Prescription UI */
-    #prescriptionBox {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 320px;
-      background: #fff;
-      padding: 16px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      display: none;
-      z-index: 1000;
-    }
-    #prescriptionBox h4 {
-      margin: 0 0 8px;
-      color: #c71585;
-      text-align: center;
-    }
-    #prescriptionBox textarea {
-      width: 100%;
-      margin-bottom: 8px;
-      padding: 6px;
-      border-radius: 6px;
-      border: 1px solid #ddd;
-      resize: vertical;
-      font-family: Arial, sans-serif;
-    }
-    #prescriptionBox button {
-      background: #c71585;
-      color: white;
-      padding: 8px 12px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      width: 100%;
-    }
-    #openPrescBtn {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: #c71585;
-      color: white;
-      padding: 12px 16px;
-      border: none;
-      border-radius: 50%;
-      cursor: pointer;
-      font-size: 20px;
-      z-index: 999;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-    .prescription-field {
-  margin-bottom: 8px;
-}
-.prescription-label {
-  font-weight: 600;
-  color: #c71585;
-  display: block;
-  margin-bottom: 2px;
-}
-.prescription-value {
-  background: #faf5f8;
-  padding: 6px 8px;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #333;
-  transition: background 0.4s ease;
-}
-.prescription-value.updated {
-  background: #fff0f6;
-}
-
+    :root { --accent: #c71585; --calm:#f7fbfc; }
+    body,html{height:100%;margin:0;font-family:Inter, Arial, sans-serif;background:var(--calm);}
+    header{padding:14px 20px;text-align:center;background:white;border-bottom:1px solid #eee}
+    header h1{margin:0;color:var(--accent)}
+    main{display:flex;gap:16px;padding:14px;max-width:1200px;margin:18px auto;}
+    #meet { flex:2; min-height:68vh; border-radius:10px; overflow:hidden; background:#000; }
+    #side { flex:1; min-height:68vh; background:white;border-radius:10px;padding:12px; box-shadow:0 6px 18px rgba(0,0,0,0.06); display:flex;flex-direction:column; gap:12px;}
+    .block { background:#fff;border-radius:8px;padding:10px; }
+    #presence { font-weight:600; color:#333; }
+    #chatBox { display:flex; flex-direction:column; height:260px; gap:8px;}
+    #messages { flex:1; overflow:auto; border:1px solid #eee; padding:8px; border-radius:6px; background:#fafafa;}
+    .msg { margin-bottom:8px; }
+    .msg .who { font-weight:700; color:var(--accent); margin-right:6px; }
+    .controls { display:flex; gap:8px; }
+    .controls input[type="text"]{flex:1;padding:8px;border-radius:6px;border:1px solid #ddd;}
+    button { background:var(--accent); color:#fff; border:none; padding:8px 10px; border-radius:8px; cursor:pointer;}
+    button.secondary { background:#6b7280; }
+    #prescForm textarea{width:100%;padding:8px;border-radius:6px;border:1px solid #ddd;resize:vertical;}
+    .small { font-size:13px;color:#666; }
+    footer{padding:12px;text-align:center;color:#888;font-size:13px}
+    .badge { display:inline-block;padding:4px 8px;border-radius:999px;background:#e6f6ed;color:#0a8a2d;font-weight:700;margin-left:6px;}
+    .btn-link { background:transparent;color:var(--accent);padding:6px;border-radius:6px;border:1px solid #f0dbe6;cursor:pointer}
   </style>
 </head>
 <body>
-  <!-- HEADER -->
   <header>
-    <div class="logo-container">
-      <div class="earth"></div>
-      <h1 class="peach-text">BE PEACE</h1>
-    </div>
-    <h2 style="color:#c71585;">Live Consultation Room</h2>
+    <h1>BE PEACE — Consultation Room</h1>
+    <div class="small">Use browser microphone/camera access. If you want PDF, use Print → Save as PDF.</div>
   </header>
 
   <main>
     <div id="meet">Loading consultation room...</div>
+
+    <aside id="side">
+      <div class="block" id="presence">
+        <div><strong>Room:</strong> <span id="roomLabel">—</span></div>
+        <div style="margin-top:6px">
+          <span>Doctor:</span> <span id="doctorPresence">—</span>
+        </div>
+        <div>
+          <span>Patient:</span> <span id="patientPresence">—</span>
+        </div>
+      </div>
+
+      <div class="block" id="chatBlock">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <strong>Live chat</strong>
+          <small class="small">Saved to DB</small>
+        </div>
+        <div id="chatBox">
+          <div id="messages"></div>
+          <div class="controls">
+            <input id="chatInput" type="text" placeholder="Type message..." />
+            <button id="sendBtn">Send</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="block" id="prescBlock">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <strong>Live Prescription</strong>
+          <small class="small">Doctor edits — patient sees live</small>
+        </div>
+        <div id="prescForm" style="display:flex;flex-direction:column;gap:8px">
+          <label class="small">Diagnosis</label>
+          <textarea id="diagnosis" rows="2" placeholder="Diagnosis"></textarea>
+          <label class="small">Medicines</label>
+          <textarea id="medicines" rows="3" placeholder="Medicines & dose"></textarea>
+          <label class="small">Advice</label>
+          <textarea id="advice" rows="2" placeholder="Advice"></textarea>
+
+          <div style="display:flex;gap:8px;justify-content:space-between">
+            <div style="display:flex;gap:8px">
+              <button id="saveBtn">Save (doctor)</button>
+              <button id="downloadBtn" class="secondary">Download PDF</button>
+            </div>
+            <div>
+              <button id="endBtn" class="secondary">End Session (doctor)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </aside>
   </main>
 
-<!-- 🌍 FOOTER (same style as header) -->
-<footer>
-  <div class="logo-container">
-    <div class="earth slow"></div>
-    <h1 class="peach-text">BE PEACE</h1>
-  </div>
-  <h2>Thank you for your trust — Your Health, Your Peace</h2>
-</footer>
+  <footer>
+    © BE PEACE — Live consultation
+  </footer>
 
- <!-- 💊 Floating Prescription UI -->
-  <div id="prescriptionBox">
-    <h4>🩺 Write Prescription</h4>
-    <textarea id="diagnosis" placeholder="Diagnosis"></textarea>
-    <textarea id="medicines" placeholder="Medicines"></textarea>
-    <textarea id="advice" placeholder="Advice"></textarea>
-    <button id="savePrescBtn">💾 Save Prescription</button>
-  </div>
-
-  <!-- 💊 Floating Button -->
-<button id="openPrescBtn">💊</button>
-
-  <!-- ✅ Use your own Jitsi server -->
+  <!-- Jitsi external API from your server -->
   <script src="https://meet.bepeace.in/external_api.js"></script>
-  
+
+  <!-- Firebase imports (database functions used) -->
   <script type="module">
-    import { database } from "/js/firebase-init.js";
-    import { ref, set, push, onValue } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
+    // --- Adjust if your firebase-init exports differently.
+    import { auth, database } from "/js/firebase-init.js";
+    import {
+      ref as dbRef,
+      push,
+      set,
+      onValue,
+      onChildAdded,
+      remove,
+      serverTimestamp,
+      update
+    } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const roomName = urlParams.get("room") || "BePeaceConsultation";
-    const role = urlParams.get("role") || "patient";
-    const name = urlParams.get("name") || "User";
-    const orderId = urlParams.get("orderId") || "manual";
-    const patientUid = urlParams.get("uid") || ""; // if known
+    // ---- Read URL params
+    const params = new URLSearchParams(window.location.search);
+    const roomName = params.get("room") || `Room_${Date.now()}`;
+    const role = (params.get("role") || "patient").toLowerCase(); // doctor or patient
+    const displayName = params.get("name") || params.get("patientName") || "Guest";
+    const orderId = params.get("orderId") || params.get("order_id") || roomName;
+    const patientUid = params.get("patientUid") || params.get("uid") || null;
 
-    console.log("Joining Room:", roomName, "as", role);
-
-    // ✅ Jitsi setup
-    const domain = "meet.bepeace.in";
-    const options = {
-      roomName,
-      width: "100%",
-      height: "100%",
-      parentNode: document.querySelector("#meet"),
-      userInfo: { displayName: name },
-      configOverwrite: { prejoinPageEnabled: false },
-      interfaceConfigOverwrite: {
-        SHOW_JITSI_WATERMARK: false,
-        TOOLBAR_BUTTONS: ["microphone", "camera", "chat", "desktop", "hangup", "tileview"]
-      }
-    };
-    const api = new JitsiMeetExternalAPI(domain, options);
-
-    // Firebase live reference
-    const liveRef = ref(database, `livePrescription/${roomName}`);
-    const box = document.getElementById("prescriptionBox");
-    const openBtn = document.getElementById("openPrescBtn");
+    // UI refs
+    const roomLabel = document.getElementById("roomLabel");
+    const doctorPresenceEl = document.getElementById("doctorPresence");
+    const patientPresenceEl = document.getElementById("patientPresence");
+    const messagesEl = document.getElementById("messages");
+    const chatInput = document.getElementById("chatInput");
+    const sendBtn = document.getElementById("sendBtn");
     const diagnosisEl = document.getElementById("diagnosis");
     const medicinesEl = document.getElementById("medicines");
     const adviceEl = document.getElementById("advice");
+    const saveBtn = document.getElementById("saveBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const endBtn = document.getElementById("endBtn");
 
-    if (role === "doctor") {
-      // 👨‍⚕️ Doctor: editable + auto-save on call end
-      openBtn.style.display = "block";
-      box.style.display = "none";
+    roomLabel.textContent = roomName;
 
-      const updateLive = () => {
-        set(liveRef, {
-          diagnosis: diagnosisEl.value,
-          medicines: medicinesEl.value,
-          advice: adviceEl.value,
-          updatedAt: new Date().toISOString()
-        });
-      };
-      [diagnosisEl, medicinesEl, adviceEl].forEach(el => el.addEventListener("input", updateLive));
+    // DB paths
+    const PRESENCE_PATH = `presence/${roomName}`;
+    const LIVE_PRESC_PATH = `livePrescription/${roomName}`;
+    const LIVE_CHAT_PATH = `liveChat/${roomName}`;
+    const FINAL_PRESC_PATH = `prescriptions/${orderId}`;
 
-      // ✅ Save final copy when call ends — now includes digital signature + date
-api.addEventListener("readyToClose", async () => {
-  const now = new Date();
-  const formattedDate = now.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric"
-  });
+    // ==== Jitsi setup ====
+    const domain = "meet.bepeace.in";
+    const options = {
+      roomName,
+      parentNode: document.querySelector("#meet"),
+      userInfo: { displayName },
+      width: "100%",
+      height: "100%",
+      configOverwrite: { prejoinPageEnabled: false },
+      interfaceConfigOverwrite: {
+        SHOW_JITSI_WATERMARK: false,
+        SHOW_POWERED_BY: false,
+        TOOLBAR_BUTTONS: ["microphone","camera","chat","tileview","hangup"]
+      }
+    };
 
-  const finalData = {
-  doctorName: name,
-  patientName: urlParams.get("patientName") || "Patient",
-  patientAge: urlParams.get("patientAge") || "",
-  patientGender: urlParams.get("patientGender") || "",
-  diagnosis: diagnosisEl.value,
-  medicines: medicinesEl.value,
-  advice: adviceEl.value,
-  doctorSignature: `Digitally signed by ${name} (BE PEACE)`,
-  date: formattedDate,
-  orderId,
-  createdAt: now.toISOString()
-};
-
-  if (patientUid) {
-    const presRef = push(ref(database, `prescriptions/${patientUid}`));
-    await set(presRef, finalData);
-  }
-
-  alert("✅ Consultation ended. Prescription saved with signature.");
-  window.location.href = "/doctor-dashboard.html?tab=prescriptions";
-});
-    } else {
-      // 👩‍🦰 Patient: live read-only
-openBtn.style.display = "none";
-box.style.display = "block";
-box.innerHTML = `
-  <h4>💊 Live Prescription</h4>
-  <div class="prescription-field">
-    <span class="prescription-label">Diagnosis:</span>
-    <div id="liveDiagnosis" class="prescription-value">Waiting...</div>
-  </div>
-  <div class="prescription-field">
-    <span class="prescription-label">Medicines:</span>
-    <div id="liveMedicines" class="prescription-value">–</div>
-  </div>
-  <div class="prescription-field">
-    <span class="prescription-label">Advice:</span>
-    <div id="liveAdvice" class="prescription-value">–</div>
-  </div>
-  <p style="font-size:12px;text-align:center;color:#999;">Auto-updating 🩺</p>
-`;
-
-// 🩺 Define references *after* creating innerHTML
-const liveDiagnosis = document.getElementById("liveDiagnosis");
-const liveMedicines = document.getElementById("liveMedicines");
-const liveAdvice = document.getElementById("liveAdvice");
-
-// ✨ Live calm animation
-onValue(liveRef, (snapshot) => {
-  const data = snapshot.val() || {};
-
-  [liveDiagnosis, liveMedicines, liveAdvice].forEach((el) => el.classList.remove("updated"));
-  
-  setTimeout(() => {
-    liveDiagnosis.textContent = data.diagnosis || "Waiting...";
-    liveMedicines.textContent = data.medicines || "–";
-    liveAdvice.textContent = data.advice || "–";
-
-    [liveDiagnosis, liveMedicines, liveAdvice].forEach((el) => el.classList.add("updated"));
-  }, 100);
-});
+    let api;
+    try {
+      api = new JitsiMeetExternalAPI(domain, options);
+    } catch (err) {
+      console.error("Jitsi API error:", err);
+      document.getElementById("meet").textContent = "Failed to load Jitsi. Check console.";
     }
 
-    // 🌸 When patient meeting ends
-api.addEventListener("readyToClose", () => {
-  alert("🌸 Your consultation has ended. You can view your prescription in the dashboard.");
-  window.location.href = "/dashboard.html?tab=prescriptions";
-});
+    // ==== Presence logic ====
+    // write presence on connect, remove on disconnect using onDisconnect
+    const presenceRef = dbRef(database, PRESENCE_PATH);
 
-    openBtn.onclick = () => {
-      box.style.display = box.style.display === "none" ? "block" : "none";
-    };
+    function setPresence() {
+      const key = role === "doctor" ? "doctor" : "patient";
+      const path = `${PRESENCE_PATH}/${key}`;
+      const r = dbRef(database, path);
+      // set user details
+      set(r, {
+        name: displayName,
+        timestamp: new Date().toISOString(),
+        orderId,
+      }).catch(console.error);
+
+      // ensure removal on disconnect
+      // note: onDisconnect functionality not available from modular client directly; use update trick
+      // We'll write a heartbeat and clear when window unloads
+      window.addEventListener("beforeunload", () => {
+        remove(r).catch(()=>{});
+      });
+    }
+
+    // Listen for presence changes
+    onValue(dbRef(database, PRESENCE_PATH), (snap) => {
+      const val = snap.val() || {};
+      doctorPresenceEl.textContent = val.doctor ? `${val.doctor.name} ✓` : "—";
+      patientPresenceEl.textContent = val.patient ? `${val.patient.name} ✓` : "—";
+    });
+
+    // Call setPresence after we know jitsi loaded (or immediately)
+    setPresence();
+
+    // ==== Live prescription ====
+    const livePrescRef = dbRef(database, LIVE_PRESC_PATH);
+
+    // Doctor: allow edit and push updates
+    function pushLivePresc() {
+      set(livePrescRef, {
+        diagnosis: diagnosisEl.value || "",
+        medicines: medicinesEl.value || "",
+        advice: adviceEl.value || "",
+        updatedAt: new Date().toISOString(),
+        updatedBy: displayName
+      }).catch(console.error);
+    }
+
+    // Subscribe to live prescription updates (patient sees, doctor too)
+    onValue(livePrescRef, (snap) => {
+      const data = snap.val() || {};
+      // if the user is doctor, we still reflect incoming (so doctor sees saved values)
+      if (data.diagnosis !== undefined) diagnosisEl.value = data.diagnosis;
+      if (data.medicines !== undefined) medicinesEl.value = data.medicines;
+      if (data.advice !== undefined) adviceEl.value = data.advice;
+    });
+
+    // Only doctor can actively edit; patient fields are read-only
+    if (role !== "doctor") {
+      diagnosisEl.readOnly = true;
+      medicinesEl.readOnly = true;
+      adviceEl.readOnly = true;
+      saveBtn.style.display = "none";
+      endBtn.style.display = "none";
+    } else {
+      // doctor: listen for edits and push (debounced small delay)
+      let prescTimer = null;
+      [diagnosisEl, medicinesEl, adviceEl].forEach(el => {
+        el.addEventListener("input", () => {
+          clearTimeout(prescTimer);
+          prescTimer = setTimeout(pushLivePresc, 500);
+        });
+      });
+      saveBtn.addEventListener("click", async () => {
+        pushLivePresc();
+        alert("✅ Live prescription saved.");
+      });
+    }
+
+    // ==== Chat ====
+    const chatRef = dbRef(database, LIVE_CHAT_PATH);
+
+    // load past chat and subscribe
+    onChildAdded(chatRef, (snap) => {
+      const msg = snap.val();
+      if (!msg) return;
+      const d = new Date(msg.ts || Date.now());
+      const time = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+      const wrapper = document.createElement("div");
+      wrapper.className = "msg";
+      wrapper.innerHTML = `<span class="who">${sanitize(msg.name)}:</span> <span class="what">${sanitize(msg.text)}</span> <div class="small" style="color:#999">${time}</div>`;
+      messagesEl.appendChild(wrapper);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    });
+
+    function sendChat() {
+      const text = chatInput.value.trim();
+      if (!text) return;
+      const payload = { name: displayName, text, ts: Date.now() };
+      push(chatRef, payload).catch(console.error);
+      chatInput.value = "";
+    }
+    sendBtn.addEventListener("click", sendChat);
+    chatInput.addEventListener("keydown", (e) => { if (e.key === "Enter") sendChat(); });
+
+    // ==== End session & save final prescription (doctor) ====
+    async function saveFinalPrescription({endedBy="doctor"}) {
+      // Prepare final object
+      const finalObj = {
+        orderId,
+        room: roomName,
+        doctorName: role === "doctor" ? displayName : (params.get("doctorName") || "Doctor"),
+        patientName: params.get("patientName") || displayName,
+        patientUid: patientUid || null,
+        diagnosis: diagnosisEl.value || "",
+        medicines: medicinesEl.value || "",
+        advice: adviceEl.value || "",
+        endedBy,
+        savedAt: new Date().toISOString()
+      };
+      // push into prescriptions/{orderId}
+      try {
+        await set(dbRef(database, FINAL_PRESC_PATH), finalObj);
+        return finalObj;
+      } catch (err) {
+        console.error("Save prescription error:", err);
+        throw err;
+      }
+    }
+
+    // When doctor clicks End Session
+    if (role === "doctor") {
+      endBtn.addEventListener("click", async () => {
+        if (!confirm("End consultation now and save final prescription?")) return;
+        try {
+          await saveFinalPrescription({endedBy:"doctor"});
+          alert("✅ Prescription saved. Ending session.");
+          // remove presence
+          remove(dbRef(database, `${PRESENCE_PATH}/doctor`)).catch(()=>{});
+          // notify Jitsi to hangup (if available)
+          try { api.executeCommand('hangup'); } catch(e){ }
+          // redirect doctor back to dashboard
+          window.location.href = "/doctor-dashboard.html";
+        } catch(e) {
+          alert("Failed to save. See console.");
+        }
+      });
+    }
+
+    // When Jitsi indicates readyToClose (user closed window/hung up), auto save by doctor if present
+    if (api) {
+      api.addEventListener("readyToClose", async () => {
+        // If role doctor, save final; if patient, just remove presence and redirect
+        if (role === "doctor") {
+          try { await saveFinalPrescription({endedBy:"jitsi"}); } catch(e){}
+          remove(dbRef(database, `${PRESENCE_PATH}/doctor`)).catch(()=>{});
+          alert("Consultation ended and saved.");
+          window.location.href = "/doctor-dashboard.html";
+        } else {
+          remove(dbRef(database, `${PRESENCE_PATH}/patient`)).catch(()=>{});
+          alert("Consultation ended.");
+          window.location.href = "/dashboard.html";
+        }
+      });
+    }
+
+    // ==== Download / Print prescription view ====
+    function buildPrintableHTML(finalObj) {
+      const html = `
+        <html>
+        <head>
+          <meta charset="utf-8"/>
+          <title>Prescription - ${sanitize(finalObj.patientName||"Patient")}</title>
+          <style>
+            body{font-family:Arial,Helvetica,sans-serif;padding:24px;color:#111}
+            .header{display:flex;justify-content:space-between;align-items:center}
+            .brand{color:${getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#c71585'};font-weight:700}
+            .box{margin-top:16px;border-top:1px solid #eee;padding-top:12px}
+            h2{margin:6px 0}
+            pre{white-space:pre-wrap;font-family:inherit}
+            .small{color:#666;font-size:13px}
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <div class="brand">BE PEACE</div>
+              <div class="small">Digital Prescription</div>
+            </div>
+            <div style="text-align:right">
+              <div class="small">Date: ${new Date().toLocaleDateString()}</div>
+              <div class="small">Order: ${sanitize(finalObj.orderId||"")}</div>
+            </div>
+          </div>
+
+          <div class="box">
+            <h2>Patient: ${sanitize(finalObj.patientName||"")}</h2>
+            <div class="small">Doctor: ${sanitize(finalObj.doctorName||"")}</div>
+            <hr/>
+            <h3>Diagnosis</h3>
+            <pre>${sanitize(finalObj.diagnosis||"")}</pre>
+            <h3>Medicines</h3>
+            <pre>${sanitize(finalObj.medicines||"")}</pre>
+            <h3>Advice</h3>
+            <pre>${sanitize(finalObj.advice||"")}</pre>
+            <hr/>
+            <div class="small">Digitally saved by BE PEACE</div>
+          </div>
+        </body>
+        </html>
+      `;
+      return html;
+    }
+
+    downloadBtn.addEventListener("click", async () => {
+      // try to build a final object from current live fields (do not require saved)
+      const finalObj = {
+        orderId,
+        patientName: params.get("patientName") || "Patient",
+        doctorName: params.get("doctorName") || (role === "doctor" ? displayName : "Doctor"),
+        diagnosis: diagnosisEl.value,
+        medicines: medicinesEl.value,
+        advice: adviceEl.value
+      };
+      const html = buildPrintableHTML(finalObj);
+      const w = window.open("", "_blank");
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+      // give new window a second to render then call print
+      setTimeout(()=> {
+        try { w.print(); } catch(e){ console.warn(e); }
+      }, 600);
+    });
+
+    // ==== Utility sanitize to avoid injection in innerHTML usage ====
+    function sanitize(str){
+      if (str === null || str === undefined) return "";
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    // ==== Helper to remove presence when window unloads (best-effort) ====
+    window.addEventListener("beforeunload", () => {
+      // remove own presence key
+      const key = (role === "doctor") ? "doctor" : "patient";
+      remove(dbRef(database, `${PRESENCE_PATH}/${key}`)).catch(()=>{});
+    });
+
+    // ==== When authenticated user info available (optional) ====
+    // If your firebase-init provides auth and user is logged in, use that name
+    try {
+      auth.onAuthStateChanged((u) => {
+        if (u && u.email) {
+          // use email prefix as display name if not provided
+          if (!params.get("name")) {
+            // set label if not given
+            // we don't overwrite existing UI fields, but we can choose to update presence to include this name
+          }
+        }
+      });
+    } catch(e){ /* ignore if auth not available */ }
+
+    // Finally: set presence now (again) with robust set
+    setPresence();
+
+    // small helper to show a connected message when jitsi is ready (optional)
+    if (api) {
+      api.addEventListener('videoConferenceJoined', (ev) => {
+        console.log('Jitsi joined', ev);
+      });
+    }
+
   </script>
 </body>
 </html>
