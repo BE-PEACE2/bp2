@@ -306,72 +306,79 @@ document.getElementById("resetFilters").addEventListener("click", () => {
           <tbody>`;
 
       bookings.forEach((b) => {
-        const { istDate, istTime } = convertSlotToIST(b.date, b.slot, b.country);
-        const { hours, minutes } = parseTimeTo24H(b.slot);
-        const bookingDate = new Date(`${b.date}T${hours}:${minutes}:00`);
+  const { istDate, istTime } = convertSlotToIST(b.date, b.slot, b.country);
+  const { hours, minutes } = parseTimeTo24H(b.slot);
+  const bookingLocal = new Date(`${b.date}T${hours}:${minutes}:00`);
 
-        let status = "Upcoming";
-        let rowStyle = "";
-        let joinButton = "-";
+  let status = "Upcoming";
+  let rowStyle = "";
+  let joinButton = "-";
 
-        if (b.date === todayStr) {
-          todayCount++;
-          status = "Today";
-          rowStyle = "background:#f3f8ff;";
-          
+  const nowIST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+  const todayIST = nowIST.toISOString().split("T")[0];
 
-const nowIST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+  if (b.date === todayIST) {
+    todayCount++;
+    status = "Today";
+    rowStyle = "background:#f3f8ff;";
 
-const isLive =
-  nowIST >= new Date(istDate.getTime() - 30 * 60 * 1000) &&
-  nowIST <= new Date(istDate.getTime() + 60 * 60 * 1000);
-          if (isLive) {
-            joinButton = `<a href="/consultation-room.html?room=${encodeURIComponent(
-              b.order_id || b.email
-            )}&role=doctor&patientName=${encodeURIComponent(
-              b.name
-            )}" target="_blank" 
-              style="background:#22c55e;color:#fff;padding:6px 12px;border-radius:6px;text-decoration:none;">Join</a>`;
-          } else {
-  const timeDiff = istDate - nowIST;
-  if (timeDiff > 0) {
-    // Future consultation → not yet started
-    joinButton = `<button disabled style="background:#e5e7eb;color:#555;padding:6px 12px;border-radius:6px;">
-      Available 30 min before consultation
-    </button>`;
+    // ✅ Define join window (30 min before → 60 min after) in IST
+    const joinStart = new Date(istDate.getTime() - 30 * 60 * 1000);
+    const joinEnd = new Date(istDate.getTime() + 60 * 60 * 1000);
+    const isLive = nowIST >= joinStart && nowIST <= joinEnd;
+
+    if (isLive) {
+      joinButton = `<a href="/consultation-room.html?room=${encodeURIComponent(
+        b.order_id || b.email
+      )}&role=doctor&patientName=${encodeURIComponent(
+        b.name
+      )}" target="_blank"
+      style="background:#22c55e;color:#fff;padding:6px 12px;border-radius:6px;text-decoration:none;">
+      Join</a>`;
+    } else if (nowIST < joinStart) {
+      const minsLeft = Math.ceil((joinStart - nowIST) / 60000);
+      joinButton = `<button disabled style="background:#e5e7eb;color:#555;padding:6px 12px;border-radius:6px;">
+        Available in ${minsLeft} min
+      </button>`;
+    } else {
+      joinButton = `<button disabled style="background:#f3f4f6;color:#777;padding:6px 12px;border-radius:6px;">
+        Consultation window closed
+      </button>`;
+    }
+  } else if (new Date(b.date) > todayStart) {
+    upcomingCount++;
+    status = "Upcoming";
+    rowStyle = "";
   } else {
-    // Past consultation → time expired
-    joinButton = `<button disabled style="background:#f3f4f6;color:#777;padding:6px 12px;border-radius:6px;">
-      Consultation window closed
-    </button>`;
+    status = "Completed";
+    rowStyle = "background:#fafafa;color:#666;";
   }
-}
-        } else if (new Date(b.date) > todayStart) {
-          upcomingCount++;
-          status = "Upcoming";
-          rowStyle = "";
-        } else {
-          status = "Completed";
-          rowStyle = "background:#fafafa;color:#666;";
-        }
 
-        totalRevenue += Number(b.amount) || 0;
+  totalRevenue += Number(b.amount) || 0;
 
-        html += `
-          <tr style="${rowStyle}">
-            <td style="padding:10px;border:1px solid #eee;">${b.date}</td>
-            <td style="padding:10px;border:1px solid #eee;">${b.country || "—"}</td>
-          <td style="padding:10px;border:1px solid #eee;">
-            ${b.slot || "-"}
-            ${b.country && b.country !== "India"
-              ? `<br><small style='color:#666;'>(${istTime} IST)</small>` : ""}
-          </td>
-            <td style="padding:10px;border:1px solid #eee;">${b.name || "-"}</td>
-            <td style="padding:10px;border:1px solid #eee;">${b.concern || "-"}</td>
-            <td style="padding:10px;border:1px solid #eee;">${status}</td>
-            <td style="padding:10px;border:1px solid #eee;">${joinButton}</td>
-          </tr>`;
-      });
+  // 🌍 Display both local and IST time clearly
+  const localTimeDisplay = `${b.slot || "-"} ${
+    b.country ? `<small style='color:#555;'>(${b.country})</small>` : ""
+  }`;
+
+  const istDisplay = b.country && b.country !== "India"
+    ? `<div><small style='color:#777;'>IST: ${istTime}</small></div>`
+    : "";
+
+  html += `
+    <tr style="${rowStyle}">
+      <td style="padding:10px;border:1px solid #eee;">${b.date}</td>
+      <td style="padding:10px;border:1px solid #eee;">${b.country || "—"}</td>
+      <td style="padding:10px;border:1px solid #eee;">
+        ${localTimeDisplay}
+        ${istDisplay}
+      </td>
+      <td style="padding:10px;border:1px solid #eee;">${b.name || "-"}</td>
+      <td style="padding:10px;border:1px solid #eee;">${b.concern || "-"}</td>
+      <td style="padding:10px;border:1px solid #eee;">${status}</td>
+      <td style="padding:10px;border:1px solid #eee;">${joinButton}</td>
+    </tr>`;
+});
 
       html += "</tbody></table>";
       container.innerHTML = html;
