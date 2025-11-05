@@ -10,11 +10,13 @@ document.addEventListener("DOMContentLoaded", () => {
       if (header) {
         header.innerHTML = html;
 
-        // ✅ Load dynamic role-based header logic
-        const script = document.createElement("script");
-        script.type = "module";
-        script.src = basePath + "../js/header-auth.js?v=5";
-        document.body.appendChild(script);
+       // ✅ Always load header-auth.js from root folder
+const script = document.createElement("script");
+script.type = "module";
+script.src = "/js/header-auth.js?v=" + Date.now();  // cache-bust
+script.onload = () => console.log("✅ header-auth.js LOADED");
+script.onerror = (e) => console.error("❌ header-auth.js FAILED", e);
+document.body.appendChild(script);
       }
     });
 

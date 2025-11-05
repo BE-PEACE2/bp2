@@ -4,6 +4,9 @@ import { getAuth, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 import { app } from "./firebase-init.js";
 
+window.__headerAuthLoaded = "starting";
+console.log("✅ header-auth.js EXECUTING");
+
 const auth = getAuth(app);
 
 function renderHeader(role, name) {
