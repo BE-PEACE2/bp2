@@ -339,7 +339,7 @@ document.getElementById("resetFilters").addEventListener("click", () => {
 
   const nowIST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
   const todayIST = nowIST.toISOString().split("T")[0];
-console.log("DEBUG:", { slot: b.slot, country: b.country, istTime, istDate });
+console.log("DEBUG:", b.slot, b.country, "→ IST:", istTime);
   if (b.date === todayIST) {
     todayCount++;
     status = "Today";
