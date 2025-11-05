@@ -393,8 +393,9 @@ console.log("DEBUG:", b.slot, b.country, "→ IST:", istTime);
       <td style="padding:10px;border:1px solid #eee;">${b.date}</td>
       <td style="padding:10px;border:1px solid #eee;">${b.country || "—"}</td>
       <td style="padding:10px;border:1px solid #eee;">
-        ${localTimeDisplay}
-        ${istDisplay}
+       ${b.slot || "-"} 
+      <small style='color:#555;'>(${b.country || "India"})</small>
+      <br><small style='color:#777;'>IST: ${istTime}</small>
       </td>
       <td style="padding:10px;border:1px solid #eee;">${b.name || "-"}</td>
       <td style="padding:10px;border:1px solid #eee;">${b.concern || "-"}</td>
