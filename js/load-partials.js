@@ -1,19 +1,23 @@
-// js/load-partials.js
 document.addEventListener("DOMContentLoaded", () => {
-  // Automatically detect correct base path
   const basePath = window.location.pathname.includes("/modules/")
     ? "../partials/"
     : "partials/";
 
-  // Load Header
   fetch(basePath + "header.html")
     .then(res => res.text())
     .then(html => {
       const header = document.getElementById("header");
-      if (header) header.innerHTML = html;
+      if (header) {
+        header.innerHTML = html;
+
+        // ✅ Load dynamic role-based header logic
+        const script = document.createElement("script");
+        script.type = "module";
+        script.src = "/js/header-auth.js";
+        document.body.appendChild(script);
+      }
     });
 
-  // Load Footer
   fetch(basePath + "footer.html")
     .then(res => res.text())
     .then(html => {
