@@ -1,3 +1,5 @@
+console.log("✅ header-auth.js LOADED");
+
 import { getAuth, onAuthStateChanged, signOut } 
   from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 import { app } from "./firebase-init.js";
@@ -37,18 +39,31 @@ function renderHeader(role, name) {
   });
 }
 
-// ✅ Detect login state on every page
-onAuthStateChanged(auth, (user) => {
-  if (!user) {
-    renderHeader(null);
+// ✅ Ensure headerButtons exists before running auth state logic
+function waitForHeaderButtons() {
+  const btnBox = document.getElementById("headerButtons");
+  if (!btnBox) {
+    // Wait for header to be loaded
+    setTimeout(waitForHeaderButtons, 100);
     return;
   }
+  
+  // ✅ Detect login state on every page
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      renderHeader(null);
+      return;
+    }
 
-  const doctorToken = sessionStorage.getItem("doctorToken");
+    const doctorToken = sessionStorage.getItem("doctorToken");
 
-  if (doctorToken === user.uid) {
-    renderHeader("doctor");
-  } else {
-    renderHeader("patient");
-  }
-});
+    if (doctorToken === user.uid) {
+      renderHeader("doctor");
+    } else {
+      renderHeader("patient");
+    }
+  });
+}
+
+// Start waiting for headerButtons
+waitForHeaderButtons();

@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // ✅ Load dynamic role-based header logic
         const script = document.createElement("script");
         script.type = "module";
-        script.src = "/js/header-auth.js";
+        script.src = basePath + "../js/header-auth.js?v=5";
         document.body.appendChild(script);
       }
     });
