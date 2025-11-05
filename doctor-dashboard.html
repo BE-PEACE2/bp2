@@ -197,26 +197,49 @@ let LAST_BOOKINGS = [];
     "Unknown": "Asia/Kolkata"
   };
 
-  // 🕒 Convert slot (local time) to IST
-  function convertSlotToIST(dateStr, slotStr, country) {
-    if (!slotStr || !dateStr) return { istDate: new Date(), istTime: "-" };
-    const tz = COUNTRY_TIMEZONES[country] || "Asia/Kolkata";
-    const [time, modifier] = slotStr.split(" ");
-    let [hours, minutes] = time.split(":").map(Number);
-    if (modifier === "PM" && hours !== 12) hours += 12;
-    if (modifier === "AM" && hours === 12) hours = 0;
+  // ✅ FIXED — converts patient’s local slot to correct IST equivalent
+function convertSlotToIST(dateStr, slotStr, country) {
+  if (!slotStr || !dateStr) return { istDate: new Date(), istTime: "-" };
 
-    // Create patient’s local date
-    const localDate = new Date(`${dateStr}T${hours.toString().padStart(2,"0")}:${minutes.toString().padStart(2,"0")}:00`);
-    const utcDate = new Date(localDate.toLocaleString("en-US", { timeZone: "UTC" }));
-    const istDate = new Date(utcDate.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+  const COUNTRY_TIMEZONES = {
+    "India": "Asia/Kolkata",
+    "UAE": "Asia/Dubai",
+    "Singapore": "Asia/Singapore",
+    "Qatar": "Asia/Qatar",
+    "Saudi Arabia": "Asia/Riyadh",
+    "Oman": "Asia/Muscat",
+    "Kuwait": "Asia/Kuwait",
+    "USA": "America/New_York",
+    "Unknown": "Asia/Kolkata"
+  };
 
-    const istTime = istDate.toLocaleTimeString("en-IN", {
-      hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata"
-    });
-    return { istDate, istTime };
-  }
+  const tz = COUNTRY_TIMEZONES[country] || "Asia/Kolkata";
 
+  const [time, modifier] = slotStr.split(" ");
+  let [hours, minutes] = time.split(":").map(Number);
+  if (modifier === "PM" && hours !== 12) hours += 12;
+  if (modifier === "AM" && hours === 12) hours = 0;
+
+  const dateTimeString = `${dateStr}T${hours.toString().padStart(2, "0")}:${minutes
+    .toString()
+    .padStart(2, "0")}:00`;
+
+  // Create date in patient's timezone → then convert to IST
+  const localDate = new Date(
+    new Date(dateTimeString).toLocaleString("en-US", { timeZone: tz })
+  );
+  const istDate = new Date(
+    new Date(localDate).toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+  );
+
+  const istTime = istDate.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true
+  });
+
+  return { istDate, istTime };
+}
 
 // Trigger re-render when filter changes
 statusFilter.addEventListener("change", () => renderBookings(LAST_BOOKINGS));
@@ -316,7 +339,7 @@ document.getElementById("resetFilters").addEventListener("click", () => {
 
   const nowIST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
   const todayIST = nowIST.toISOString().split("T")[0];
-
+console.log("DEBUG:", { slot: b.slot, country: b.country, istTime, istDate });
   if (b.date === todayIST) {
     todayCount++;
     status = "Today";
