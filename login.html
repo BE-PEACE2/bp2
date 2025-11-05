@@ -180,12 +180,12 @@ loginBtn.addEventListener('click', async () => {
 
     if (role === "doctor") {
   // Save doctor session for dashboard
-  localStorage.setItem("doctorToken", user.uid);
+  sessionStorage.setItem("doctorToken", user.uid);
   alert("Welcome back, Doctor 🌿");
   window.location.href = "/doctor-dashboard.html";
 } else {
   // Clear doctor token if patient logs in
-  localStorage.removeItem("doctorToken");
+  sessionStorage.removeItem("doctorToken");
   alert("Welcome back, Dear User 🌿");
   window.location.href = "/dashboard.html";
 }

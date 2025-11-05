@@ -28,8 +28,8 @@ function renderHeader(role, name) {
   `;
 
   document.getElementById("logoutBtn").addEventListener("click", () => {
-    localStorage.removeItem("doctorToken");
-    localStorage.removeItem("patientToken");
+   sessionStorage.removeItem("doctorToken");
+    sessionStorage.removeItem("patientToken");
 
     signOut(auth).then(() => {
       window.location.href = "/login.html";
@@ -44,7 +44,7 @@ onAuthStateChanged(auth, (user) => {
     return;
   }
 
-  const doctorToken = localStorage.getItem("doctorToken");
+  const doctorToken = sessionStorage.getItem("doctorToken");
 
   if (doctorToken === user.uid) {
     renderHeader("doctor");
