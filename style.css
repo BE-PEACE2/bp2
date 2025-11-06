@@ -1981,3 +1981,54 @@ footer {
   transform: scale(0.95);
   background: linear-gradient(135deg, #b21372, #8f0f57);
 }
+
+/* ================================
+   PATIENT DASHBOARD HAMBURGER
+   ================================ */
+
+.hamburger-dashboard {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 34px;
+  height: 26px;
+  display: none;               /* hidden on desktop */
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  z-index: 2000;
+}
+
+.hamburger-dashboard span {
+  height: 4px;
+  width: 100%;
+  background: #c71585;         /* BePeace magenta */
+  border-radius: 4px;
+  transition: 0.3s ease;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .hamburger-dashboard {
+    display: flex;             /* visible on mobile */
+  }
+
+  /* Hide desktop side menu on mobile */
+  .side-menu {
+    transform: translateX(-260px);
+    transition: 0.4s ease;
+  }
+
+  .side-menu.show {
+    transform: translateX(0);
+  }
+
+  /* Overlay */
+  #menuOverlay.show {
+    display: block;
+    background: rgba(0,0,0,0.5);
+    position: fixed;
+    inset: 0;
+    z-index: 1500;
+  }
+}
