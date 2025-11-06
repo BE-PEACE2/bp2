@@ -241,18 +241,30 @@
       }
       .join-btn { align-self: flex-end; }
     }
+
+    /* ✅ Position hamburger inside header (left side) */
+#hamburgerBtn {
+  position: absolute;
+  top: 22px;     /* adjust if needed */
+  left: 20px;    /* exactly where your arrow is */
+  z-index: 2000;
+}
+
+#header {
+  position: relative;
+  z-index: 1500; /* keeps it above layout */
+}
   </style>
 </head>
 <body class="dashboard-page">
 
-  <!-- HEADER (loaded by your partials script) -->
-  <div id="header"></div>
+<!-- HEADER (loaded by your partials script) -->
+<div id="header"></div>
 
-  <!-- TOP BAR -->
-  
-    <div id="hamburgerBtn" class="hamburger-dashboard" aria-label="Open menu" role="button" tabindex="0">
-      <span></span><span></span><span></span>
-    </div>
+<!-- ✅ Hamburger placed OUTSIDE header so it stays visible -->
+<div id="hamburgerBtn" class="hamburger-dashboard" aria-label="Open menu" role="button" tabindex="0">
+  <span></span><span></span><span></span>
+</div>
    
   <!-- LEFT DRAWER + OVERLAY -->
   <div id="drawerOverlay" class="drawer-overlay"></div>
