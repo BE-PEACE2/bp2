@@ -1,22 +1,30 @@
 console.log("✅ header-auth.js LOADED");
 
-import { getAuth, onAuthStateChanged, signOut } 
-  from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
-import { app } from "./firebase-init.js";
+import { 
+  getAuth, 
+  onAuthStateChanged, 
+  signOut 
+} from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 
-window.__headerAuthLoaded = "starting";
+import { 
+  ref, 
+  get 
+} from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+
+import { app, database } from "./firebase-init.js";
+
 console.log("✅ header-auth.js EXECUTING");
 
 const auth = getAuth(app);
 
-function renderHeader(role, name) {
+// ✅ Render header
+function renderHeader(role) {
   const btnBox = document.getElementById("headerButtons");
   if (!btnBox) return;
 
-  btnBox.innerHTML = ""; // reset
+  btnBox.innerHTML = "";
 
   if (!role) {
-    // ✅ Not logged in
     btnBox.innerHTML = `
       <a href="/signup.html" class="header-btn">Sign Up</a>
       <a href="/login.html" class="header-btn">Login</a>
@@ -24,8 +32,9 @@ function renderHeader(role, name) {
     return;
   }
 
-  // ✅ Logged in (doctor or patient)
-  const dashboardLink = role === "doctor" ? "/doctor-dashboard.html" : "/dashboard.html";
+  const dashboardLink = role === "doctor"
+    ? "/doctor-dashboard.html"
+    : "/dashboard.html";
 
   btnBox.innerHTML = `
     <a href="${dashboardLink}" class="header-btn">Dashboard</a>
@@ -33,40 +42,41 @@ function renderHeader(role, name) {
   `;
 
   document.getElementById("logoutBtn").addEventListener("click", () => {
-   sessionStorage.removeItem("doctorToken");
-    sessionStorage.removeItem("patientToken");
-
     signOut(auth).then(() => {
       window.location.href = "/login.html";
     });
   });
 }
 
-// ✅ Ensure headerButtons exists before running auth state logic
-function waitForHeaderButtons() {
+// ✅ Wait for headerButtons to appear (because partial loads)
+function waitForHeader() {
   const btnBox = document.getElementById("headerButtons");
   if (!btnBox) {
-    // Wait for header to be loaded
-    setTimeout(waitForHeaderButtons, 100);
+    setTimeout(waitForHeader, 100);
     return;
   }
-  
-  // ✅ Detect login state on every page
-  onAuthStateChanged(auth, (user) => {
+
+  console.log("✅ headerButtons detected");
+
+  // ✅ Firebase login detection
+  onAuthStateChanged(auth, async (user) => {
     if (!user) {
+      console.log("👤 No user logged in");
       renderHeader(null);
       return;
     }
 
-    const doctorToken = sessionStorage.getItem("doctorToken");
+    console.log("👤 Logged in:", user.email);
 
-    if (doctorToken === user.uid) {
-      renderHeader("doctor");
-    } else {
-      renderHeader("patient");
-    }
+    // ✅ READ REAL ROLE FROM DATABASE
+    const snap = await get(ref(database, "users/" + user.uid));
+    const role = snap.val()?.role || "patient";
+
+    console.log("✅ Role from Firebase:", role);
+
+    renderHeader(role);
   });
 }
 
-// Start waiting for headerButtons
-waitForHeaderButtons();
+// ✅ Start logic
+waitForHeader();

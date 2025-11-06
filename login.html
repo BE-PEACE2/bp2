@@ -131,27 +131,32 @@
 
   <!-- Firebase Logic -->
   <script type="module">
-  import { auth, database } from '/js/firebase-init.js';
-  import { 
-    signInWithEmailAndPassword, 
-    GoogleAuthProvider, 
-    signInWithPopup, 
-    sendPasswordResetEmail 
-  } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
-  import { ref, set, get } 
-    from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+import { auth, database } from '/js/firebase-init.js';
 
-  const loginBtn = document.getElementById('loginBtn');
-  const googleLogin = document.getElementById('googleLogin');
-  const forgotPassword = document.getElementById('forgotPassword');
+import {
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+  sendPasswordResetEmail
+} from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 
-  // ===== Email + Password Login (with Doctor Whitelist) =====
+import { ref, set, get }
+  from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+
+const loginBtn = document.getElementById('loginBtn');
+const googleLogin = document.getElementById('googleLogin');
+const forgotPassword = document.getElementById('forgotPassword');
+
+// Doctor whitelist
+const doctorEmails = ["drmaheshyadav010145@gmail.com"];
+
+// ✅ EMAIL + PASSWORD LOGIN
 loginBtn.addEventListener('click', async () => {
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value.trim();
 
   if (!email || !password) {
-    alert('Please enter email and password.');
+    alert("Please enter email and password.");
     return;
   }
 
@@ -159,88 +164,82 @@ loginBtn.addEventListener('click', async () => {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    // 🌿 Whitelist for doctors
-    const doctorEmails = [
-      "drmaheshyadav010145@gmail.com" // your main doctor email
-    ];
+    const role = doctorEmails.includes(email.toLowerCase())
+      ? "doctor"
+      : "patient";
 
-    let role = doctorEmails.includes(email.toLowerCase()) ? "doctor" : "patient";
+    // ✅ Save/update role in Firebase
+    const userRef = ref(database, "users/" + user.uid);
+    await set(userRef, {
+      email,
+      role,
+      updatedAt: new Date().toISOString(),
+      provider: "email"
+    });
 
-    // ✅ Save or update user role
-    const userRef = ref(database, 'users/' + user.uid);
-    const userSnap = await get(userRef);
-    if (!userSnap.exists()) {
-      await set(userRef, {
-        email,
-        role,
-        createdAt: new Date().toISOString(),
-        provider: "email"
-      });
-    }
+    alert("Login successful!");
 
-    if (role === "doctor") {
-  // Save doctor session for dashboard
-  sessionStorage.setItem("doctorToken", user.uid);
-  alert("Welcome back, Doctor 🌿");
-  window.location.href = "/doctor-dashboard.html";
-} else {
-  // Clear doctor token if patient logs in
-  sessionStorage.removeItem("doctorToken");
-  alert("Welcome back, Dear User 🌿");
-  window.location.href = "/dashboard.html";
-}
+    // ✅ Redirect based on role
+    window.location.href =
+      role === "doctor"
+        ? "/doctor-dashboard.html"
+        : "/dashboard.html";
 
-  } catch (error) {
-    console.error("❌ Login failed:", error);
-    alert("Login failed: " + error.message);
+  } catch (err) {
+    alert("Login failed: " + err.message);
   }
 });
 
-  // ===== Google Login =====
-  googleLogin.addEventListener('click', async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
 
-      // Save or update user in database
-      const userRef = ref(database, 'users/' + user.uid);
-      const snapshot = await get(userRef);
-      if (!snapshot.exists()) {
-        await set(userRef, {
-          name: user.displayName || "Patient",
-          email: user.email,
-          role: "patient",
-          createdAt: new Date().toISOString(),
-          provider: "google"
-        });
-      }
+// ✅ GOOGLE LOGIN
+googleLogin.addEventListener('click', async () => {
+  try {
+    const provider = new GoogleAuthProvider();
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
 
-      // Redirect based on role
-      const role = snapshot.val()?.role || "patient";
-      alert(`Welcome ${user.displayName || 'User'}!`);
-      if (role === "doctor") {
-        window.location.href = "/doctor-dashboard.html";
-      } else {
-        window.location.href = "/dashboard.html";
-      }
-    } catch (error) {
-      alert("Google login failed: " + error.message);
-    }
-  });
+    const role = doctorEmails.includes(user.email.toLowerCase())
+      ? "doctor"
+      : "patient";
 
-  // ===== Forgot Password =====
-  forgotPassword.addEventListener('click', async (e) => {
-    e.preventDefault();
-    const email = prompt("Enter your registered email address:");
-    if (!email) return;
-    try {
-      await sendPasswordResetEmail(auth, email);
-      alert("Password reset link sent! Check your inbox.");
-    } catch (error) {
-      alert("Error: " + error.message);
-    }
-  });
+    // ✅ Save/update role in Firebase
+    const userRef = ref(database, "users/" + user.uid);
+
+    await set(userRef, {
+      name: user.displayName || "User",
+      email: user.email,
+      role,
+      updatedAt: new Date().toISOString(),
+      provider: "google"
+    });
+
+    alert("Login successful!");
+
+    // ✅ Redirect based on role
+    window.location.href =
+      role === "doctor"
+        ? "/doctor-dashboard.html"
+        : "/dashboard.html";
+
+  } catch (err) {
+    alert("Google login failed: " + err.message);
+  }
+});
+
+
+// ✅ FORGOT PASSWORD
+forgotPassword.addEventListener("click", async (e) => {
+  e.preventDefault();
+  const email = prompt("Enter your registered email:");
+  if (!email) return;
+
+  try {
+    await sendPasswordResetEmail(auth, email);
+    alert("Password reset link sent to your email.");
+  } catch (err) {
+    alert("Error: " + err.message);
+  }
+});
 </script>
 </body>
 </html>
