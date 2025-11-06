@@ -5,6 +5,119 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Patient Dashboard | BePeace</title>
   <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ---------- LEFT SIDEBAR CLEAN LAYOUT ---------- */
+
+    .dashboard-container {
+      display: flex;
+      width: 100%;
+      min-height: 100vh;
+      background: #f7faff;
+    }
+
+    /* ✅ Fixed Left Sidebar */
+    .sidebar-fixed {
+      width: 240px;
+      background: linear-gradient(180deg, #a2e4f3, #d7f6ff);
+      padding: 25px 18px;
+      box-shadow: 3px 0 12px rgba(0,0,0,0.1);
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      z-index: 50;
+      overflow-y: auto;
+    }
+
+    .sidebar-fixed h2 {
+      text-align: center;
+      margin: 0 0 25px;
+      color: #c71585;
+      font-size: 1.4rem;
+      letter-spacing: 1px;
+    }
+
+    .sidebar-fixed ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .sidebar-fixed a {
+      display: block;
+      text-decoration: none;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 1rem;
+      color: #333;
+      background: transparent;
+      transition: 0.25s;
+    }
+
+    .sidebar-fixed a:hover {
+      background: rgba(255,255,255,0.8);
+      transform: translateX(5px);
+    }
+
+    .sidebar-fixed a.active {
+      background: #c71585;
+      color: white;
+      box-shadow: 0 3px 12px rgba(199,21,133,0.4);
+    }
+
+    /* ✅ Main Content shifted right */
+    .main-area {
+      margin-left: 260px;
+      padding: 30px 30px 90px;
+      width: calc(100% - 260px);
+    }
+
+    /* ✅ Greeting Card */
+    .greeting-card {
+      background: #fff;
+      padding: 25px;
+      border-radius: 14px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+
+    .greeting-card h1 {
+      margin: 0;
+      font-size: 2rem;
+    }
+
+    .panel {
+      background: #fff;
+      padding: 25px;
+      border-radius: 12px;
+      margin-top: 25px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+
+    .appointment {
+      display: flex;
+      justify-content: space-between;
+      background: #f9f9f9;
+      padding: 16px;
+      border-radius: 10px;
+      margin-top: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    /* ✅ Mobile: use your existing hamburger drawer */
+    @media (max-width: 900px) {
+      .sidebar-fixed {
+        display: none;
+      }
+      .main-area {
+        margin-left: 0;
+        width: 100%;
+      }
+    }
+  </style>
 </head>
 
 <body class="dashboard-page">
@@ -12,38 +125,40 @@
   <!-- HEADER -->
   <div id="header"></div>
 
-  <!-- MAIN DASHBOARD CONTENT -->
-  <div class="dashboard-content">
-    <button class="menu-btn" onclick="toggleMenu()">☰</button>
-    <div id="menuOverlay" class="menu-overlay" onclick="toggleMenu()"></div>
+  <!-- ✅ NEW DASHBOARD STRUCTURE -->
+  <div class="dashboard-container">
 
-    <!-- SIDE MENU -->
-    <nav class="side-menu" id="sideMenu">
+    <!-- ✅ FIXED LEFT SIDEBAR -->
+    <aside class="sidebar-fixed">
       <h2>BE PEACE</h2>
+
       <ul>
         <li><a href="dashboard.html" class="active">🏠 Dashboard</a></li>
+
         <li>
           <details open>
-            <summary>📅 Consultations</summary>
-            <ul style="margin-top: 8px; list-style: none; padding-left: 12px;">
-              <li><a href="#today" onclick="scrollToSection('today')">Today <span id="countToday" class="badge">0</span></a></li>
-              <li><a href="#upcoming" onclick="scrollToSection('upcoming')">Upcoming <span id="countUpcoming" class="badge">0</span></a></li>
-              <li><a href="#past" onclick="scrollToSection('past')">Past <span id="countPast" class="badge">0</span></a></li>
+            <summary style="cursor:pointer;">📅 Consultations</summary>
+            <ul style="list-style:none; padding-left:12px; margin-top:10px;">
+              <li><a href="#today">Today <span id="countToday" class="badge">0</span></a></li>
+              <li><a href="#upcoming">Upcoming <span id="countUpcoming" class="badge">0</span></a></li>
+              <li><a href="#past">Past <span id="countPast" class="badge">0</span></a></li>
             </ul>
           </details>
         </li>
+
         <li><a href="prescriptions.html">💊 Prescriptions</a></li>
         <li><a href="#" onclick="alert('Coming Soon!')">🧾 Receipts</a></li>
         <li><a href="#" onclick="logout()">🚪 Logout</a></li>
       </ul>
-    </nav>
+    </aside>
 
-    <!-- MAIN AREA -->
-    <main class="dashboard-main">
-      <section class="greeting">
-        <h1 id="greeting">Hello 👋</h1>
-        <p>Welcome to your <span style="color:#c71585;font-weight:bold;">BePeace</span> Dashboard.</p>
-      </section>
+    <!-- ✅ MAIN CONTENT -->
+    <main class="main-area">
+
+      <div class="greeting-card">
+        <h1>Hello 👋</h1>
+        <p>Welcome to your <strong style="color:#c71585;">BePeace</strong> Dashboard.</p>
+      </div>
 
       <section id="today" class="panel">
         <h2>📅 Today’s Consultations</h2>
@@ -59,36 +174,15 @@
         <h2>🕓 Past Consultations</h2>
         <div id="pastList" class="booking-list"></div>
       </section>
+
     </main>
+
   </div>
 
   <!-- FOOTER -->
   <div id="footer"></div>
 
-  <!-- MENU SCRIPT -->
-  <script>
-    window.toggleMenu = function () {
-      const menu = document.getElementById("sideMenu");
-      const overlay = document.getElementById("menuOverlay");
-      const isOpen = menu.classList.toggle("show");
-      overlay.classList.toggle("show", isOpen);
-    };
-
-    function closeMenu() {
-      document.getElementById("sideMenu").classList.remove("show");
-      document.getElementById("menuOverlay").classList.remove("show");
-    }
-
-    window.scrollToSection = function (id) {
-      const el = document.querySelector("#" + id);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth" });
-        closeMenu();
-      }
-    };
-  </script>
-
-  <!-- 🌿 FIREBASE LOGIC -->
+  <!-- ✅ Keep your existing Firebase Logic exactly same -->
   <script type="module">
     import { auth, database } from "./js/firebase-init.js";
     import { ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
@@ -131,8 +225,8 @@
 
           const { hours, minutes } = parseTimeTo24H(b.slot);
           const consultStart = new Date(`${b.date}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`);
-          const consultEnd = new Date(consultStart.getTime() + 24 * 60 * 60 * 1000); // +24h
-          
+          const consultEnd = new Date(consultStart.getTime() + 24 * 60 * 60 * 1000);
+
           let statusText = "";
           let targetList;
           let joinHTML = "";
@@ -160,8 +254,7 @@
             <div>
               <strong>${b.name || "Patient"}</strong><br/>
               ${b.date} • ${b.slot}<br/>
-              <small>${b.concern || ""}</small><br/>
-              <small>${b.status || ""}</small>
+              <small>${b.concern || ""}</small>
             </div>
             <div style="text-align:right;">
               ${statusText}<br/>
@@ -180,10 +273,10 @@
       });
     });
 
-    // optional: gentle refresh every 5 minutes
     setInterval(() => window.location.reload(), 5 * 60 * 1000);
   </script>
 
   <script src="js/load-partials.js"></script>
+
 </body>
 </html>
