@@ -1906,45 +1906,37 @@ footer {
   animation-delay: 0.3s, 1.5s;
 }
 
-/* === FINAL POSITION FIX: Sign Up + Login inside header right corner === */
-.auth-buttons {
+
+/* ✅ FINAL: SIGN UP + LOGIN positioning and styling */
+#headerButtons {
   position: absolute;
-  right: 40px;       /* stick to right edge */
-  bottom: 0;         /* touch the header bottom line */
+  right: 25px;          /* move close to right edge */
+  bottom: 12px;         /* align EXACTLY on the lower header border */
   display: flex;
-  flex-direction: row-reverse; /* Sign Up first, then Login */
-  gap: 10px;
-  align-items: flex-end;
-  z-index: 10;       /* keep them above everything else */
+  gap: 14px;
+  z-index: 50;
 }
 
-/* Buttons style */
-.auth-buttons button {
-  background: #c71585;
-  color: #fff;
-  border: none;
-  border-radius: 25px;
-  padding: 8px 18px;
+#headerButtons a {
   font-size: 0.95rem;
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  color: #003366;        /* soft navy to match menu */
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: 0.3s ease;
 }
 
-.auth-buttons button:hover {
-  background: #a0126d;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(199, 21, 133, 0.3);
+#headerButtons a:hover {
+  color: #c71585;        /* same pink as BE PEACE */
+  text-decoration: underline;
 }
 
-/* Responsive: move below logo on mobile */
+/* ✅ Mobile-friendly */
 @media (max-width: 768px) {
-  .auth-buttons {
+  #headerButtons {
     position: static;
     margin-top: 10px;
-    flex-direction: row;
     justify-content: center;
   }
 }
-
