@@ -241,12 +241,11 @@
       }
       .join-btn { align-self: flex-end; }
     }
-
-    /* ✅ Position hamburger inside header (left side) */
+ 
 #hamburgerBtn {
-  position: absolute;
-  top: 22px;     /* adjust if needed */
-  left: 20px;    /* exactly where your arrow is */
+  position: relative;   /* stays in normal document flow */
+  margin-top: 12px;     /* space under header */
+  margin-left: 18px;    /* left alignment */
   z-index: 2000;
 }
 
@@ -258,11 +257,10 @@
 </head>
 <body class="dashboard-page">
 
-<!-- HEADER -->
-<div id="header">
-  <div id="hamburgerBtn" class="hamburger-dashboard" aria-label="Open menu" role="button" tabindex="0">
-    <span></span><span></span><span></span>
-  </div>
+<div id="header"></div>
+
+<div id="hamburgerBtn" class="hamburger-dashboard" aria-label="Open menu" role="button" tabindex="0">
+  <span></span><span></span><span></span>
 </div>
    
   <!-- LEFT DRAWER + OVERLAY -->
