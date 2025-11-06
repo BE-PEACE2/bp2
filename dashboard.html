@@ -2,196 +2,359 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Patient Dashboard | BePeace</title>
-  <link rel="stylesheet" href="style.css" />
-  <style>
-    /* ---------- LEFT SIDEBAR CLEAN LAYOUT ---------- */
 
-    .dashboard-container {
-      display: flex;
-      width: 100%;
-      min-height: 100vh;
+  <!-- Your global styles (keep as-is) -->
+  <link rel="stylesheet" href="style.css"/>
+
+  <style>
+    /* ============ BASIC LAYOUT ============ */
+    body.dashboard-page {
       background: #f7faff;
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: #222;
     }
 
-    /* ✅ Fixed Left Sidebar */
-    .sidebar-fixed {
-      width: 240px;
-      background: linear-gradient(180deg, #a2e4f3, #d7f6ff);
-      padding: 25px 18px;
-      box-shadow: 3px 0 12px rgba(0,0,0,0.1);
+    /* Top bar */
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: linear-gradient(90deg, #87cefa, #add8e6);
+      position: sticky;
+      top: 0;
+      z-index: 1001;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    }
+    .topbar .brand {
+      font-weight: 800;
+      letter-spacing: .5px;
+      color: #c71585;
+      text-shadow: 0 0 8px rgba(199,21,133,.25);
+    }
+    .topbar .spacer { flex: 1; }
+
+    /* Make logout match your auth buttons */
+    .btn-pill {
+      background: linear-gradient(135deg, #d6249f, #c71585);
+      color: #fff;
+      padding: 7px 18px;
+      border-radius: 20px;
+      font-size: .92rem;
+      font-weight: 600;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 3px 10px rgba(0,0,0,.2);
+      transition: all .25s ease;
+    }
+    .btn-pill:hover {
+      background: linear-gradient(135deg, #ff52c2, #e3379a);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 14px rgba(0,0,0,.3);
+    }
+    .btn-pill:active {
+      transform: scale(.95);
+      background: linear-gradient(135deg, #b21372, #8f0f57);
+    }
+
+    /* ============ HAMBURGER ============ */
+    .hamburger-dashboard {
+      width: 28px;
+      height: 22px;
+      display: inline-flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+    .hamburger-dashboard span {
+      display: block;
+      height: 3px;
+      width: 100%;
+      background: #333;
+      border-radius: 3px;
+      transition: all .25s ease;
+    }
+    /* X animation */
+    .hamburger-dashboard.active span:nth-child(1) {
+      transform: translateY(9.5px) rotate(45deg);
+    }
+    .hamburger-dashboard.active span:nth-child(2) {
+      opacity: 0;
+    }
+    .hamburger-dashboard.active span:nth-child(3) {
+      transform: translateY(-9.5px) rotate(-45deg);
+    }
+
+    /* ============ LEFT DRAWER ============ */
+    .drawer-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.35);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s ease;
+      z-index: 1000;
+    }
+    .drawer-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .drawer {
       position: fixed;
       top: 0;
       left: 0;
-      bottom: 0;
-      z-index: 50;
+      height: 100dvh;
+      width: 280px;
+      background: linear-gradient(180deg, #a2e4f3, #d7f6ff);
+      box-shadow: 4px 0 16px rgba(0,0,0,.12);
+      padding: 22px 16px;
+      transform: translateX(-100%);
+      transition: transform .28s ease;
+      z-index: 1001;
       overflow-y: auto;
     }
-
-    .sidebar-fixed h2 {
-      text-align: center;
-      margin: 0 0 25px;
-      color: #c71585;
-      font-size: 1.4rem;
-      letter-spacing: 1px;
+    .drawer.open {
+      transform: translateX(0);
     }
-
-    .sidebar-fixed ul {
+    .drawer h2 {
+      text-align: center;
+      margin: 0 0 18px;
+      color: #c71585;
+      font-size: 1.25rem;
+      letter-spacing: .5px;
+    }
+    .drawer ul {
       list-style: none;
       padding: 0;
       margin: 0;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 10px;
     }
-
-    .sidebar-fixed a {
+    .drawer a {
       display: block;
       text-decoration: none;
       padding: 12px;
       border-radius: 10px;
-      font-size: 1rem;
+      font-size: 0.98rem;
       color: #333;
       background: transparent;
-      transition: 0.25s;
+      transition: .2s;
     }
-
-    .sidebar-fixed a:hover {
+    .drawer a:hover {
       background: rgba(255,255,255,0.8);
-      transform: translateX(5px);
+      transform: translateX(6px);
     }
-
-    .sidebar-fixed a.active {
+    .drawer a.active {
       background: #c71585;
-      color: white;
-      box-shadow: 0 3px 12px rgba(199,21,133,0.4);
+      color: #fff;
+      box-shadow: 0 3px 12px rgba(199,21,133,0.35);
+    }
+    .drawer details summary {
+      cursor: pointer;
+      padding: 10px 12px;
+      border-radius: 10px;
+      transition: .2s;
+    }
+    .drawer details summary:hover {
+      background: rgba(255,255,255,0.8);
+    }
+    .drawer .badge {
+      display: inline-block;
+      min-width: 20px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: .78rem;
+      font-weight: 700;
+      background: #aaa;
+      color: #fff;
+      margin-left: 8px;
     }
 
-    /* ✅ Main Content shifted right */
-    .main-area {
-      margin-left: 260px;
-      padding: 30px 30px 90px;
-      width: calc(100% - 260px);
+    /* ============ MAIN ============ */
+    .dashboard-main {
+      max-width: 1100px;
+      margin: 18px auto 80px;
+      padding: 0 16px 40px;
     }
-
-    /* ✅ Greeting Card */
-    .greeting-card {
+    .greeting {
       background: #fff;
-      padding: 25px;
+      padding: 22px;
       border-radius: 14px;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+      box-shadow: 0 4px 14px rgba(0,0,0,.06);
+      margin-bottom: 16px;
     }
-
-    .greeting-card h1 {
-      margin: 0;
-      font-size: 2rem;
-    }
+    .greeting h1 { margin: 0 0 6px; }
 
     .panel {
       background: #fff;
-      padding: 25px;
+      padding: 22px;
       border-radius: 12px;
-      margin-top: 25px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+      margin-top: 20px;
+      box-shadow: 0 4px 14px rgba(0,0,0,.06);
     }
-
     .appointment {
       display: flex;
       justify-content: space-between;
+      align-items: center;
+      gap: 12px;
       background: #f9f9f9;
-      padding: 16px;
+      padding: 14px;
       border-radius: 10px;
       margin-top: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      box-shadow: 0 2px 6px rgba(0,0,0,.05);
+    }
+    .appointment small { color: #555; }
+
+    /* Join button (matches your green style) */
+    .join-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #43a047, #2e7d32);
+      color: #fff;
+      font-weight: 700;
+      padding: 10px 16px;
+      border-radius: 999px;
+      text-decoration: none;
+      box-shadow: 0 6px 15px rgba(0,0,0,.18);
+      transition: all .25s ease;
+      white-space: nowrap;
+    }
+    .join-btn:hover {
+      background: linear-gradient(135deg, #66bb6a, #388e3c);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 22px rgba(56, 142, 60, 0.35);
+    }
+    .join-btn:active {
+      transform: scale(.97);
     }
 
-    /* ✅ Mobile: use your existing hamburger drawer */
-    @media (max-width: 900px) {
-      .sidebar-fixed {
-        display: none;
+    @media (max-width: 560px) {
+      .appointment {
+        flex-direction: column;
+        align-items: flex-start;
       }
-      .main-area {
-        margin-left: 0;
-        width: 100%;
-      }
+      .join-btn { align-self: flex-end; }
     }
   </style>
 </head>
-
 <body class="dashboard-page">
 
-  <!-- HEADER -->
+  <!-- HEADER (loaded by your partials script) -->
   <div id="header"></div>
 
-  <div class="hamburger-dashboard" onclick="toggleMenu()">
-  <span></span>
-  <span></span>
-  <span></span>
-</div>
-
-  <!-- ✅ NEW DASHBOARD STRUCTURE -->
-  <div class="dashboard-container">
-
-    <!-- ✅ FIXED LEFT SIDEBAR -->
-    <aside class="sidebar-fixed">
-      <h2>BE PEACE</h2>
-
-      <ul>
-        <li><a href="dashboard.html" class="active">🏠 Dashboard</a></li>
-
-        <li>
-          <details open>
-            <summary style="cursor:pointer;">📅 Consultations</summary>
-            <ul style="list-style:none; padding-left:12px; margin-top:10px;">
-              <li><a href="#today">Today <span id="countToday" class="badge">0</span></a></li>
-              <li><a href="#upcoming">Upcoming <span id="countUpcoming" class="badge">0</span></a></li>
-              <li><a href="#past">Past <span id="countPast" class="badge">0</span></a></li>
-            </ul>
-          </details>
-        </li>
-
-        <li><a href="prescriptions.html">💊 Prescriptions</a></li>
-        <li><a href="#" onclick="alert('Coming Soon!')">🧾 Receipts</a></li>
-        <li><a href="#" onclick="logout()">🚪 Logout</a></li>
-      </ul>
-    </aside>
-
-    <!-- ✅ MAIN CONTENT -->
-    <main class="main-area">
-
-      <div class="greeting-card">
-        <h1>Hello 👋</h1>
-        <p>Welcome to your <strong style="color:#c71585;">BePeace</strong> Dashboard.</p>
-      </div>
-
-      <section id="today" class="panel">
-        <h2>📅 Today’s Consultations</h2>
-        <div id="todayList" class="booking-list">Loading...</div>
-      </section>
-
-      <section id="upcoming" class="panel">
-        <h2>🔮 Upcoming Consultations</h2>
-        <div id="upcomingList" class="booking-list">Loading...</div>
-      </section>
-
-      <section id="past" class="panel">
-        <h2>🕓 Past Consultations</h2>
-        <div id="pastList" class="booking-list"></div>
-      </section>
-
-    </main>
-
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div id="hamburgerBtn" class="hamburger-dashboard" aria-label="Open menu" role="button" tabindex="0">
+      <span></span><span></span><span></span>
+    </div>
+    <div class="brand">BE PEACE — Patient Dashboard</div>
+    <div class="spacer"></div>
+    <button class="btn-pill" onclick="logout()">Logout</button>
   </div>
 
-  <!-- FOOTER -->
+  <!-- LEFT DRAWER + OVERLAY -->
+  <div id="drawerOverlay" class="drawer-overlay"></div>
+  <nav id="sideDrawer" class="drawer" aria-label="Side navigation">
+    <h2>BE PEACE</h2>
+    <ul>
+      <li><a href="dashboard.html" class="active">🏠 Dashboard</a></li>
+      <li>
+        <details open>
+          <summary>📅 Consultations</summary>
+          <ul style="list-style:none; padding-left:12px; margin-top:8px;">
+            <li><a href="#today" onclick="scrollToSection('today'); closeDrawer();">Today <span id="countToday" class="badge">0</span></a></li>
+            <li><a href="#upcoming" onclick="scrollToSection('upcoming'); closeDrawer();">Upcoming <span id="countUpcoming" class="badge">0</span></a></li>
+            <li><a href="#past" onclick="scrollToSection('past'); closeDrawer();">Past <span id="countPast" class="badge">0</span></a></li>
+          </ul>
+        </details>
+      </li>
+      <li><a href="prescriptions.html" onclick="closeDrawer()">💊 Prescriptions</a></li>
+      <li><a href="#" onclick="alert('Coming Soon!'); closeDrawer()">🧾 Receipts</a></li>
+      <li><a href="#" onclick="logout(); closeDrawer()">🚪 Logout</a></li>
+    </ul>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="dashboard-main">
+    <section class="greeting">
+      <h1 id="greeting">Hello 👋</h1>
+      <p>Welcome to your <strong style="color:#c71585;">BePeace</strong> Dashboard.</p>
+    </section>
+
+    <section id="today" class="panel">
+      <h2>📅 Today’s Consultations</h2>
+      <div id="todayList" class="booking-list">Loading...</div>
+    </section>
+
+    <section id="upcoming" class="panel">
+      <h2>🔮 Upcoming Consultations</h2>
+      <div id="upcomingList" class="booking-list">Loading...</div>
+    </section>
+
+    <section id="past" class="panel">
+      <h2>🕓 Past Consultations</h2>
+      <div id="pastList" class="booking-list"></div>
+    </section>
+  </main>
+
+  <!-- FOOTER (loaded by your partials script) -->
   <div id="footer"></div>
 
-  <!-- ✅ Keep your existing Firebase Logic exactly same -->
+  <!-- ============ DRAWER JS (non-module) ============ -->
+  <script>
+    const drawer = document.getElementById('sideDrawer');
+    const overlay = document.getElementById('drawerOverlay');
+    const hamburger = document.getElementById('hamburgerBtn');
+
+    function openDrawer() {
+      drawer.classList.add('open');
+      overlay.classList.add('show');
+      hamburger.classList.add('active');
+      // prevent body scroll under drawer
+      document.documentElement.style.overflow = 'hidden';
+    }
+    function closeDrawer() {
+      drawer.classList.remove('open');
+      overlay.classList.remove('show');
+      hamburger.classList.remove('active');
+      document.documentElement.style.overflow = '';
+    }
+    function toggleDrawer() {
+      if (drawer.classList.contains('open')) closeDrawer();
+      else openDrawer();
+    }
+
+    // expose closeDrawer for inline calls
+    window.closeDrawer = closeDrawer;
+
+    // open/close handlers
+    hamburger.addEventListener('click', toggleDrawer);
+    hamburger.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleDrawer(); }
+    });
+    overlay.addEventListener('click', closeDrawer);
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeDrawer();
+    });
+
+    // smooth scroll helper
+    window.scrollToSection = function(id) {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({behavior: 'smooth'});
+    };
+  </script>
+
+  <!-- ============ FIREBASE LOGIC (module) ============ -->
   <script type="module">
     import { auth, database } from "./js/firebase-init.js";
     import { ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
+    import { signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 
     const todayBadge = document.getElementById("countToday");
     const upcomingBadge = document.getElementById("countUpcoming");
@@ -200,6 +363,17 @@
     const todayList = document.getElementById("todayList");
     const upcomingList = document.getElementById("upcomingList");
     const pastList = document.getElementById("pastList");
+
+    // make logout available to onclick in non-module scope
+    window.logout = async function() {
+      try {
+        await signOut(auth);
+        // redirect to home or login
+        window.location.href = "/index.html";
+      } catch (e) {
+        alert("Logout failed: " + (e?.message || e));
+      }
+    };
 
     function parseTimeTo24H(timeStr) {
       if (!timeStr) return { hours: 0, minutes: 0 };
@@ -279,10 +453,11 @@
       });
     });
 
+    // gentle refresh every 5 minutes
     setInterval(() => window.location.reload(), 5 * 60 * 1000);
   </script>
 
+  <!-- Load your header/footer partials -->
   <script src="js/load-partials.js"></script>
-
 </body>
 </html>
