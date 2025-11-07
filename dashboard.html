@@ -186,6 +186,42 @@
   align-items: center;
 }
 
+/* ✅ 1. Better spacing on small phones */
+@media (max-width: 420px) {
+  .dashboard-main {
+    padding: 0 10px 40px;
+  }
+
+  .appointment {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .appointment div:last-child {
+    width: 100%;
+    text-align: left !important;
+    margin-top: 6px;
+  }
+
+  .joinBtn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* ✅ 2. Make drawer smaller for mobile */
+@media (max-width: 480px) {
+  .drawer {
+    width: 240px;
+  }
+}
+
+/* ✅ 3. Prevent zoom-in on input fields (iPhone fix) */
+input, button {
+  font-size: 16px !important;
+}
+
   </style>
 </head>
 <body class="dashboard-page">
