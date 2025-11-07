@@ -298,6 +298,10 @@
     import { auth, database } from "./js/firebase-init.js";
     import { ref, onValue } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-database.js";
     import { signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+    
+    const todayList = document.getElementById("todayList");
+    const upcomingList = document.getElementById("upcomingList");
+    const pastList = document.getElementById("pastList");
 
     const greetingEl = document.getElementById("greeting");
     const todayBadge = document.getElementById("countToday");
@@ -352,28 +356,62 @@
 
       const bookingsRef = ref(database, "bookings");
       onValue(bookingsRef, (snapshot) => {
-        const data = snapshot.val() || {};
-        const now = new Date();
+  const data = snapshot.val() || {};
+  const now = new Date();
 
-        let countToday = 0, countUpcoming = 0, countPast = 0;
+  // reset lists
+  todayList.innerHTML = "";
+  upcomingList.innerHTML = "";
+  pastList.innerHTML = "";
 
-        Object.values(data).forEach((b) => {
-          if (b.email !== user.email) return;
-          if (!b.date || !b.slot) return;
+  let countToday = 0, countUpcoming = 0, countPast = 0;
 
-          const { hours, minutes } = parseTimeTo24H(b.slot);
-          const start = new Date(`${b.date}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`);
-          const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+  Object.values(data).forEach((b) => {
+    if (b.email !== user.email) return;
+    if (!b.date || !b.slot) return;
 
-          if (now < start) countUpcoming++;
-          else if (now >= start && now <= end) countToday++;
-          else countPast++;
-        });
+    const { hours, minutes } = parseTimeTo24H(b.slot);
+    const start = new Date(`${b.date}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`);
+    const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
 
-        updateBadge(todayBadge, countToday);
-        updateBadge(upcomingBadge, countUpcoming);
-        updateBadge(pastBadge, countPast);
-      });
+    let targetList;
+    let status = "";
+
+    if (now < start) {
+      status = "🕒 Upcoming";
+      targetList = upcomingList;
+      countUpcoming++;
+    } 
+    else if (now >= start && now <= end) {
+      status = "✅ Live";
+      targetList = todayList;
+      countToday++;
+    } 
+    else {
+      status = "🔴 Completed";
+      targetList = pastList;
+      countPast++;
+    }
+
+    const appt = document.createElement("div");
+    appt.className = "appointment";
+    appt.innerHTML = `
+      <div>
+        <strong>${b.name || "Patient"}</strong><br>
+        ${b.date} • ${b.slot}<br>
+        <small>${b.concern || ""}</small>
+      </div>
+      <div style="text-align:right;">
+        ${status}
+      </div>
+    `;
+    targetList.appendChild(appt);
+  });
+
+  updateBadge(todayBadge, countToday);
+  updateBadge(upcomingBadge, countUpcoming);
+  updateBadge(pastBadge, countPast);
+});
     });
   </script>
 
