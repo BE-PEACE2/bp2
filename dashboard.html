@@ -185,22 +185,22 @@
           <summary>📅 Consultations</summary>
           <ul style="list-style:none; padding-left:12px; margin-top:8px;">
             <li>
-              <a href="#" onclick="closeDrawer()">
-                Today
-                <span id="countToday" class="badge"></span>
+              <a href="#" onclick="showSection('today')">
+                 Today
+               <span id="countToday" class="badge"></span>
+             </a>
+            </li>
+            <li>
+              <a href="#" onclick="showSection('upcoming')">
+                 Upcoming
+               <span id="countUpcoming" class="badge"></span>
               </a>
             </li>
             <li>
-              <a href="#" onclick="closeDrawer()">
-                Upcoming
-                <span id="countUpcoming" class="badge"></span>
-              </a>
-            </li>
-            <li>
-              <a href="#" onclick="closeDrawer()">
+              <a href="#" onclick="showSection('past')">
                 Past
-                <span id="countPast" class="badge"></span>
-              </a>
+             <span id="countPast" class="badge"></span>
+           </a>
             </li>
           </ul>
         </details>
@@ -220,6 +220,22 @@
         and may your heart find a little more peace than yesterday.
       </div>
     </section>
+    <section id="consultationContainer">
+  <section id="today" class="panel" style="display:none;">
+    <h2>Today's Consultations</h2>
+    <div id="todayList"></div>
+  </section>
+
+  <section id="upcoming" class="panel" style="display:none;">
+    <h2>Upcoming Consultations</h2>
+    <div id="upcomingList"></div>
+  </section>
+
+  <section id="past" class="panel" style="display:none;">
+    <h2>Past Consultations</h2>
+    <div id="pastList"></div>
+  </section>
+</section>
   </main>
 
   <!-- Optional footer partial -->
@@ -256,6 +272,26 @@
     overlay.addEventListener('click', closeDrawer);
     window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
   </script>
+
+<script>
+  window.showSection = function(sectionId) {
+
+    // 1️⃣ Hide all sections first
+    document.getElementById("today").style.display = "none";
+    document.getElementById("upcoming").style.display = "none";
+    document.getElementById("past").style.display = "none";
+
+    // 2️⃣ Show selected section
+    const section = document.getElementById(sectionId);
+    if (section) section.style.display = "block";
+
+    // 3️⃣ Scroll into view
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    // 4️⃣ Close drawer
+    closeDrawer();
+  };
+</script>
 
   <!-- ======= Firebase + Live Counts (module) ======= -->
   <script type="module">
