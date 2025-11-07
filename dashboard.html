@@ -360,7 +360,7 @@ input, button {
 
 <script>
   window.joinConsult = function(id) {
-    window.location.href = `consultation-room.html?id=${id}`;
+    window.location.href = `consultation-room.html?room=${id}&role=patient`;
   };
 </script>
 
@@ -459,7 +459,7 @@ input, button {
       countUpcoming++;
     } 
     else if (now >= start && now <= end) {
-      status = `<button class="joinBtn" onclick="joinConsult('${bookingId}')">Join Now</button>`;
+      status = `<button class="joinBtn" onclick="joinConsult('${b.order_id}')">Join Now</button>`;
       targetList = todayList;
       countToday++;
     } 

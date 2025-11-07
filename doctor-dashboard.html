@@ -335,7 +335,7 @@ console.log("DEBUG:", b.slot, b.country, "→ IST:", istTime);
 
     if (isLive) {
       joinButton = `<a href="/consultation-room.html?room=${encodeURIComponent(
-        b.order_id || b.email
+        b.order_id
       )}&role=doctor&patientName=${encodeURIComponent(
         b.name
       )}" target="_blank"
