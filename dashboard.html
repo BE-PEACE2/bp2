@@ -273,9 +273,9 @@
         <details open>
           <summary>📅 Consultations</summary>
           <ul style="list-style:none; padding-left:12px; margin-top:8px;">
-            <li><a href="#today" onclick="scrollToSection('today'); closeDrawer();">Today <span id="countToday" class="badge">0</span></a></li>
-            <li><a href="#upcoming" onclick="scrollToSection('upcoming'); closeDrawer();">Upcoming <span id="countUpcoming" class="badge">0</span></a></li>
-            <li><a href="#past" onclick="scrollToSection('past'); closeDrawer();">Past <span id="countPast" class="badge">0</span></a></li>
+            <li><a href="#today" onclick="scrollToSection('today'); closeDrawer();">Today <span id="countToday" class="badge"></span></a></li>
+            <li><a href="#upcoming" onclick="scrollToSection('upcoming'); closeDrawer();">Upcoming <span id="countUpcoming" class="badge"></span></a></li>
+            <li><a href="#past" onclick="scrollToSection('past'); closeDrawer();">Past <span id="countPast" class="badge"></span></a></li>
           </ul>
         </details>
       </li>
@@ -291,6 +291,22 @@
       <h1 id="greeting">Hello 👋</h1>
       <p>Welcome to your <strong style="color:#c71585;">BePeace</strong> Dashboard.</p>
     </section>
+
+    <section id="today" class="panel">
+  <h2>Today’s Consultations</h2>
+  <div id="todayList"></div>
+</section>
+
+<section id="upcoming" class="panel">
+  <h2>Upcoming Consultations</h2>
+  <div id="upcomingList"></div>
+</section>
+
+<section id="past" class="panel">
+  <h2>Past Consultations</h2>
+  <div id="pastList"></div>
+</section>
+
   </main>
 
   <!-- FOOTER (loaded by your partials script) -->
@@ -433,13 +449,20 @@
           targetList.appendChild(div);
         });
 
-        todayBadge.textContent = countToday;
-        upcomingBadge.textContent = countUpcoming;
-        pastBadge.textContent = countPast;
+       // ✅ Show numbers only when count > 0
+function updateBadge(el, count) {
+  if (count === 0) {
+    el.textContent = "";
+    el.style.background = "transparent"; 
+  } else {
+    el.textContent = count;
+    el.style.background = "#c71585";
+  }
+}
 
-        [todayBadge, upcomingBadge, pastBadge].forEach((el) => {
-          el.style.background = el.textContent === "0" ? "#aaa" : "#c71585";
-        });
+updateBadge(todayBadge, countToday);
+updateBadge(upcomingBadge, countUpcoming);
+updateBadge(pastBadge, countPast);
       });
     });
 
