@@ -157,6 +157,35 @@
     }
 
     #header { position: relative; z-index: 1500; }
+
+    .joinBtn {
+  background: #c71585;
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+  transition: 0.2s;
+}
+
+.joinBtn:hover {
+  background: #e237a8;
+  transform: translateY(-2px);
+}
+
+.appointment {
+  background: #ffffff;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
   </style>
 </head>
 <body class="dashboard-page">
@@ -293,6 +322,12 @@
   };
 </script>
 
+<script>
+  window.joinConsult = function(id) {
+    window.location.href = `consult-room.html?id=${id}`;
+  };
+</script>
+
   <!-- ======= Firebase + Live Counts (module) ======= -->
   <script type="module">
     import { auth, database } from "./js/firebase-init.js";
@@ -366,7 +401,7 @@
 
   let countToday = 0, countUpcoming = 0, countPast = 0;
 
-  Object.values(data).forEach((b) => {
+  Object.entries(data).forEach(([bookingId, b]) => {
     if (b.email !== user.email) return;
     if (!b.date || !b.slot) return;
 
@@ -383,7 +418,7 @@
       countUpcoming++;
     } 
     else if (now >= start && now <= end) {
-      status = "✅ Live";
+      status = `<button class="joinBtn" onclick="joinConsult('${bookingId}')">Join Now</button>`;
       targetList = todayList;
       countToday++;
     } 
