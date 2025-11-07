@@ -438,7 +438,12 @@ input, button {
   let countToday = 0, countUpcoming = 0, countPast = 0;
 
   Object.entries(data).forEach(([bookingId, b]) => {
-    if (b.email !== user.email) return;
+   const bookingEmail = (b.email || "").toLowerCase();
+  const userEmail = (user.email || "").toLowerCase();
+  if (bookingEmail !== userEmail) return;
+
+  if (!b.status || b.status !== "confirmed") return;
+  
     if (!b.date || !b.slot) return;
 
     const { hours, minutes } = parseTimeTo24H(b.slot);
