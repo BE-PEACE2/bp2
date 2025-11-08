@@ -131,10 +131,15 @@ main {
 
     // Optional: log success when joined
     if (api) {
-      api.addEventListener('videoConferenceJoined', () => {
-        console.log('✅ Jitsi joined successfully');
-      });
-    }
+  api.addEventListener('videoConferenceJoined', () => {
+    console.log('✅ Jitsi joined successfully');
+    // Trigger calm awakening animation
+    document.body.classList.add('awaken');
+    setTimeout(() => {
+      document.body.classList.remove('awaken');
+    }, 4000); // remove class after animation finishes
+  });
+}
   </script>
 </body>
 </html>
