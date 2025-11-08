@@ -117,56 +117,71 @@ main {
       : "";
   }
 
-  // 🩺 Load user info (doctor/patient) from Firebase Auth + DB
   auth.onAuthStateChanged(async (user) => {
-    if (user) {
-      try {
-        const userRef = ref(database, "users/" + user.uid);
-        const snapshot = await get(userRef);
+  const params = new URLSearchParams(window.location.search);
+  const roomName = params.get("room") || `Room_${Date.now()}`;
+  const role = (params.get("role") || "patient").toLowerCase();
+  const urlPatientName = params.get("patientName");
+  let displayName = "Guest";
 
-        if (snapshot.exists()) {
-          const userData = snapshot.val();
+  function toTitleCase(str) {
+    return str
+      ? str
+          .toLowerCase()
+          .split(" ")
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(" ")
+      : "";
+  }
 
-          if (userData.role === "doctor") {
-            let formatted = "";
+  // Fetch patient name from bookings if not in URL
+  async function getPatientNameFromBooking(orderId) {
+    try {
+      const bookingRef = ref(database, "bookings/" + orderId);
+      const snap = await get(bookingRef);
+      if (snap.exists() && snap.val().name) {
+        return toTitleCase(snap.val().name);
+      }
+    } catch (e) {
+      console.error("Error fetching booking info:", e);
+    }
+    return "Guest Patient";
+  }
 
-            // Use stored name if already available
-            if (userData.name && userData.name.trim() !== "") {
-              formatted = toTitleCase(userData.name.trim());
-            } else {
-              // Extract name from email if not stored yet
-              let baseName = userData.email.split("@")[0];
-              baseName = baseName
-                .replace(/^dr/i, "")      // remove "dr" prefix
-                .replace(/[0-9]/g, "")    // remove digits
-                .replace(/\./g, " ");     // replace dots with spaces
-              formatted = toTitleCase(baseName.trim());
-
-              // Save cleaned name in Firebase for next time
-              await update(userRef, { name: formatted });
-            }
-
-            displayName = `Dr ${formatted}`;
-          } else {
-            // 👩‍🍼 For patient
-            const patientRaw = params.get("patientName") || user.displayName || "Guest Patient";
-            displayName = `Patient: ${toTitleCase(patientRaw.trim())}`;
-          }
+  // Doctor side
+  if (role === "doctor" && user) {
+    try {
+      const userRef = ref(database, "users/" + user.uid);
+      const snapshot = await get(userRef);
+      if (snapshot.exists()) {
+        const userData = snapshot.val();
+        if (userData.name) {
+          displayName = "Dr " + toTitleCase(userData.name);
         } else {
-          console.warn("No user data found in Realtime DB");
-          displayName = "Dr Anonymous";
+          let baseName = (userData.email || "").split("@")[0];
+          baseName = baseName.replace(/^dr/i, "").replace(/[0-9]/g, "").replace(/\./g, " ");
+          displayName = "Dr " + toTitleCase(baseName.trim());
         }
-      } catch (e) {
-        console.error("Error fetching user:", e);
+      } else {
         displayName = "Dr Anonymous";
       }
-    } else {
-      console.warn("No logged-in user detected");
-      displayName = "Guest";
+    } catch (e) {
+      console.error("Error fetching doctor:", e);
+      displayName = "Dr Anonymous";
     }
+  }
 
-    initJitsi(displayName);
-  });
+  // Patient side
+  else if (role === "patient") {
+    if (urlPatientName && urlPatientName.trim() !== "") {
+      displayName = toTitleCase(urlPatientName.trim());
+    } else {
+      displayName = await getPatientNameFromBooking(roomName);
+    }
+  }
+
+  initJitsi(displayName);
+});
 
   // ==== Initialize Jitsi ====
   function initJitsi(displayName) {
