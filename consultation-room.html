@@ -6,355 +6,137 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="/style.css" />
   <style>
-    :root { --accent: #c71585; --calm:#f7fbfc; }
-    body,html{height:100%;margin:0;font-family:Inter, Arial, sans-serif;background:var(--calm);}
-    header{padding:14px 20px;text-align:center;background:white;border-bottom:1px solid #eee}
-    header h1{margin:0;color:var(--accent)}
-   
-/* ====== LAYOUT FIX FOR FULL-WIDTH JITSI ON DESKTOP ====== */
-main {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 20px;
-  padding: 16px;
-  max-width: 1600px;
-  margin: 0 auto;
-}
+    /* ===== BE PEACE CALM BACKGROUND ===== */
+    body {
+      background: radial-gradient(circle at center, #fffafc 0%, #fbe7f1 60%, #ffffff 100%);
+      animation: calmBreathe 10s ease-in-out infinite alternate;
+      transition: background 1s ease-in-out;
+      margin: 0;
+      font-family: 'Inter', Arial, sans-serif;
+    }
 
-/* Make Jitsi occupy 75–80% width on desktop */
-#meet {
-  flex: 3;
-  width: 100%;
-  min-height: 82vh;
-  border-radius: 12px;
-  overflow: hidden;
-  background: transparent; /* fixed */
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
+    @keyframes calmBreathe {
+      0% {
+        background: radial-gradient(circle at center, #fffafc 0%, #fbe7f1 60%, #ffffff 100%);
+      }
+      100% {
+        background: radial-gradient(circle at center, #ffffff 0%, #fdeaf4 70%, #fff 100%);
+      }
+    }
 
-/* Ensure Jitsi iframe fills container */
-#meet iframe {
-  width: 100% !important;
-  height: 100% !important;
-  border: none;
-  border-radius: 12px;
-}
+    /* ===== MAIN LAYOUT ===== */
+    main {
+      width: 100%;
+      height: calc(100vh - 120px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0;
+      margin: 0;
+    }
 
-/* Compact side panel (20–25%) */
-#side {
-  flex: 1;
-  min-width: 360px;
-  background: white;
-  border-radius: 12px;
-  padding: 12px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  height: fit-content;
-}
+    #meet {
+      width: 95%;
+      height: 85vh;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #000;
+      position: relative;
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.15);
+      transform: translate(40px, 15px);
+      transition: transform 0.4s ease;
 
-/* Collapsible button style */
-#toggleVideoBtn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: rgba(0, 0, 0, 0.5);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 6px 10px;
-  z-index: 10;
-  font-size: 13px;
-}
+    }
 
-/* ====== MOBILE OPTIMIZATION ====== */
-@media (max-width: 900px) {
-  main {
-    flex-direction: column;
-    padding: 10px;
-  }
+    #meet iframe {
+      width: 100% !important;
+      height: 100% !important;
+      border: none;
+      border-radius: 16px;
+      object-fit: cover;
+    }
 
-  #meet {
-    flex: none;
-    width: 100%;
-    height: 340px;
-    border-radius: 10px;
-  }
+    /* ===== FULLSCREEN VIDEO MODE ===== */
+    .fullscreen-active #header,
+    .fullscreen-active #footer {
+      display: none !important;
+    }
 
-  #side {
-    flex: none;
-    width: 100%;
-    min-height: auto;
-    padding: 10px;
-    box-shadow: none;
-  }
+    .fullscreen-active #meet {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      border-radius: 0;
+      z-index: 999;
+      background: #000;
+    }
 
-  #chatBox {
-    height: 220px;
-  }
+    /* ===== FULLSCREEN BUTTON ===== */
+    #fullscreenBtn {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      z-index: 1000;
+    }
 
-  header h1 {
-    font-size: 18px;
-  }
+    #fullscreenBtn:hover {
+      background: rgba(0, 0, 0, 0.75);
+    }
 
-  footer {
-    font-size: 12px;
-  }
-}
-
-/* ====== ULTRA-WIDE DESKTOP SCALING ====== */
-@media (min-width: 1400px) {
-  #meet {
-    flex: 4;
-    min-height: 85vh;
-  }
-  #side {
-    flex: 1;
-    min-width: 400px;
-  }
-}
-    .block { background:#fff;border-radius:8px;padding:10px; }
-    #presence { font-weight:600; color:#333; }
-    #chatBox { display:flex; flex-direction:column; height:260px; gap:8px;}
-    #messages { flex:1; overflow:auto; border:1px solid #eee; padding:8px; border-radius:6px; background:#fafafa;}
-    .msg { margin-bottom:8px; }
-    .msg .who { font-weight:700; color:var(--accent); margin-right:6px; }
-    .controls { display:flex; gap:8px; }
-    .controls input[type="text"]{flex:1;padding:8px;border-radius:6px;border:1px solid #ddd;}
-    button { background:var(--accent); color:#fff; border:none; padding:8px 10px; border-radius:8px; cursor:pointer;}
-    button.secondary { background:#6b7280; }
-    #prescForm textarea{width:100%;padding:8px;border-radius:6px;border:1px solid #ddd;resize:vertical;}
-    .small { font-size:13px;color:#666; }
-    footer{padding:12px;text-align:center;color:#888;font-size:13px}
-    .badge { display:inline-block;padding:4px 8px;border-radius:999px;background:#e6f6ed;color:#0a8a2d;font-weight:700;margin-left:6px;}
-    .btn-link { background:transparent;color:var(--accent);padding:6px;border-radius:6px;border:1px solid #f0dbe6;cursor:pointer}
-    /* ====== FULLSCREEN VIDEO MODE ====== */
-.fullscreen-active #side,
-.fullscreen-active header,
-.fullscreen-active footer {
-  display: none !important;
-}
-
-.fullscreen-active main {
-  max-width: none;
-  width: 100%;
-  padding: 0;
-  margin: 0;
-}
-
-.fullscreen-active #meet {
-  flex: none;
-  width: 100%;
-  height: 100vh;
-  border-radius: 0;
-  background: transparent !important; /* fixed */
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 999;
-  box-shadow: 0 0 60px 10px rgba(199, 21, 133, 0.25);
-  animation: breathe 6s ease-in-out infinite alternate;
-}
-
-.fullscreen-active #fullscreenBtn {
-  position: fixed;
-  top: 15px;
-  right: 15px;
-  z-index: 1000;
-  background: rgba(0, 0, 0, 0.6);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 14px;
-}
-
-/* ====== Smooth fullscreen transition ====== */
-#meet {
-  transition: all 0.4s ease-in-out;
-}
-.fullscreen-active #meet {
-  transition: all 0.4s ease-in-out;
-}
-body {
-  transition: background 0.3s ease-in-out;
-}
-
-/* ====== BE PEACE Fullscreen Calm Glow (working fix) ====== */
-body.fullscreen-active {
-  background: radial-gradient(circle at center, #fbe7f1 0%, #fff 85%);
-  animation: calmGlow 6s ease-in-out infinite alternate;
-  transition: background 1s ease-in-out;
-}
-
-/* make sure video doesn’t block background */
-body.fullscreen-active #meet {
-  background: transparent !important;
-  box-shadow: 0 0 60px 10px rgba(199, 21, 133, 0.25);
-  animation: breathe 6s ease-in-out infinite alternate;
-}
-
-@keyframes calmGlow {
-  0% { background: radial-gradient(circle at center, #fbe7f1 0%, #fff 85%); }
-  100% { background: radial-gradient(circle at center, #fdeaf4 10%, #fff 90%); }
-}
-
-@keyframes breathe {
-  0% { box-shadow: 0 0 50px 8px rgba(199, 21, 133, 0.2); }
-  100% { box-shadow: 0 0 80px 14px rgba(199, 21, 133, 0.3); }
-}
-
-/* === Fix Jitsi iframe scaling (remove black bands) === */
-#meet iframe {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100% !important;
-  height: 100% !important;
-  border: none;
-  border-radius: 0;
-  background: transparent !important;
-  object-fit: cover; /* ensures full fill */
-}
-
-/* === Keep glow visible behind video === */
-body.fullscreen-active::before {
-  content: "";
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: radial-gradient(circle at center, #fbe7f1 0%, #fff 85%);
-  animation: calmGlow 8s ease-in-out infinite alternate;
-  z-index: 0;
-}
-body.fullscreen-active #meet {
-  z-index: 1;
-}
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      #meet {
+        width: 100%;
+        height: 70vh;
+        border-radius: 10px;
+      }
+      #fullscreenBtn {
+        top: 10px;
+        right: 10px;
+        font-size: 12px;
+        padding: 6px 10px;
+      }
+    }
   </style>
 </head>
+
 <body>
-  <header>
-    <h1>BE PEACE — Consultation Room</h1>
-    <div class="small">Use browser microphone/camera access. If you want PDF, use Print → Save as PDF.</div>
-  </header>
+  <!-- Dynamic Header -->
+  <div id="header"></div>
 
   <main>
-    <div id="meet-container">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-    <button id="toggleVideoBtn" class="btn-link">Hide Video</button>
-    <button id="fullscreenBtn" class="btn-link">Expand Video</button>
-  </div>
-  <div id="meet">Loading consultation room...</div>
-</div>
-    <aside id="side">
-      <div class="block" id="presence">
-        <div><strong>Room:</strong> <span id="roomLabel">—</span></div>
-        <div style="margin-top:6px">
-          <span>Doctor:</span> <span id="doctorPresence">—</span>
-        </div>
-        <div>
-          <span>Patient:</span> <span id="patientPresence">—</span>
-        </div>
+    <div id="meet-container" style="width:100%;">
+      <div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:6px;">
+        <button id="fullscreenBtn">Expand Video</button>
       </div>
-
-      <div class="block" id="chatBlock">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <strong>Live chat</strong>
-          <small class="small">Saved to DB</small>
-        </div>
-        <div id="chatBox">
-          <div id="messages"></div>
-          <div class="controls">
-            <input id="chatInput" type="text" placeholder="Type message..." />
-            <button id="sendBtn">Send</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="block" id="prescBlock">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <strong>Live Prescription</strong>
-          <small class="small">Doctor edits — patient sees live</small>
-        </div>
-        <div id="prescForm" style="display:flex;flex-direction:column;gap:8px">
-          <label class="small">Diagnosis</label>
-          <textarea id="diagnosis" rows="2" placeholder="Diagnosis"></textarea>
-          <label class="small">Medicines</label>
-          <textarea id="medicines" rows="3" placeholder="Medicines & dose"></textarea>
-          <label class="small">Advice</label>
-          <textarea id="advice" rows="2" placeholder="Advice"></textarea>
-
-          <div style="display:flex;gap:8px;justify-content:space-between">
-            <div style="display:flex;gap:8px">
-              <button id="saveBtn">Save (doctor)</button>
-              <button id="downloadBtn" class="secondary">Download PDF</button>
-            </div>
-            <div>
-              <button id="endBtn" class="secondary">End Session (doctor)</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </aside>
+      <div id="meet">Loading consultation room...</div>
+    </div>
   </main>
 
-  <footer>
-    © BE PEACE — Live consultation
-  </footer>
+  <!-- Dynamic Footer -->
+  <div id="footer"></div>
 
-  <!-- Jitsi external API from your server -->
+  <!-- Jitsi external API -->
   <script src="https://meet.bepeace.in/external_api.js"></script>
 
-  <!-- Firebase imports (database functions used) -->
-  <script type="module">
-    // --- Adjust if your firebase-init exports differently.
-    import { auth, database } from "/js/firebase-init.js";
-    import {
-      ref as dbRef,
-      push,
-      set,
-      onValue,
-      onChildAdded,
-      remove,
-      serverTimestamp,
-      update
-    } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-database.js";
+  <!-- Load header and footer -->
+  <script src="/js/load-partials.js"></script>
 
-    // ---- Read URL params
+  <!-- Consultation Page Script -->
+  <script type="module">
+    // ---- Read URL params (doctor or patient name + room)
     const params = new URLSearchParams(window.location.search);
     const roomName = params.get("room") || `Room_${Date.now()}`;
-    const role = (params.get("role") || "patient").toLowerCase(); // doctor or patient
     const displayName = params.get("name") || params.get("patientName") || "Guest";
-    const orderId = params.get("orderId") || params.get("order_id") || roomName;
-    const patientUid = params.get("patientUid") || params.get("uid") || null;
-
-    // UI refs
-    const roomLabel = document.getElementById("roomLabel");
-    const doctorPresenceEl = document.getElementById("doctorPresence");
-    const patientPresenceEl = document.getElementById("patientPresence");
-    const messagesEl = document.getElementById("messages");
-    const chatInput = document.getElementById("chatInput");
-    const sendBtn = document.getElementById("sendBtn");
-    const diagnosisEl = document.getElementById("diagnosis");
-    const medicinesEl = document.getElementById("medicines");
-    const adviceEl = document.getElementById("advice");
-    const saveBtn = document.getElementById("saveBtn");
-    const downloadBtn = document.getElementById("downloadBtn");
-    const endBtn = document.getElementById("endBtn");
-
-    roomLabel.textContent = roomName;
-
-    // DB paths
-    const PRESENCE_PATH = `presence/${roomName}`;
-    const LIVE_PRESC_PATH = `livePrescription/${roomName}`;
-    const LIVE_CHAT_PATH = `liveChat/${roomName}`;
-    const FINAL_PRESC_PATH = `prescriptions/${orderId}`;
 
     // ==== Jitsi setup ====
     const domain = "meet.bepeace.in";
@@ -368,7 +150,10 @@ body.fullscreen-active #meet {
       interfaceConfigOverwrite: {
         SHOW_JITSI_WATERMARK: false,
         SHOW_POWERED_BY: false,
-        TOOLBAR_BUTTONS: ["microphone","camera","chat","tileview","hangup"]
+        TOOLBAR_BUTTONS: [
+          "microphone", "camera", "desktop", "fullscreen",
+          "chat", "raisehand", "tileview", "hangup"
+        ]
       }
     };
 
@@ -380,308 +165,23 @@ body.fullscreen-active #meet {
       document.getElementById("meet").textContent = "Failed to load Jitsi. Check console.";
     }
 
-    // ==== Presence logic ====
-    // write presence on connect, remove on disconnect using onDisconnect
-    const presenceRef = dbRef(database, PRESENCE_PATH);
-
-    function setPresence() {
-      const key = role === "doctor" ? "doctor" : "patient";
-      const path = `${PRESENCE_PATH}/${key}`;
-      const r = dbRef(database, path);
-      // set user details
-      set(r, {
-        name: displayName,
-        timestamp: new Date().toISOString(),
-        orderId,
-      }).catch(console.error);
-
-      // ensure removal on disconnect
-      // note: onDisconnect functionality not available from modular client directly; use update trick
-      // We'll write a heartbeat and clear when window unloads
-      window.addEventListener("beforeunload", () => {
-        remove(r).catch(()=>{});
+    // --- Fullscreen toggle logic ---
+    const fullscreenBtn = document.getElementById("fullscreenBtn");
+    if (fullscreenBtn) {
+      let fullscreen = false;
+      fullscreenBtn.addEventListener("click", () => {
+        fullscreen = !fullscreen;
+        document.body.classList.toggle("fullscreen-active", fullscreen);
+        fullscreenBtn.textContent = fullscreen ? "Exit Fullscreen" : "Expand Video";
       });
     }
 
-    // Listen for presence changes
-    onValue(dbRef(database, PRESENCE_PATH), (snap) => {
-      const val = snap.val() || {};
-      doctorPresenceEl.textContent = val.doctor ? `${val.doctor.name} ✓` : "—";
-      patientPresenceEl.textContent = val.patient ? `${val.patient.name} ✓` : "—";
-    });
-
-    // Call setPresence after we know jitsi loaded (or immediately)
-    setPresence();
-
-    // ==== Live prescription ====
-    const livePrescRef = dbRef(database, LIVE_PRESC_PATH);
-
-    // Doctor: allow edit and push updates
-    function pushLivePresc() {
-      set(livePrescRef, {
-        diagnosis: diagnosisEl.value || "",
-        medicines: medicinesEl.value || "",
-        advice: adviceEl.value || "",
-        updatedAt: new Date().toISOString(),
-        updatedBy: displayName
-      }).catch(console.error);
-    }
-
-    // Subscribe to live prescription updates (patient sees, doctor too)
-    onValue(livePrescRef, (snap) => {
-      const data = snap.val() || {};
-      // if the user is doctor, we still reflect incoming (so doctor sees saved values)
-      if (data.diagnosis !== undefined) diagnosisEl.value = data.diagnosis;
-      if (data.medicines !== undefined) medicinesEl.value = data.medicines;
-      if (data.advice !== undefined) adviceEl.value = data.advice;
-    });
-
-    // Only doctor can actively edit; patient fields are read-only
-    if (role !== "doctor") {
-      diagnosisEl.readOnly = true;
-      medicinesEl.readOnly = true;
-      adviceEl.readOnly = true;
-      saveBtn.style.display = "none";
-      endBtn.style.display = "none";
-    } else {
-      // doctor: listen for edits and push (debounced small delay)
-      let prescTimer = null;
-      [diagnosisEl, medicinesEl, adviceEl].forEach(el => {
-        el.addEventListener("input", () => {
-          clearTimeout(prescTimer);
-          prescTimer = setTimeout(pushLivePresc, 500);
-        });
-      });
-      saveBtn.addEventListener("click", async () => {
-        pushLivePresc();
-        alert("✅ Live prescription saved.");
-      });
-    }
-
-    // ==== Chat ====
-    const chatRef = dbRef(database, LIVE_CHAT_PATH);
-
-    // load past chat and subscribe
-    onChildAdded(chatRef, (snap) => {
-      const msg = snap.val();
-      if (!msg) return;
-      const d = new Date(msg.ts || Date.now());
-      const time = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-      const wrapper = document.createElement("div");
-      wrapper.className = "msg";
-      wrapper.innerHTML = `<span class="who">${sanitize(msg.name)}:</span> <span class="what">${sanitize(msg.text)}</span> <div class="small" style="color:#999">${time}</div>`;
-      messagesEl.appendChild(wrapper);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    });
-
-    function sendChat() {
-      const text = chatInput.value.trim();
-      if (!text) return;
-      const payload = { name: displayName, text, ts: Date.now() };
-      push(chatRef, payload).catch(console.error);
-      chatInput.value = "";
-    }
-    sendBtn.addEventListener("click", sendChat);
-    chatInput.addEventListener("keydown", (e) => { if (e.key === "Enter") sendChat(); });
-
-    // ==== End session & save final prescription (doctor) ====
-    async function saveFinalPrescription({endedBy="doctor"}) {
-      // Prepare final object
-      const finalObj = {
-        orderId,
-        room: roomName,
-        doctorName: role === "doctor" ? displayName : (params.get("doctorName") || "Doctor"),
-        patientName: params.get("patientName") || displayName,
-        patientUid: patientUid || null,
-        diagnosis: diagnosisEl.value || "",
-        medicines: medicinesEl.value || "",
-        advice: adviceEl.value || "",
-        endedBy,
-        savedAt: new Date().toISOString()
-      };
-      // push into prescriptions/{orderId}
-      try {
-        await set(dbRef(database, FINAL_PRESC_PATH), finalObj);
-        return finalObj;
-      } catch (err) {
-        console.error("Save prescription error:", err);
-        throw err;
-      }
-    }
-
-    // When doctor clicks End Session
-    if (role === "doctor") {
-      endBtn.addEventListener("click", async () => {
-        if (!confirm("End consultation now and save final prescription?")) return;
-        try {
-          await saveFinalPrescription({endedBy:"doctor"});
-          alert("✅ Prescription saved. Ending session.");
-          // remove presence
-          remove(dbRef(database, `${PRESENCE_PATH}/doctor`)).catch(()=>{});
-          // notify Jitsi to hangup (if available)
-          try { api.executeCommand('hangup'); } catch(e){ }
-          // redirect doctor back to dashboard
-          window.location.href = "/doctor-dashboard.html";
-        } catch(e) {
-          alert("Failed to save. See console.");
-        }
-      });
-    }
-
-    // When Jitsi indicates readyToClose (user closed window/hung up), auto save by doctor if present
+    // Optional: log success when joined
     if (api) {
-      api.addEventListener("readyToClose", async () => {
-        // If role doctor, save final; if patient, just remove presence and redirect
-        if (role === "doctor") {
-          try { await saveFinalPrescription({endedBy:"jitsi"}); } catch(e){}
-          remove(dbRef(database, `${PRESENCE_PATH}/doctor`)).catch(()=>{});
-          alert("Consultation ended and saved.");
-          window.location.href = "/doctor-dashboard.html";
-        } else {
-          remove(dbRef(database, `${PRESENCE_PATH}/patient`)).catch(()=>{});
-          alert("Consultation ended.");
-          window.location.href = "/dashboard.html";
-        }
+      api.addEventListener('videoConferenceJoined', () => {
+        console.log('✅ Jitsi joined successfully');
       });
     }
-
-    // ==== Download / Print prescription view ====
-    function buildPrintableHTML(finalObj) {
-      const html = `
-        <html>
-        <head>
-          <meta charset="utf-8"/>
-          <title>Prescription - ${sanitize(finalObj.patientName||"Patient")}</title>
-          <style>
-            body{font-family:Arial,Helvetica,sans-serif;padding:24px;color:#111}
-            .header{display:flex;justify-content:space-between;align-items:center}
-            .brand{color:${getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#c71585'};font-weight:700}
-            .box{margin-top:16px;border-top:1px solid #eee;padding-top:12px}
-            h2{margin:6px 0}
-            pre{white-space:pre-wrap;font-family:inherit}
-            .small{color:#666;font-size:13px}
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div>
-              <div class="brand">BE PEACE</div>
-              <div class="small">Digital Prescription</div>
-            </div>
-            <div style="text-align:right">
-              <div class="small">Date: ${new Date().toLocaleDateString()}</div>
-              <div class="small">Order: ${sanitize(finalObj.orderId||"")}</div>
-            </div>
-          </div>
-
-          <div class="box">
-            <h2>Patient: ${sanitize(finalObj.patientName||"")}</h2>
-            <div class="small">Doctor: ${sanitize(finalObj.doctorName||"")}</div>
-            <hr/>
-            <h3>Diagnosis</h3>
-            <pre>${sanitize(finalObj.diagnosis||"")}</pre>
-            <h3>Medicines</h3>
-            <pre>${sanitize(finalObj.medicines||"")}</pre>
-            <h3>Advice</h3>
-            <pre>${sanitize(finalObj.advice||"")}</pre>
-            <hr/>
-            <div class="small">Digitally saved by BE PEACE</div>
-          </div>
-        </body>
-        </html>
-      `;
-      return html;
-    }
-
-    downloadBtn.addEventListener("click", async () => {
-      // try to build a final object from current live fields (do not require saved)
-      const finalObj = {
-        orderId,
-        patientName: params.get("patientName") || "Patient",
-        doctorName: params.get("doctorName") || (role === "doctor" ? displayName : "Doctor"),
-        diagnosis: diagnosisEl.value,
-        medicines: medicinesEl.value,
-        advice: adviceEl.value
-      };
-      const html = buildPrintableHTML(finalObj);
-      const w = window.open("", "_blank");
-      w.document.open();
-      w.document.write(html);
-      w.document.close();
-      // give new window a second to render then call print
-      setTimeout(()=> {
-        try { w.print(); } catch(e){ console.warn(e); }
-      }, 600);
-    });
-
-    // ==== Utility sanitize to avoid injection in innerHTML usage ====
-    function sanitize(str){
-      if (str === null || str === undefined) return "";
-      return String(str)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;");
-    }
-
-    // ==== Helper to remove presence when window unloads (best-effort) ====
-    window.addEventListener("beforeunload", () => {
-      // remove own presence key
-      const key = (role === "doctor") ? "doctor" : "patient";
-      remove(dbRef(database, `${PRESENCE_PATH}/${key}`)).catch(()=>{});
-    });
-
-    // ==== When authenticated user info available (optional) ====
-    // If your firebase-init provides auth and user is logged in, use that name
-    try {
-      auth.onAuthStateChanged((u) => {
-        if (u && u.email) {
-          // use email prefix as display name if not provided
-          if (!params.get("name")) {
-            // set label if not given
-            // we don't overwrite existing UI fields, but we can choose to update presence to include this name
-          }
-        }
-      });
-    } catch(e){ /* ignore if auth not available */ }
-
-    // Finally: set presence now (again) with robust set
-    setPresence();
-
-    // small helper to show a connected message when jitsi is ready (optional)
-    if (api) {
-      api.addEventListener('videoConferenceJoined', (ev) => {
-  console.log('Jitsi joined', ev);
-  // Automatically enter fullscreen mode
-  document.body.classList.add("fullscreen-active");
-  const fullscreenBtn = document.getElementById("fullscreenBtn");
-  if (fullscreenBtn) fullscreenBtn.textContent = "Exit Fullscreen";
-});
-    }
-   // --- Collapsible video for mobile ---
-const toggleVideoBtn = document.getElementById("toggleVideoBtn");
-const meetDiv = document.getElementById("meet");
-
-if (toggleVideoBtn) {
-  let hidden = false;
-  toggleVideoBtn.addEventListener("click", () => {
-    hidden = !hidden;
-    meetDiv.style.display = hidden ? "none" : "block";
-    toggleVideoBtn.textContent = hidden ? "Show Video" : "Hide Video";
-  });
-}
-
-// --- Fullscreen toggle logic ---
-const fullscreenBtn = document.getElementById("fullscreenBtn");
-
-if (fullscreenBtn) {
-  let fullscreen = false;
-  fullscreenBtn.addEventListener("click", () => {
-    fullscreen = !fullscreen;
-    document.body.classList.toggle("fullscreen-active", fullscreen);
-    fullscreenBtn.textContent = fullscreen ? "Exit Fullscreen" : "Expand Video";
-  });
-}
   </script>
 </body>
 </html>
