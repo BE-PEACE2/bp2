@@ -210,6 +210,14 @@ main {
     };
 
     try {
+      // ✅ Completely disable Jitsi prejoin screen
+options.configOverwrite = {
+  ...options.configOverwrite,
+  prejoinConfig: {
+    enabled: false
+  }
+};
+
       const api = new JitsiMeetExternalAPI(domain, options);
       api.addEventListener("videoConferenceJoined", () => {
         console.log(`✅ Joined as ${displayName}`);
