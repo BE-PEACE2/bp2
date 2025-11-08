@@ -97,7 +97,7 @@ main {
 
   <!-- Consultation Page Script -->
   <script type="module">
-  import { auth, db } from "/js/firebase-init.js";
+  import { auth, database } from "/js/firebase-init.js";
   import { ref, get, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
   // ---- Read URL params ----
@@ -121,7 +121,7 @@ main {
   auth.onAuthStateChanged(async (user) => {
     if (user) {
       try {
-        const userRef = ref(db, "users/" + user.uid);
+        const userRef = ref(database, "users/" + user.uid);
         const snapshot = await get(userRef);
 
         if (snapshot.exists()) {
