@@ -97,17 +97,16 @@ main {
 
   <!-- Consultation Page Script -->
   <script type="module">
-     import { auth } from "/js/firebase-init.js";
+  import { auth, db } from "/js/firebase-init.js";
+  import { ref, get, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-    // ---- Read URL params (doctor or patient name + room)
-    const params = new URLSearchParams(window.location.search);
-    const roomName = params.get("room") || `Room_${Date.now()}`;
-
-    // Determine role and display name (auto-capitalized)
-  const role = (params.get("role") || "patient").toLowerCase(); // doctor or patient
+  // ---- Read URL params ----
+  const params = new URLSearchParams(window.location.search);
+  const roomName = params.get("room") || `Room_${Date.now()}`;
+  const role = (params.get("role") || "patient").toLowerCase();
   let displayName = "Guest";
 
-  // Helper: capitalize each word
+  // Capitalize helper
   function toTitleCase(str) {
     return str
       ? str
@@ -117,43 +116,60 @@ main {
           .join(" ")
       : "";
   }
-   
-  // 🩺 Try to get logged-in doctor info from localStorage or Firebase
-  let loggedInDoctor = null;
-  if (localStorage.getItem("doctorData")) {
-    try {
-      loggedInDoctor = JSON.parse(localStorage.getItem("doctorData"));
-    } catch (e) {
-      console.warn("Invalid doctor data in localStorage");
+
+  // 🩺 Load user info (doctor/patient) from Firebase Auth + DB
+  auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      try {
+        const userRef = ref(db, "users/" + user.uid);
+        const snapshot = await get(userRef);
+
+        if (snapshot.exists()) {
+          const userData = snapshot.val();
+
+          if (userData.role === "doctor") {
+            let formatted = "";
+
+            // Use stored name if already available
+            if (userData.name && userData.name.trim() !== "") {
+              formatted = toTitleCase(userData.name.trim());
+            } else {
+              // Extract name from email if not stored yet
+              let baseName = userData.email.split("@")[0];
+              baseName = baseName
+                .replace(/^dr/i, "")      // remove "dr" prefix
+                .replace(/[0-9]/g, "")    // remove digits
+                .replace(/\./g, " ");     // replace dots with spaces
+              formatted = toTitleCase(baseName.trim());
+
+              // Save cleaned name in Firebase for next time
+              await update(userRef, { name: formatted });
+            }
+
+            displayName = `Dr ${formatted}`;
+          } else {
+            // 👩‍🍼 For patient
+            const patientRaw = params.get("patientName") || user.displayName || "Guest Patient";
+            displayName = `Patient: ${toTitleCase(patientRaw.trim())}`;
+          }
+        } else {
+          console.warn("No user data found in Realtime DB");
+          displayName = "Dr Anonymous";
+        }
+      } catch (e) {
+        console.error("Error fetching user:", e);
+        displayName = "Dr Anonymous";
+      }
+    } else {
+      console.warn("No logged-in user detected");
+      displayName = "Guest";
     }
-  }
 
-  // Firebase fallback
-  if (!loggedInDoctor && auth?.currentUser) {
-    loggedInDoctor = {
-      name: auth.currentUser.displayName || auth.currentUser.email.split("@")[0]
-    };
-  }
+    initJitsi(displayName);
+  });
 
-  // 🩵 Decide Display Name
-  if (role === "doctor") {
-    let doctorRaw =
-      params.get("doctorName") ||
-      (loggedInDoctor ? loggedInDoctor.name : "") ||
-      "(Anonymous)";
-
-    doctorRaw = toTitleCase(doctorRaw.trim());
-    if (!doctorRaw.toLowerCase().startsWith("dr")) {
-      doctorRaw = "Dr " + doctorRaw;
-    }
-    displayName = doctorRaw;
-  } else {
-    const patientRaw = params.get("patientName") || "Guest Patient";
-    displayName = toTitleCase(patientRaw.trim());
-  }
-  
-
-    // ==== Jitsi setup ====
+  // ==== Initialize Jitsi ====
+  function initJitsi(displayName) {
     const domain = "meet.bepeace.in";
     const options = {
       roomName,
@@ -172,25 +188,17 @@ main {
       }
     };
 
-    let api;
     try {
-      api = new JitsiMeetExternalAPI(domain, options);
+      const api = new JitsiMeetExternalAPI(domain, options);
+      api.addEventListener("videoConferenceJoined", () => {
+        console.log(`✅ Joined as ${displayName}`);
+      });
     } catch (err) {
       console.error("Jitsi API error:", err);
-      document.getElementById("meet").textContent = "Failed to load Jitsi. Check console.";
+      document.getElementById("meet").textContent =
+        "Failed to load Jitsi. Check console.";
     }
-
-    // Optional: log success when joined
-    if (api) {
-  api.addEventListener('videoConferenceJoined', () => {
-    console.log('✅ Jitsi joined successfully');
-    // Trigger calm awakening animation
-    document.body.classList.add('awaken');
-    setTimeout(() => {
-      document.body.classList.remove('awaken');
-    }, 4000); // remove class after animation finishes
-  });
-}
-  </script>
+  }
+</script>
 </body>
 </html>
