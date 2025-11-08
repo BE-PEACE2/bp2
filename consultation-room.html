@@ -97,6 +97,8 @@ main {
 
   <!-- Consultation Page Script -->
   <script type="module">
+     import { auth } from "/js/firebase-init.js";
+
     // ---- Read URL params (doctor or patient name + room)
     const params = new URLSearchParams(window.location.search);
     const roomName = params.get("room") || `Room_${Date.now()}`;
@@ -115,20 +117,40 @@ main {
           .join(" ")
       : "";
   }
-   if (role === "doctor") {
-  let doctorRaw = params.get("doctorName") || "Doctor";
-  doctorRaw = toTitleCase(doctorRaw.trim());
-
-  // Add "Dr." prefix if not already present
-  if (!doctorRaw.toLowerCase().startsWith("dr")) {
-    doctorRaw = "Dr " + doctorRaw;
+   
+  // 🩺 Try to get logged-in doctor info from localStorage or Firebase
+  let loggedInDoctor = null;
+  if (localStorage.getItem("doctorData")) {
+    try {
+      loggedInDoctor = JSON.parse(localStorage.getItem("doctorData"));
+    } catch (e) {
+      console.warn("Invalid doctor data in localStorage");
+    }
   }
 
-  displayName = doctorRaw;
-} else {
-  const patientRaw = params.get("patientName") || "Patient";
-  displayName = toTitleCase(patientRaw.trim());
-}
+  // Firebase fallback
+  if (!loggedInDoctor && auth?.currentUser) {
+    loggedInDoctor = {
+      name: auth.currentUser.displayName || auth.currentUser.email.split("@")[0]
+    };
+  }
+
+  // 🩵 Decide Display Name
+  if (role === "doctor") {
+    let doctorRaw =
+      params.get("doctorName") ||
+      (loggedInDoctor ? loggedInDoctor.name : "") ||
+      "(Anonymous)";
+
+    doctorRaw = toTitleCase(doctorRaw.trim());
+    if (!doctorRaw.toLowerCase().startsWith("dr")) {
+      doctorRaw = "Dr " + doctorRaw;
+    }
+    displayName = doctorRaw;
+  } else {
+    const patientRaw = params.get("patientName") || "Guest Patient";
+    displayName = toTitleCase(patientRaw.trim());
+  }
   
 
     // ==== Jitsi setup ====
