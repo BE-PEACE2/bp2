@@ -192,7 +192,13 @@ main {
       userInfo: { displayName },
       width: "100%",
       height: "100%",
-      configOverwrite: { prejoinPageEnabled: false },
+      configOverwrite: {
+  prejoinPageEnabled: false,
+  startWithAudioMuted: false,
+  startWithVideoMuted: false,
+  disableDeepLinking: true,
+  startAudioOnly: false
+},
       interfaceConfigOverwrite: {
         SHOW_JITSI_WATERMARK: false,
         SHOW_POWERED_BY: false,
