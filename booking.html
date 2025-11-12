@@ -229,9 +229,9 @@ async function updateFeeDisplay(countryCode) {
     return;
   }
 
-  amount = 25;
+  amount = 1;
   currency = "USD";
-  feeDisplay.textContent = "Consultation Fee: $25 USD (fetching conversion...)";
+  feeDisplay.textContent = "Consultation Fee: $1 USD (fetching conversion...)";
 
   try {
     // Step 1️⃣ — Get the local currency of the detected country
@@ -367,20 +367,22 @@ function validateForm() {
 });
 dateInput.addEventListener("change",()=>loadSlots(dateInput.value));
 
-// 💳 Payment (USD for foreign, INR for India)
-payBtn.addEventListener("click", async()=>{
-  if(!validateForm())return;
-  const name=document.getElementById("name").value.trim(),
-        email=document.getElementById("email").value.trim(),
-        phone=iti.getNumber(),
-        age=document.getElementById("age").value.trim(),
-        sex=document.getElementById("sex").value,
-        concern=document.getElementById("concern").value.trim(),
-        date=document.getElementById("date").value,
-        slot=document.getElementById("slot").value,
-        country = $("#country").find("option:selected").text().trim(),
-        flagCode = $("#country").val().toLowerCase();
+// 💳 Payment (auto-detect: INR → Cashfree, USD → PayPal)
+payBtn.addEventListener("click", async () => {
+  if (!validateForm()) return;
 
+  const name = document.getElementById("name").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const phone = iti.getNumber();
+  const age = document.getElementById("age").value.trim();
+  const sex = document.getElementById("sex").value;
+  const concern = document.getElementById("concern").value.trim();
+  const date = document.getElementById("date").value;
+  const slot = document.getElementById("slot").value;
+  const country = $("#country").find("option:selected").text().trim();
+  const flagCode = $("#country").val().toLowerCase();
+
+  // 🧠 Store in localStorage for dashboard use
   localStorage.setItem("name", name);
   localStorage.setItem("email", email);
   localStorage.setItem("phone", phone);
@@ -392,11 +394,11 @@ payBtn.addEventListener("click", async()=>{
   localStorage.setItem("country", country);
   localStorage.setItem("flag", `fi fi-${flagCode}`);
 
-  try{
-    const res=await fetch("/api/payment?path=create",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-       body: JSON.stringify({
+  try {
+    const res = await fetch("/api/payment?path=create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         name,
         email,
         phone,
@@ -411,14 +413,31 @@ payBtn.addEventListener("click", async()=>{
         flag: `fi fi-${flagCode}`
       })
     });
-    const data=await res.json();
-    if(!data.success){
-      console.error("Cashfree API error:", data);
+
+    const data = await res.json();
+    if (!data.success) {
+      console.error("Payment API error:", data);
       return alert("❌ Payment creation failed. Please try again.");
     }
-    const cashfree=new Cashfree({mode:"production"});
-    cashfree.checkout({paymentSessionId:data.payment_session_id,redirectTarget:"_self"});
-  }catch(err){
+
+    // 🌍 Case 1: PayPal users (redirect)
+    if (data.redirect) {
+      window.location.href = data.redirect;
+      return;
+    }
+
+    // 🇮🇳 Case 2: Cashfree (India)
+    if (data.payment_session_id) {
+      const cashfree = new Cashfree({ mode: "production" });
+      cashfree.checkout({
+        paymentSessionId: data.payment_session_id,
+        redirectTarget: "_self"
+      });
+      return;
+    }
+
+    alert("Unexpected payment response. Please retry.");
+  } catch (err) {
     console.error("⚠️ Payment error:", err);
     alert("⚠️ Server error while starting payment. Please retry.");
   }
