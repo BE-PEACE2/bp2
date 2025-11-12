@@ -351,16 +351,25 @@ export default async function handler(req, res) {
 
         // Build PayPal classic checkout URL (works with PayPal Account Optional)
         const params = new URLSearchParams({
-          cmd: "_xclick",
-          business: paypalBusiness,
-          item_name: "BePeace Consultation",
-          amount: String(paypalAmount),
-          currency_code: currency || "USD",
-          return: returnUrl + `?order_id=${orderId}`,
-          notify_url: notifyUrl,
-          no_note: "1",
-          bn: "BePeace_Payment",
-        });
+  cmd: "_xclick",
+  business: paypalBusiness,
+  item_name: "BePeace Consultation",
+  amount: String(paypalAmount),
+  currency_code: currency || "USD",
+  return: returnUrl + `?order_id=${orderId}`,
+  notify_url: notifyUrl,
+
+  // ✅ Force card checkout only (guest mode)
+  no_shipping: "1",               // hide address fields
+  lc: "US",                       // use English locale for cards
+  landing_page: "Billing",        // show credit/debit card page directly
+  useraction: "commit",           // show “Pay Now” directly
+  allow_guest_checkout: "1",      // allow without login
+  checkout_guest_enabled: "1",    // ensure guest checkout enabled
+
+  no_note: "1",
+  bn: "BePeace_Payment",
+});
 
         const paypalURL = `https://www.paypal.com/cgi-bin/webscr?${params.toString()}`;
 
