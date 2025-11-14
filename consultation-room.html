@@ -80,6 +80,14 @@ main {
   display: none;
 }
 
+/* Small inline message when meeting ends */
+#meet .ended-msg {
+  color: #fff;
+  padding: 20px;
+  text-align: center;
+  font-size: 1.05rem;
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
   #meet {
@@ -185,7 +193,7 @@ main {
     initJitsi(displayName);
 
     // After Jitsi init, attach meeting-sync logic
-    attachMeetingSync();
+    attachMeetingSync(); // function is async but we don't need to await here
   });
 
   // ==== Initialize Jitsi ====
@@ -238,8 +246,6 @@ main {
         console.log(`✅ Joined ${roomName} as ${displayName} (${role})`);
       });
 
-      // If patient has no hangup button, still allow browser/tab close to leave
-      // (no special handling required — leave is by closing or navigating away)
     } catch (err) {
       console.error("Jitsi API error:", err);
       document.getElementById("meet").textContent =
@@ -249,61 +255,84 @@ main {
 
   // ===========================
   // MEETING SYNC: doctor-only end + patient auto-redirect
+  // Robust for reused room names
   // ===========================
-  function attachMeetingSync() {
+  async function attachMeetingSync() {
     const meetingRef = ref(database, "meetings/" + roomName);
 
-    // When doctor joins, create ongoing meeting and show End button
+    // If doctor joins, reset previous session and mark ongoing
     if (role === "doctor") {
-      // Show end button to doctor
-      const btn = document.getElementById("endMeetingBtn");
-      if (btn) btn.style.display = "block";
+      try {
+        const btn = document.getElementById("endMeetingBtn");
+        if (btn) btn.style.display = "block";
 
-      // Create meeting record
-      set(meetingRef, { status: "ongoing", startedAt: new Date().toISOString() }).catch(e => {
-        console.error("Failed to set meeting ongoing:", e);
-      });
+        // 1) Reset any stale previous session fully
+        await set(meetingRef, {
+          status: "preparing",      // indicates doctor is preparing / resetting
+          startedAt: new Date().toISOString(),
+          endedAt: null
+        });
 
-      // End meeting when doctor clicks the button
-      document.getElementById("endMeetingBtn").addEventListener("click", () => {
-        update(meetingRef, { status: "ended", endedAt: new Date().toISOString() })
-          .then(() => {
-            // Redirect doctor to doctor dashboard after updating status
-            window.location.href = "/doctor-dashboard.html";
-          })
-          .catch((e) => {
-            console.error("Failed to end meeting:", e);
-            // still redirect to dashboard for safety
-            window.location.href = "/doctor-dashboard.html";
+        // 2) Start the session (fresh)
+        await update(meetingRef, {
+          status: "ongoing",
+          startedAt: new Date().toISOString(),
+          endedAt: null
+        });
+
+      } catch (e) {
+        console.error("Failed to prepare/start meeting:", e);
+      }
+
+      // Attach end button handler (doctor-only)
+      document.getElementById("endMeetingBtn").addEventListener("click", async () => {
+        try {
+          await update(meetingRef, {
+            status: "ended",
+            endedAt: new Date().toISOString()
           });
+        } catch (e) {
+          console.error("Failed to update ended status:", e);
+        } finally {
+          // Redirect doctor regardless
+          window.location.href = "/doctor-dashboard.html";
+        }
       });
     }
 
-    // Patient listens for meeting end and auto-redirects
-    onValue(ref(database, "meetings/" + roomName + "/status"), (snap) => {
-      if (snap.exists()) {
-        const val = snap.val();
-        if (val === "ended" && role === "patient") {
-          // Optional: show a small message before redirecting (1s)
-          try {
-            // Try to show an inline message inside #meet then redirect
-            const meetEl = document.getElementById("meet");
-            if (meetEl) {
-              meetEl.innerHTML = "<div style='color:#fff;padding:20px;text-align:center;'>Meeting ended by doctor. Returning to dashboard…</div>";
-            }
-          } catch (e) { /* ignore */ }
+    // Patient listener: only redirect if they have seen the session go 'ongoing'
+    let sawOngoing = false;
 
-          // Redirect patient to their dashboard
-          setTimeout(() => {
-            window.location.href = "/dashboard.html";
-          }, 900);
-        }
+    onValue(meetingRef, (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.val();
+      const status = data && data.status;
+
+      // If status becomes ongoing — note it
+      if (status === "ongoing") {
+        sawOngoing = true;
+        return;
+      }
+
+      // If it's ended and patient saw ongoing earlier (this session), redirect
+      if (role === "patient" && status === "ended" && sawOngoing) {
+        try {
+          const meetEl = document.getElementById("meet");
+          if (meetEl) {
+            meetEl.innerHTML = "<div class='ended-msg'>Meeting ended by doctor. Returning to dashboard…</div>";
+          }
+        } catch (e) { /* ignore UI errors */ }
+
+        setTimeout(() => {
+          window.location.href = "/dashboard.html";
+        }, 900);
       }
     });
-  }
 
-  // Optional: cleanup meeting record after both leave (NOT required but useful)
-  // You can implement server-side cleanup or additional client logic if desired.
+    // Extra: keep patient from being redirected because of a leftover 'ended'
+    // If patient loads and the current status is 'ended' but they haven't seen 'ongoing',
+    // don't redirect (they will wait for doctor to start the session).
+  }
 
   // End of module
   </script>
