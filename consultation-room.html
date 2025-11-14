@@ -201,9 +201,24 @@ main {
 
       const api = new JitsiMeetExternalAPI(domain, options);
 
-      api.addEventListener("videoConferenceJoined", () => {
-        console.log(`✅ Joined ${roomName} as ${displayName} (${role})`);
-      });
+      api.addEventListener("videoConferenceJoined", async () => {
+  console.log(`Joined ${roomName} as ${displayName} (${role})`);
+
+  if (role === "doctor") {
+  await update(ref(database, "meetings/" + roomName), {
+    doctorJoined: true,
+    status: "ongoing",
+    startedAt: new Date().toISOString(),
+    endedAt: null,
+  });
+}
+
+if (role === "patient") {
+    await update(ref(database, "meetings/" + roomName), {
+      patientJoined: true
+    });
+  }
+});
 
       // IMPORTANT: handle hangup behavior centrally via readyToClose
       api.addEventListener("readyToClose", async () => {
@@ -243,37 +258,35 @@ main {
   async function attachMeetingSync() {
     const meetingRef = ref(database, "meetings/" + roomName);
 
-    // If doctor joins, reset previous session and mark ongoing
-    if (role === "doctor") {
-      try {
-        await update(meetingRef, {
-  status: "ongoing",
-  doctorJoined: true,
-  startedAt: new Date().toISOString(),
-  endedAt: null
-});
-      } catch (e) {
-        console.error("Failed to prepare/start meeting:", e);
-      }
-    }
+    // If patient joins early and meeting node does NOT exist yet → create it
+if (role === "patient") {
+  const meetingSnapshot = await get(meetingRef);
+  if (!meetingSnapshot.exists()) {
+    // Create waiting room entry
+    await set(meetingRef, {
+      status: "waiting",
+      doctorJoined: false,
+      startedAt: null,
+      endedAt: null
+    });
+  }
+}
 
-   // NEW LOGIC — works even if patient joins first
-let allowEndRedirect = false;
+   let allowEndRedirect = false;
 
 onValue(meetingRef, (snap) => {
   if (!snap.exists()) return;
-  const data = snap.val() || {};
+  const data = snap.val();
   const status = data.status;
-  const doctorJoined = data.doctorJoined || false;
+  const doctorJoined = !!data.doctorJoined;
 
-  // When doctor joins (even if patient joined earlier)
+  // If doctor is already joined OR doctor joins later → allow redirect
   if (doctorJoined) allowEndRedirect = true;
 
-  // Doctor ended meeting → patient must leave
+  // Case 1: doctor ended meeting after patient joined
   if (role === "patient" && status === "ended" && allowEndRedirect) {
     try {
-      const meetEl = document.getElementById("meet");
-      if (meetEl) meetEl.innerHTML =
+      document.getElementById("meet").innerHTML =
         "<div class='ended-msg'>Meeting ended by doctor. Returning to dashboard…</div>";
     } catch (e) {}
 
