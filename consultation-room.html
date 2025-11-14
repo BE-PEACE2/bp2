@@ -103,7 +103,9 @@ main {
   <script src="/js/load-partials.js"></script>
 
   <!-- Consultation Page Script -->
-  <script type="module">
+  
+<script type="module">
+let jitsiApi = null;
   // ---- Imports ----
   import { auth, database } from "/js/firebase-init.js";
   import { ref, get, set, update, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -170,6 +172,11 @@ main {
 
   // ==== Initialize Jitsi ====
   function initJitsi(displayName) {
+        // --- prevent duplicate initialization ---
+    if (jitsiApi) {
+      console.warn("Jitsi already initialized. Skipping...");
+      return;
+    }
     const domain = "meet.bepeace.in";
 
     // Toolbar: include hangup only for doctor (patient won't have hangup per Option C earlier)
@@ -199,7 +206,8 @@ main {
     try {
       options.configOverwrite = { ...options.configOverwrite, prejoinConfig: { enabled: false } };
 
-      const api = new JitsiMeetExternalAPI(domain, options);
+      jitsiApi = new JitsiMeetExternalAPI(domain, options);
+const api = jitsiApi;
 
       api.addEventListener("videoConferenceJoined", async () => {
   console.log(`Joined ${roomName} as ${displayName} (${role})`);
