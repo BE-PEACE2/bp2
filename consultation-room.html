@@ -106,6 +106,14 @@ main {
   
 <script type="module">
 let jitsiApi = null;
+
+// CLEAN UP on page unload
+window.onbeforeunload = () => {
+  if (jitsiApi) {
+    try { jitsiApi.dispose(); } catch(e){}
+    jitsiApi = null;
+  }
+};
   // ---- Imports ----
   import { auth, database } from "/js/firebase-init.js";
   import { ref, get, set, update, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -177,6 +185,9 @@ let jitsiApi = null;
       console.warn("Jitsi already initialized. Skipping...");
       return;
     }
+
+    document.querySelector("#meet").innerHTML = "";
+
     const domain = "meet.bepeace.in";
 
     // Toolbar: include hangup only for doctor (patient won't have hangup per Option C earlier)
@@ -258,55 +269,55 @@ if (role === "patient") {
       document.getElementById("meet").textContent = "Failed to load Jitsi. Check console.";
     }
   }
+// ===========================
+// MEETING SYNC: doctor-only end + patient auto-redirect
+// FIXED VERSION
+// ===========================
+async function attachMeetingSync() {
+  const meetingRef = ref(database, "meetings/" + roomName);
+  let allowEndRedirect = false;
+  let alreadyRedirected = false;
 
-  // ===========================
-  // MEETING SYNC: doctor-only end + patient auto-redirect
-  // Robust for reused room names
-  // ===========================
-  async function attachMeetingSync() {
-    const meetingRef = ref(database, "meetings/" + roomName);
-
-    // If patient joins early and meeting node does NOT exist yet → create it
-if (role === "patient") {
-  const meetingSnapshot = await get(meetingRef);
-  if (!meetingSnapshot.exists()) {
-    // Create waiting room entry
-    await set(meetingRef, {
-      status: "waiting",
-      doctorJoined: false,
-      startedAt: null,
-      endedAt: null
-    });
+  // If patient joins early and database entry doesn’t exist → create placeholder
+  if (role === "patient") {
+    const meetingSnap = await get(meetingRef);
+    if (!meetingSnap.exists()) {
+      await set(meetingRef, {
+        status: "waiting",
+        doctorJoined: false,
+        startedAt: null,
+        endedAt: null
+      });
+    }
   }
+
+  onValue(meetingRef, (snap) => {
+    if (!snap.exists() || alreadyRedirected) return;
+
+    const data = snap.val();
+    const status = data.status;
+    const doctorJoined = !!data.doctorJoined;
+
+    // FIX 1: Patient should exit even if doctorJoined event came late
+    if (doctorJoined || status === "ongoing") {
+      allowEndRedirect = true;
+    }
+
+    // FIX 2: Doctor ended meeting → patient must leave
+    if (role === "patient" && status === "ended" && allowEndRedirect) {
+      alreadyRedirected = true;
+
+      try {
+        document.getElementById("meet").innerHTML =
+          "<div class='ended-msg'>Meeting ended by doctor. Returning to dashboard…</div>";
+      } catch (e) {}
+
+      setTimeout(() => {
+        window.location.href = "/dashboard.html";
+      }, 900);
+    }
+  });
 }
-
-   let allowEndRedirect = false;
-
-onValue(meetingRef, (snap) => {
-  if (!snap.exists()) return;
-  const data = snap.val();
-  const status = data.status;
-  const doctorJoined = !!data.doctorJoined;
-
-  // If doctor is already joined OR doctor joins later → allow redirect
-  if (doctorJoined) allowEndRedirect = true;
-
-  // Case 1: doctor ended meeting after patient joined
-  if (role === "patient" && status === "ended" && allowEndRedirect) {
-    try {
-      document.getElementById("meet").innerHTML =
-        "<div class='ended-msg'>Meeting ended by doctor. Returning to dashboard…</div>";
-    } catch (e) {}
-
-    setTimeout(() => window.location.href = "/dashboard.html", 900);
-  }
-});
-
-    // Note: if patient loads and current status is 'ended' but they haven't seen 'ongoing' yet,
-    // we do NOT redirect — patient will wait until doctor starts the session and sets 'ongoing'.
-  }
-
-  // End of module
   </script>
 </body>
 </html>
