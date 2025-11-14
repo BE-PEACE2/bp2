@@ -155,44 +155,56 @@ function initJitsi(displayName){
   jitsiApi = new JitsiMeetExternalAPI(domain, options);
   const api = jitsiApi;
 
-  api.addEventListener("videoConferenceJoined", async ()=>{
+api.addEventListener("videoConferenceJoined", async ()=>{
 
+  if(role==="doctor"){
+    await update(ref(database,"meetings/"+roomName),{
+      doctorJoined:true,
+      status:"ongoing",
+      startedAt:new Date().toISOString(),
+      endedAt:null
+    });
+
+    allowEndRedirect = true;
+  }
+
+  if(role==="patient"){
+    await update(ref(database,"meetings/"+roomName),{ patientJoined:true });
+  }
+});
+
+api.addEventListener("participantLeft", (event) => {
+  console.log("participantLeft:", event);
+
+  // Doctor = moderator
+  const isDoctorLeaving =
+    event?.participant?.role === "moderator" ||
+    event?.participant?.id === "moderator";
+
+  if (role === "patient" && isDoctorLeaving) {
+    console.log("Doctor left — forcing patient exit");
+    window.location.replace("/dashboard.html");
+  }
+});
+
+/* ------------ MEETING ENDS (hangup button) ----------------------- */
+api.addEventListener("readyToClose", async ()=>{
+  try {
     if(role==="doctor"){
       await update(ref(database,"meetings/"+roomName),{
-        doctorJoined:true,
-        status:"ongoing",
-        startedAt:new Date().toISOString(),
-        endedAt:null
+        status:"ended",
+        endedAt:new Date().toISOString()
       });
-
-      allowEndRedirect = true;   // CRITICAL FIX
+      setTimeout(()=>window.location.replace("/doctor-dashboard.html"),150);
+    } 
+    else {
+      setTimeout(()=>window.location.replace("/dashboard.html"),150);
     }
-
-    if(role==="patient"){
-      await update(ref(database,"meetings/"+roomName),{ patientJoined:true });
-      // patient does NOT set allowEndRedirect here anymore
-    }
-  });
-
-  /* Doctor/patient exit callback */
-  api.addEventListener("readyToClose", async ()=>{
-    try {
-      if(role==="doctor"){
-        await update(ref(database,"meetings/"+roomName),{
-          status:"ended",
-          endedAt:new Date().toISOString()
-        });
-
-        setTimeout(()=>window.location.replace("/doctor-dashboard.html"),150);
-      } 
-      else {
-        setTimeout(()=>window.location.replace("/dashboard.html"),150);
-      }
-    } catch(e){
-      if(role==="doctor") window.location.replace("/doctor-dashboard.html");
-      else window.location.replace("/dashboard.html");
-    }
-  });
+  } catch(e){
+    if(role==="doctor") window.location.replace("/doctor-dashboard.html");
+    else window.location.replace("/dashboard.html");
+  }
+});
 }
 
 /* -------------------- SYNC: AUTO EXIT PATIENT -------------------- */
