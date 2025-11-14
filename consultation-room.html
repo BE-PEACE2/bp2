@@ -64,6 +64,22 @@ main {
   object-fit: cover;
 }
 
+/* End button style tweak */
+#endMeetingBtn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  background: #c71585;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  cursor: pointer;
+  z-index: 2000;
+  display: none;
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
   #meet {
@@ -86,6 +102,12 @@ main {
     </div>
   </main>
 
+  <!-- End Meeting button (doctor only — initially hidden) -->
+  <button id="endMeetingBtn">End Meeting</button>
+
+ 
+<div id="footer"></div>
+
   <!-- Dynamic Footer -->
   <div id="footer"></div>
 
@@ -105,6 +127,7 @@ main {
   const roomName = params.get("room") || `Room_${Date.now()}`;
   const role = (params.get("role") || "patient").toLowerCase();
   let displayName = "Guest";
+ 
 
   // Capitalize helper
   function toTitleCase(str) {
@@ -228,6 +251,37 @@ options.configOverwrite = {
         "Failed to load Jitsi. Check console.";
     }
   }
+
+  /* ===========================
+   DOCTOR-ONLY MEETING END LOGIC
+   =========================== */
+import { ref as dbRef, set, update, onValue } 
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// Meeting reference in Firebase
+const meetingRef = dbRef(database, "meetings/" + roomName);
+
+// Show button only for doctor + create meeting entry
+if (role === "doctor") {
+  document.getElementById("endMeetingBtn").style.display = "block";
+  set(meetingRef, { status: "ongoing" });
+}
+
+// Doctor ends meeting manually
+if (role === "doctor") {
+  document.getElementById("endMeetingBtn").onclick = () => {
+    update(meetingRef, { status: "ended" }).then(() => {
+      window.location.href = "/doctor-dashboard.html";
+    });
+  };
+}
+
+// Patient watches for meeting end → redirect
+onValue(dbRef(database, "meetings/" + roomName + "/status"), snap => {
+  if (snap.val() === "ended" && role === "patient") {
+    window.location.href = "/dashboard.html";
+  }
+});
 </script>
 </body>
 </html>
