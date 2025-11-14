@@ -129,10 +129,15 @@ function initJitsi(displayName){
     parentNode: document.querySelector("#meet"),
     userInfo:{ displayName },
     width:"100%", height:"100%",
-    configOverwrite:{
-      prejoinPageEnabled:false,
-      disableDeepLinking:true
-    },
+    configOverwrite: {
+      prejoinPageEnabled: false,
+      startWithAudioMuted: false,
+      startWithVideoMuted: false,
+      disableDeepLinking: true,
+      startAudioOnly: false,
+      enableClosePage: false,
+      prejoinConfig: { enabled: false }
+    }, 
     interfaceConfigOverwrite:{
       SHOW_JITSI_WATERMARK:false,
       SHOW_POWERED_BY:false,
