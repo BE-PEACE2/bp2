@@ -106,14 +106,9 @@ main {
   
 <script type="module">
 let jitsiApi = null;
+let allowEndRedirect = false;    // <-- moved here globally
+let alreadyRedirected = false;   // <-- moved here globally
 
-// CLEAN UP on page unload
-window.onbeforeunload = () => {
-  if (jitsiApi) {
-    try { jitsiApi.dispose(); } catch(e){}
-    jitsiApi = null;
-  }
-};
   // ---- Imports ----
   import { auth, database } from "/js/firebase-init.js";
   import { ref, get, set, update, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -236,6 +231,7 @@ if (role === "patient") {
     await update(ref(database, "meetings/" + roomName), {
       patientJoined: true
     });
+    allowEndRedirect = true;
   }
 });
 
@@ -275,8 +271,6 @@ if (role === "patient") {
 // ===========================
 async function attachMeetingSync() {
   const meetingRef = ref(database, "meetings/" + roomName);
-  let allowEndRedirect = false;
-  let alreadyRedirected = false;
 
   // If patient joins early and database entry doesn’t exist → create placeholder
   if (role === "patient") {
