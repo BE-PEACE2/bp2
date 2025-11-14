@@ -246,53 +246,40 @@ main {
     // If doctor joins, reset previous session and mark ongoing
     if (role === "doctor") {
       try {
-        // 1) Reset any stale previous session fully (fresh start)
-        await set(meetingRef, {
-          status: "preparing",
-          startedAt: new Date().toISOString(),
-          endedAt: null
-        });
-
-        // 2) Mark session ongoing (fresh)
         await update(meetingRef, {
-          status: "ongoing",
-          startedAt: new Date().toISOString(),
-          endedAt: null
-        });
-
+  status: "ongoing",
+  doctorJoined: true,
+  startedAt: new Date().toISOString(),
+  endedAt: null
+});
       } catch (e) {
         console.error("Failed to prepare/start meeting:", e);
       }
     }
 
-    // Patient listener: only redirect if they have seen the session go 'ongoing'
-    let sawOngoing = false;
+   // NEW LOGIC — works even if patient joins first
+let allowEndRedirect = false;
 
-    onValue(meetingRef, (snap) => {
-      if (!snap.exists()) return;
-      const data = snap.val() || {};
-      const status = data.status;
+onValue(meetingRef, (snap) => {
+  if (!snap.exists()) return;
+  const data = snap.val() || {};
+  const status = data.status;
+  const doctorJoined = data.doctorJoined || false;
 
-      // If status becomes ongoing — note it
-      if (status === "ongoing") {
-        sawOngoing = true;
-        return;
-      }
+  // When doctor joins (even if patient joined earlier)
+  if (doctorJoined) allowEndRedirect = true;
 
-      // If it's ended and patient saw ongoing earlier (this session), redirect
-      if (role === "patient" && status === "ended" && sawOngoing) {
-        try {
-          const meetEl = document.getElementById("meet");
-          if (meetEl) {
-            meetEl.innerHTML = "<div class='ended-msg'>Meeting ended by doctor. Returning to dashboard…</div>";
-          }
-        } catch (uiErr) { /* ignore UI errors */ }
+  // Doctor ended meeting → patient must leave
+  if (role === "patient" && status === "ended" && allowEndRedirect) {
+    try {
+      const meetEl = document.getElementById("meet");
+      if (meetEl) meetEl.innerHTML =
+        "<div class='ended-msg'>Meeting ended by doctor. Returning to dashboard…</div>";
+    } catch (e) {}
 
-        setTimeout(() => {
-          window.location.href = "/dashboard.html";
-        }, 900);
-      }
-    });
+    setTimeout(() => window.location.href = "/dashboard.html", 900);
+  }
+});
 
     // Note: if patient loads and current status is 'ended' but they haven't seen 'ongoing' yet,
     // we do NOT redirect — patient will wait until doctor starts the session and sets 'ongoing'.
