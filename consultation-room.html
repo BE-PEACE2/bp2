@@ -64,22 +64,6 @@ main {
   object-fit: cover;
 }
 
-/* End button style tweak */
-#endMeetingBtn {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  padding: 12px 20px;
-  background: #c71585;
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  font-size: 16px;
-  cursor: pointer;
-  z-index: 2000;
-  display: none;
-}
-
 /* Small inline message when meeting ends */
 #meet .ended-msg {
   color: #fff;
@@ -110,9 +94,6 @@ main {
     </div>
   </main>
 
-  <!-- End Meeting button (doctor only — initially hidden) -->
-  <button id="endMeetingBtn">End Meeting</button>
-
   <div id="footer"></div>
 
   <!-- Jitsi external API -->
@@ -123,58 +104,52 @@ main {
 
   <!-- Consultation Page Script -->
   <script type="module">
-  // Core imports
+  // ---- Imports ----
   import { auth, database } from "/js/firebase-init.js";
   import { ref, get, set, update, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-  // ---- Read URL params ONCE (do NOT redeclare inside auth handler) ----
+  // ---- Read URL params ONCE ----
   const params = new URLSearchParams(window.location.search);
-  const roomName = params.get("room") || `Room_${Date.now()}`;
+  const roomName = params.get("room"); // MUST be provided by caller (booking/order_id)
   const role = (params.get("role") || "patient").toLowerCase();
   const urlPatientName = params.get("patientName") || "";
   let displayName = "Guest";
 
-  // Capitalize helper
+  // If no room provided — redirect to dashboard (safety)
+  if (!roomName) {
+    // If doctor somehow lands here, send to doctor dashboard; else patient dashboard
+    if (role === "doctor") window.location.href = "/doctor-dashboard.html";
+    else window.location.href = "/dashboard.html";
+  }
+
+  // Helper
   function toTitleCase(str) {
     return str
-      ? str
-          .toLowerCase()
-          .split(" ")
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(" ")
+      ? str.toLowerCase().split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
       : "";
   }
 
-  // Fetch patient name from bookings if not in URL
+  // Get patient name if needed
   async function getPatientNameFromBooking(orderId) {
     try {
       const bookingRef = ref(database, "bookings/" + orderId);
       const snap = await get(bookingRef);
-      if (snap.exists() && snap.val().name) {
-        return toTitleCase(snap.val().name);
-      }
+      if (snap.exists() && snap.val().name) return toTitleCase(snap.val().name);
     } catch (e) {
       console.error("Error fetching booking info:", e);
     }
     return "Guest Patient";
   }
 
-  // Auth state — do not redeclare params/roomName/role here
+  // Auth state — only determine displayName here (do NOT redeclare room/role)
   auth.onAuthStateChanged(async (user) => {
-    // Determine displayName based on role and available info
     if (role === "doctor" && user) {
       try {
         const userRef = ref(database, "users/" + user.uid);
         const snapshot = await get(userRef);
         if (snapshot.exists()) {
           const userData = snapshot.val();
-          if (userData.name) {
-            displayName = "Dr " + toTitleCase(userData.name);
-          } else {
-            let baseName = (userData.email || "").split("@")[0];
-            baseName = baseName.replace(/^dr/i, "").replace(/[0-9]/g, "").replace(/\./g, " ");
-            displayName = "Dr " + toTitleCase(baseName.trim());
-          }
+          displayName = userData.name ? "Dr " + toTitleCase(userData.name) : "Dr " + toTitleCase((userData.email||"").split("@")[0]);
         } else {
           displayName = "Dr Anonymous";
         }
@@ -183,33 +158,23 @@ main {
         displayName = "Dr Anonymous";
       }
     } else if (role === "patient") {
-      if (urlPatientName && urlPatientName.trim() !== "") {
-        displayName = toTitleCase(urlPatientName.trim());
-      } else {
-        displayName = await getPatientNameFromBooking(roomName);
-      }
+      if (urlPatientName && urlPatientName.trim() !== "") displayName = toTitleCase(urlPatientName.trim());
+      else displayName = await getPatientNameFromBooking(roomName);
     }
 
     initJitsi(displayName);
 
-    // After Jitsi init, attach meeting-sync logic
-    attachMeetingSync(); // function is async but we don't need to await here
+    // Attach meeting sync (async but we don't block Jitsi init)
+    attachMeetingSync();
   });
 
   // ==== Initialize Jitsi ====
   function initJitsi(displayName) {
     const domain = "meet.bepeace.in";
 
-    // Build toolbar buttons based on role (Option C: patient has no hangup button)
-    const defaultButtons = [
-      "microphone", "camera", "desktop", "fullscreen",
-      "chat", "raisehand", "tileview"
-    ];
-
-    // Add hangup only for doctor (patients will not see hangup button)
-    const toolbarButtons = role === "doctor"
-      ? [...defaultButtons, "hangup"]
-      : defaultButtons; // patient: no hangup
+    // Toolbar: include hangup only for doctor (patient won't have hangup per Option C earlier)
+    const defaultButtons = ["microphone","camera","desktop","fullscreen","chat","raisehand","tileview"];
+    const toolbarButtons = role === "doctor" ? [...defaultButtons, "hangup"] : defaultButtons;
 
     const options = {
       roomName,
@@ -232,24 +197,42 @@ main {
     };
 
     try {
-      // Ensure prejoin disabled
-      options.configOverwrite = {
-        ...options.configOverwrite,
-        prejoinConfig: { enabled: false }
-      };
+      options.configOverwrite = { ...options.configOverwrite, prejoinConfig: { enabled: false } };
 
-      // Create Jitsi API instance
       const api = new JitsiMeetExternalAPI(domain, options);
 
-      // Optional: small notification on join
       api.addEventListener("videoConferenceJoined", () => {
         console.log(`✅ Joined ${roomName} as ${displayName} (${role})`);
       });
 
+      // IMPORTANT: handle hangup behavior centrally via readyToClose
+      api.addEventListener("readyToClose", async () => {
+        try {
+          if (role === "doctor") {
+            // Doctor hangup: end meeting for everyone
+            await update(ref(database, "meetings/" + roomName), {
+              status: "ended",
+              endedAt: new Date().toISOString()
+            });
+            // redirect doctor
+            window.location.href = "/doctor-dashboard.html";
+            return;
+          } else {
+            // Patient hangup: patient leaves only
+            window.location.href = "/dashboard.html";
+            return;
+          }
+        } catch (err) {
+          console.error("Error in readyToClose handler:", err);
+          // Fallback redirects
+          if (role === "doctor") window.location.href = "/doctor-dashboard.html";
+          else window.location.href = "/dashboard.html";
+        }
+      });
+
     } catch (err) {
       console.error("Jitsi API error:", err);
-      document.getElementById("meet").textContent =
-        "Failed to load Jitsi. Check console.";
+      document.getElementById("meet").textContent = "Failed to load Jitsi. Check console.";
     }
   }
 
@@ -263,17 +246,14 @@ main {
     // If doctor joins, reset previous session and mark ongoing
     if (role === "doctor") {
       try {
-        const btn = document.getElementById("endMeetingBtn");
-        if (btn) btn.style.display = "block";
-
-        // 1) Reset any stale previous session fully
+        // 1) Reset any stale previous session fully (fresh start)
         await set(meetingRef, {
-          status: "preparing",      // indicates doctor is preparing / resetting
+          status: "preparing",
           startedAt: new Date().toISOString(),
           endedAt: null
         });
 
-        // 2) Start the session (fresh)
+        // 2) Mark session ongoing (fresh)
         await update(meetingRef, {
           status: "ongoing",
           startedAt: new Date().toISOString(),
@@ -283,21 +263,6 @@ main {
       } catch (e) {
         console.error("Failed to prepare/start meeting:", e);
       }
-
-      // Attach end button handler (doctor-only)
-      document.getElementById("endMeetingBtn").addEventListener("click", async () => {
-        try {
-          await update(meetingRef, {
-            status: "ended",
-            endedAt: new Date().toISOString()
-          });
-        } catch (e) {
-          console.error("Failed to update ended status:", e);
-        } finally {
-          // Redirect doctor regardless
-          window.location.href = "/doctor-dashboard.html";
-        }
-      });
     }
 
     // Patient listener: only redirect if they have seen the session go 'ongoing'
@@ -305,8 +270,8 @@ main {
 
     onValue(meetingRef, (snap) => {
       if (!snap.exists()) return;
-      const data = snap.val();
-      const status = data && data.status;
+      const data = snap.val() || {};
+      const status = data.status;
 
       // If status becomes ongoing — note it
       if (status === "ongoing") {
@@ -321,7 +286,7 @@ main {
           if (meetEl) {
             meetEl.innerHTML = "<div class='ended-msg'>Meeting ended by doctor. Returning to dashboard…</div>";
           }
-        } catch (e) { /* ignore UI errors */ }
+        } catch (uiErr) { /* ignore UI errors */ }
 
         setTimeout(() => {
           window.location.href = "/dashboard.html";
@@ -329,9 +294,8 @@ main {
       }
     });
 
-    // Extra: keep patient from being redirected because of a leftover 'ended'
-    // If patient loads and the current status is 'ended' but they haven't seen 'ongoing',
-    // don't redirect (they will wait for doctor to start the session).
+    // Note: if patient loads and current status is 'ended' but they haven't seen 'ongoing' yet,
+    // we do NOT redirect — patient will wait until doctor starts the session and sets 'ongoing'.
   }
 
   // End of module
