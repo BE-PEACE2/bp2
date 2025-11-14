@@ -105,10 +105,6 @@ main {
   <!-- End Meeting button (doctor only — initially hidden) -->
   <button id="endMeetingBtn">End Meeting</button>
 
- 
-<div id="footer"></div>
-
-  <!-- Dynamic Footer -->
   <div id="footer"></div>
 
   <!-- Jitsi external API -->
@@ -119,34 +115,18 @@ main {
 
   <!-- Consultation Page Script -->
   <script type="module">
+  // Core imports
   import { auth, database } from "/js/firebase-init.js";
-  import { ref, get, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { ref, get, set, update, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-  // ---- Read URL params ----
+  // ---- Read URL params ONCE (do NOT redeclare inside auth handler) ----
   const params = new URLSearchParams(window.location.search);
   const roomName = params.get("room") || `Room_${Date.now()}`;
   const role = (params.get("role") || "patient").toLowerCase();
+  const urlPatientName = params.get("patientName") || "";
   let displayName = "Guest";
- 
 
   // Capitalize helper
-  function toTitleCase(str) {
-    return str
-      ? str
-          .toLowerCase()
-          .split(" ")
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(" ")
-      : "";
-  }
-
-  auth.onAuthStateChanged(async (user) => {
-  const params = new URLSearchParams(window.location.search);
-  const roomName = params.get("room") || `Room_${Date.now()}`;
-  const role = (params.get("role") || "patient").toLowerCase();
-  const urlPatientName = params.get("patientName");
-  let displayName = "Guest";
-
   function toTitleCase(str) {
     return str
       ? str
@@ -171,44 +151,58 @@ main {
     return "Guest Patient";
   }
 
-  // Doctor side
-  if (role === "doctor" && user) {
-    try {
-      const userRef = ref(database, "users/" + user.uid);
-      const snapshot = await get(userRef);
-      if (snapshot.exists()) {
-        const userData = snapshot.val();
-        if (userData.name) {
-          displayName = "Dr " + toTitleCase(userData.name);
+  // Auth state — do not redeclare params/roomName/role here
+  auth.onAuthStateChanged(async (user) => {
+    // Determine displayName based on role and available info
+    if (role === "doctor" && user) {
+      try {
+        const userRef = ref(database, "users/" + user.uid);
+        const snapshot = await get(userRef);
+        if (snapshot.exists()) {
+          const userData = snapshot.val();
+          if (userData.name) {
+            displayName = "Dr " + toTitleCase(userData.name);
+          } else {
+            let baseName = (userData.email || "").split("@")[0];
+            baseName = baseName.replace(/^dr/i, "").replace(/[0-9]/g, "").replace(/\./g, " ");
+            displayName = "Dr " + toTitleCase(baseName.trim());
+          }
         } else {
-          let baseName = (userData.email || "").split("@")[0];
-          baseName = baseName.replace(/^dr/i, "").replace(/[0-9]/g, "").replace(/\./g, " ");
-          displayName = "Dr " + toTitleCase(baseName.trim());
+          displayName = "Dr Anonymous";
         }
-      } else {
+      } catch (e) {
+        console.error("Error fetching doctor:", e);
         displayName = "Dr Anonymous";
       }
-    } catch (e) {
-      console.error("Error fetching doctor:", e);
-      displayName = "Dr Anonymous";
+    } else if (role === "patient") {
+      if (urlPatientName && urlPatientName.trim() !== "") {
+        displayName = toTitleCase(urlPatientName.trim());
+      } else {
+        displayName = await getPatientNameFromBooking(roomName);
+      }
     }
-  }
 
-  // Patient side
-  else if (role === "patient") {
-    if (urlPatientName && urlPatientName.trim() !== "") {
-      displayName = toTitleCase(urlPatientName.trim());
-    } else {
-      displayName = await getPatientNameFromBooking(roomName);
-    }
-  }
+    initJitsi(displayName);
 
-  initJitsi(displayName);
-});
+    // After Jitsi init, attach meeting-sync logic
+    attachMeetingSync();
+  });
 
   // ==== Initialize Jitsi ====
   function initJitsi(displayName) {
     const domain = "meet.bepeace.in";
+
+    // Build toolbar buttons based on role (Option C: patient has no hangup button)
+    const defaultButtons = [
+      "microphone", "camera", "desktop", "fullscreen",
+      "chat", "raisehand", "tileview"
+    ];
+
+    // Add hangup only for doctor (patients will not see hangup button)
+    const toolbarButtons = role === "doctor"
+      ? [...defaultButtons, "hangup"]
+      : defaultButtons; // patient: no hangup
+
     const options = {
       roomName,
       parentNode: document.querySelector("#meet"),
@@ -216,35 +210,36 @@ main {
       width: "100%",
       height: "100%",
       configOverwrite: {
-  prejoinPageEnabled: false,
-  startWithAudioMuted: false,
-  startWithVideoMuted: false,
-  disableDeepLinking: true,
-  startAudioOnly: false
-},
+        prejoinPageEnabled: false,
+        startWithAudioMuted: false,
+        startWithVideoMuted: false,
+        disableDeepLinking: true,
+        startAudioOnly: false
+      },
       interfaceConfigOverwrite: {
         SHOW_JITSI_WATERMARK: false,
         SHOW_POWERED_BY: false,
-        TOOLBAR_BUTTONS: [
-          "microphone", "camera", "desktop", "fullscreen",
-          "chat", "raisehand", "tileview", "hangup"
-        ]
+        TOOLBAR_BUTTONS: toolbarButtons
       }
     };
 
     try {
-      // ✅ Completely disable Jitsi prejoin screen
-options.configOverwrite = {
-  ...options.configOverwrite,
-  prejoinConfig: {
-    enabled: false
-  }
-};
+      // Ensure prejoin disabled
+      options.configOverwrite = {
+        ...options.configOverwrite,
+        prejoinConfig: { enabled: false }
+      };
 
+      // Create Jitsi API instance
       const api = new JitsiMeetExternalAPI(domain, options);
+
+      // Optional: small notification on join
       api.addEventListener("videoConferenceJoined", () => {
-        console.log(`✅ Joined as ${displayName}`);
+        console.log(`✅ Joined ${roomName} as ${displayName} (${role})`);
       });
+
+      // If patient has no hangup button, still allow browser/tab close to leave
+      // (no special handling required — leave is by closing or navigating away)
     } catch (err) {
       console.error("Jitsi API error:", err);
       document.getElementById("meet").textContent =
@@ -252,36 +247,65 @@ options.configOverwrite = {
     }
   }
 
-  /* ===========================
-   DOCTOR-ONLY MEETING END LOGIC
-   =========================== */
-import { ref as dbRef, set, update, onValue } 
-  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  // ===========================
+  // MEETING SYNC: doctor-only end + patient auto-redirect
+  // ===========================
+  function attachMeetingSync() {
+    const meetingRef = ref(database, "meetings/" + roomName);
 
-// Meeting reference in Firebase
-const meetingRef = dbRef(database, "meetings/" + roomName);
+    // When doctor joins, create ongoing meeting and show End button
+    if (role === "doctor") {
+      // Show end button to doctor
+      const btn = document.getElementById("endMeetingBtn");
+      if (btn) btn.style.display = "block";
 
-// Show button only for doctor + create meeting entry
-if (role === "doctor") {
-  document.getElementById("endMeetingBtn").style.display = "block";
-  set(meetingRef, { status: "ongoing" });
-}
+      // Create meeting record
+      set(meetingRef, { status: "ongoing", startedAt: new Date().toISOString() }).catch(e => {
+        console.error("Failed to set meeting ongoing:", e);
+      });
 
-// Doctor ends meeting manually
-if (role === "doctor") {
-  document.getElementById("endMeetingBtn").onclick = () => {
-    update(meetingRef, { status: "ended" }).then(() => {
-      window.location.href = "/doctor-dashboard.html";
+      // End meeting when doctor clicks the button
+      document.getElementById("endMeetingBtn").addEventListener("click", () => {
+        update(meetingRef, { status: "ended", endedAt: new Date().toISOString() })
+          .then(() => {
+            // Redirect doctor to doctor dashboard after updating status
+            window.location.href = "/doctor-dashboard.html";
+          })
+          .catch((e) => {
+            console.error("Failed to end meeting:", e);
+            // still redirect to dashboard for safety
+            window.location.href = "/doctor-dashboard.html";
+          });
+      });
+    }
+
+    // Patient listens for meeting end and auto-redirects
+    onValue(ref(database, "meetings/" + roomName + "/status"), (snap) => {
+      if (snap.exists()) {
+        const val = snap.val();
+        if (val === "ended" && role === "patient") {
+          // Optional: show a small message before redirecting (1s)
+          try {
+            // Try to show an inline message inside #meet then redirect
+            const meetEl = document.getElementById("meet");
+            if (meetEl) {
+              meetEl.innerHTML = "<div style='color:#fff;padding:20px;text-align:center;'>Meeting ended by doctor. Returning to dashboard…</div>";
+            }
+          } catch (e) { /* ignore */ }
+
+          // Redirect patient to their dashboard
+          setTimeout(() => {
+            window.location.href = "/dashboard.html";
+          }, 900);
+        }
+      }
     });
-  };
-}
-
-// Patient watches for meeting end → redirect
-onValue(dbRef(database, "meetings/" + roomName + "/status"), snap => {
-  if (snap.val() === "ended" && role === "patient") {
-    window.location.href = "/dashboard.html";
   }
-});
-</script>
+
+  // Optional: cleanup meeting record after both leave (NOT required but useful)
+  // You can implement server-side cleanup or additional client logic if desired.
+
+  // End of module
+  </script>
 </body>
 </html>
