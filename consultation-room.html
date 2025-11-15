@@ -182,32 +182,42 @@ function initJitsi(displayName){
   /* ---------------------------
       JOINED EVENT
   ---------------------------- */
-  api.addEventListener("videoConferenceJoined", async () => {
-    console.log("🟢 JITSI — videoConferenceJoined (role:", role, ")");
+api.addEventListener("videoConferenceJoined", async () => {
+  console.log("🟢 JITSI — videoConferenceJoined (role:", role, ")");
 
-    try{
-      if (role === "doctor") {
-        console.log("🩺 Doctor joined → mark meeting ongoing");
-        await set(ref(database, "meetings/" + roomName), {
-          status: "ongoing",
-          doctorJoined: true,
-          patientJoined: false,
-          startedAt: new Date().toISOString(),
-          endedAt: null
-        });
-      }
+  try {
+    const meetRef = ref(database, "meetings/" + roomName);
+    const snap = await get(meetRef);
+    const current = snap.exists() ? snap.val() : {};
 
-      if (role === "patient") {
-        console.log("👶 Patient joined → mark patientJoined");
-        await update(ref(database, "meetings/" + roomName), {
+    if (role === "doctor") {
+      console.log("🩺 Doctor joined → mark meeting ongoing");
+
+      await set(meetRef, {
+        status: "ongoing",
+        doctorJoined: true,
+        patientJoined: current.patientJoined || false,
+        startedAt: new Date().toISOString(),
+        endedAt: null
+      });
+    }
+
+    if (role === "patient") {
+      console.log("👶 Patient joined → mark patientJoined");
+
+      if (!current.patientJoined) {       // <-- IMPORTANT FIX
+        await update(meetRef, {
           patientJoined: true
         });
+        console.log("✅ patientJoined updated");
+      } else {
+        console.log("⚠️ patientJoined already true → NO update");
       }
-    }catch(e){
-      console.error("🔥 Firebase update error after join:", e);
     }
-  });
-
+  } catch (e) {
+    console.error("🔥 Firebase update error:", e);
+  }
+});
 
   /* ---------------------------
       LEAVE EVENT
