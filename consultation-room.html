@@ -68,6 +68,7 @@ console.log("🔵 consultation-room loaded");
 let jitsiApi = null;
 let alreadyRedirected = false;
 let safeOnDisconnectRef = null; // hold onDisconnect handler reference
+let meetingSyncListenerAttached = false; // prevent duplicate listeners
 
 /* ---------------------------------------------------
     PREVENT DUPLICATE WINDOWS/TABS
@@ -167,9 +168,13 @@ function showDuplicateMessage(role) {
   }, 5000);
 }
 
-window.onbeforeunload = async () => {
-  console.log("🧹 Cleaning Jitsi instance (beforeunload)…");
-  // If doctor and jitsiApi exists, try to mark meeting ended quickly (best-effort)
+// ✅ Prevent browser "leave page" confirmation dialogs
+window.onbeforeunload = null;
+
+// ✅ Clean up on page unload (no confirmation dialog)
+window.addEventListener('beforeunload', (e) => {
+  // Don't show confirmation dialog - just clean up silently
+  console.log("🧹 Cleaning up on page unload…");
   try {
     if (jitsiApi) {
       try { jitsiApi.dispose(); } catch(e){}
@@ -181,14 +186,14 @@ window.onbeforeunload = async () => {
   
   // ✅ Clean up duplicate detection
   try {
-    sessionStorage.removeItem(sessionKey);
+    if (sessionKey) sessionStorage.removeItem(sessionKey);
     if (window.consultationChannel) {
       window.consultationChannel.close();
     }
   } catch(e) {
     console.warn("⚠️ Error cleaning up duplicate detection:", e);
   }
-};
+}, {passive: true});
 
 /* ---------------------------------------------------
     FIREBASE INIT
@@ -240,6 +245,13 @@ async function getPatientName(orderId){
 /* ---------------------------------------------------
     AUTH LISTENER
 --------------------------------------------------- */
+// ✅ Set up meeting sync listener FIRST (before Jitsi init) for patient
+// This ensures patient gets notified of status changes even if they join first
+if (role === "patient" && roomName) {
+  console.log("🔵 Setting up patient meeting sync listener early...");
+  attachMeetingSync();
+}
+
 auth.onAuthStateChanged(async (user)=>{
   console.log("🟢 Firebase auth state:", user?.uid);
 
@@ -258,7 +270,9 @@ auth.onAuthStateChanged(async (user)=>{
   console.log("🟢 Final displayName:", displayName);
 
   initJitsi(displayName);
-  attachMeetingSync();
+  
+  // ✅ Patient listener already set up early above (before auth)
+  // Doctor doesn't need the pause listener
 });
 
 /* ---------------------------------------------------
@@ -597,10 +611,24 @@ function initJitsi(displayName){
     PATIENT AUTO EXIT ON END
 --------------------------------------------------- */
 function attachMeetingSync(){
-  console.log("🔵 attachMeetingSync");
+  // ✅ Prevent duplicate listeners
+  if (meetingSyncListenerAttached) {
+    console.log("⚠️ Meeting sync listener already attached, skipping duplicate");
+    return;
+  }
 
+  console.log("🔵 attachMeetingSync - Setting up Firebase listener for patient");
+
+  if (!roomName) {
+    console.warn("⚠️ No roomName, cannot attach meeting sync");
+    return;
+  }
+
+  meetingSyncListenerAttached = true; // Mark as attached
   const meetingRef = ref(database,"meetings/"+roomName);
 
+  // ✅ Set up listener immediately - works even if meeting document doesn't exist yet
+  // This ensures patient gets notified when doctor pauses, regardless of join order
   onValue(meetingRef, (snap)=>{
     if(!snap.exists()) {
       console.log("⚪ meetingRef empty - waiting for meeting to be created");
@@ -608,19 +636,21 @@ function attachMeetingSync(){
     }
 
     const data = snap.val();
-    console.log("📡 Firebase meeting update:", data);
+    console.log("📡 Firebase meeting update:", data, "Current status:", data.status);
 
     // ✅ If meeting paused remotely (doctor clicked hangup), patient should be redirected to patient dashboard
     // But they can rejoin if Join button is still active (time window allows)
     // Works regardless of who joined first - patient listener detects status change
     if (role === "patient" && data.status === "paused" && !alreadyRedirected) {
+      console.log("🔴 PATIENT REDIRECT TRIGGERED - Status is paused, alreadyRedirected:", alreadyRedirected);
       alreadyRedirected = true;
 
       console.log("🔴 Patient detected meeting paused by doctor — disposing Jitsi and redirecting to patient dashboard (can rejoin if Join button active)…");
 
-      // 🔥 Dispose Jitsi iframe so patient leaves immediately
+      // 🔥 Dispose Jitsi iframe silently (no user interaction needed)
       try { 
         if (jitsiApi) { 
+          console.log("🔴 Disposing Jitsi API...");
           jitsiApi.dispose(); 
           jitsiApi = null;
         }
@@ -628,22 +658,24 @@ function attachMeetingSync(){
         console.error("🔥 Error disposing Jitsi:", e);
       }
 
-      // Show message to user
-      const meetEl = document.getElementById("meet");
-      if (meetEl) {
-        meetEl.innerHTML = "<div class='ended-msg'>Meeting paused by doctor. Returning to your dashboard…<br><small>You can rejoin if the Join button is still active.</small></div>";
+      // ✅ Redirect immediately without any notification or delay
+      // Use location.replace() to prevent back button navigation
+      console.log("🔴 Redirecting patient to dashboard immediately...");
+      try {
+        // Direct redirect - no setTimeout, no message, no confirmation
+        window.location.replace("/dashboard.html");
+      } catch(e) {
+        console.error("🔥 Redirect failed, trying href:", e);
+        window.location.href = "/dashboard.html";
       }
-
-      // ✅ Redirect patient to patient dashboard
-      setTimeout(() => {
-        try {
-          window.location.replace("/dashboard.html");
-        } catch(e) {
-          console.error("🔥 Redirect failed, trying href:", e);
-          window.location.href = "/dashboard.html";
-        }
-      }, 800);
+    } else if (role === "patient") {
+      // Debug logging for patient
+      if (data.status !== "paused") {
+        console.log("ℹ️ Patient listener active - Meeting status:", data.status, "alreadyRedirected:", alreadyRedirected);
+      }
     }
+  }, (error) => {
+    console.error("🔥 Firebase listener error:", error);
   });
 }
 </script>
