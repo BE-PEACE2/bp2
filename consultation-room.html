@@ -250,6 +250,16 @@ async function getPatientName(orderId){
 if (role === "patient" && roomName) {
   console.log("🔵 Setting up patient meeting sync listener early...");
   attachMeetingSync();
+
+  // 🚑 FIX: Prevent auto-redirect when patient rejoins while meeting is paused
+  const meetRefEarly = ref(database, "meetings/" + roomName);
+  get(meetRefEarly).then(snap => {
+    const data = snap.val();
+    if (data && data.status === "paused") {
+      update(meetRefEarly, { status: "waiting" });
+      console.log("🛠️ FIX APPLIED — changed paused → waiting before Jitsi loads");
+    }
+  });
 }
 
 auth.onAuthStateChanged(async (user)=>{
