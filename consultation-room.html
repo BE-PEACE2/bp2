@@ -60,18 +60,25 @@ main { width:100%; height:calc(100vh - 120px); display:flex; justify-content:cen
 <script src="/js/load-partials.js"></script>
 
 <script type="module">
+/* ---------------------------------------------------
+    GLOBALS + CLEANUP
+--------------------------------------------------- */
+console.log("🔵 consultation-room loaded");
+
 let jitsiApi = null;
 let alreadyRedirected = false;
 
-// Cleanup on unload
 window.onbeforeunload = () => {
+  console.log("🧹 Cleaning Jitsi instance…");
   if (jitsiApi) {
     try { jitsiApi.dispose(); } catch(e){}
     jitsiApi = null;
   }
 };
 
-// Firebase
+/* ---------------------------------------------------
+    FIREBASE INIT
+--------------------------------------------------- */
 import { auth, database } from "/js/firebase-init.js";
 import { ref, get, set, update, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
@@ -81,14 +88,17 @@ const role = (params.get("role") || "patient").toLowerCase();
 const urlPatientName = params.get("patientName") || "";
 let displayName = "Guest";
 
+console.log("🟣 Room:", roomName);
+console.log("🟣 Role:", role);
+
 if (!roomName) {
-  if (role === "doctor") {
-    window.location.replace("/doctor-dashboard.html");
-  } else {
-    window.location.replace("/dashboard.html");
-  }
+  console.log("❌ No room, redirecting…");
+  window.location.replace(role === "doctor" ? "/doctor-dashboard.html" : "/dashboard.html");
 }
 
+/* ---------------------------------------------------
+    HELPERS
+--------------------------------------------------- */
 function toTitleCase(str){
   return str ? str.toLowerCase().split(" ").map(w=>w[0].toUpperCase()+w.slice(1)).join(" ") : "";
 }
@@ -97,10 +107,17 @@ async function getPatientName(orderId){
   try{
     const snap = await get(ref(database,"bookings/"+orderId));
     return snap.exists() ? toTitleCase(snap.val().name) : "Guest Patient";
-  } catch(e){ return "Guest Patient"; }
+  } catch(e){
+    return "Guest Patient";
+  }
 }
 
+/* ---------------------------------------------------
+    AUTH LISTENER
+--------------------------------------------------- */
 auth.onAuthStateChanged(async (user)=>{
+  console.log("🟢 Firebase auth state:", user?.uid);
+
   if(role === "doctor" && user){
     try{
       const usr = (await get(ref(database,"users/"+user.uid))).val();
@@ -108,20 +125,31 @@ auth.onAuthStateChanged(async (user)=>{
     }catch(e){ displayName="Dr Anonymous"; }
   } 
   else if(role === "patient"){
-    displayName = urlPatientName.trim() ? toTitleCase(urlPatientName) : await getPatientName(roomName);
+    displayName = urlPatientName.trim()
+      ? toTitleCase(urlPatientName)
+      : await getPatientName(roomName);
   }
+
+  console.log("🟢 Final displayName:", displayName);
 
   initJitsi(displayName);
   attachMeetingSync();
 });
 
-/* -------------------- INIT JITSI -------------------- */
+/* ---------------------------------------------------
+    INIT JITSI
+--------------------------------------------------- */
 function initJitsi(displayName){
-  if(jitsiApi) return;
+  console.log("🔵 initJitsi");
+
+  if(jitsiApi){
+    console.log("⚠️ Jitsi exists, skipping");
+    return;
+  }
 
   document.querySelector("#meet").innerHTML = "";
-  const domain = "meet.bepeace.in";
 
+  const domain = "meet.bepeace.in";
   const defaultButtons = ["microphone","camera","desktop","fullscreen","chat","raisehand","tileview"];
   const toolbarButtons = role==="doctor" ? [...defaultButtons,"hangup"] : defaultButtons;
 
@@ -129,18 +157,15 @@ function initJitsi(displayName){
     roomName,
     parentNode: document.querySelector("#meet"),
     userInfo: { displayName },
-
     width: "100%",
     height: "100%",
     lang: "en",
 
     configOverwrite: {
       prejoinPageEnabled: false,
-      startWithAudioMuted: false,
-      startWithVideoMuted: false,
       disableDeepLinking: true,
-      startAudioOnly: false,
-      prejoinConfig: { enabled: false }
+      startWithAudioMuted: false,
+      startWithVideoMuted: false
     },
 
     interfaceConfigOverwrite: {
@@ -154,69 +179,105 @@ function initJitsi(displayName){
   jitsiApi = new JitsiMeetExternalAPI(domain, options);
   const api = jitsiApi;
 
-  api.addEventListener("videoConferenceJoined", async ()=>{
-    if (role === "doctor") {
-      await set(ref(database, "meetings/" + roomName), {
-        status: "ongoing",
-        doctorJoined: true,
-        patientJoined: false,
-        startedAt: new Date().toISOString(),
-        endedAt: null
-      });
-    }
+  /* ---------------------------
+      JOINED EVENT
+  ---------------------------- */
+  api.addEventListener("videoConferenceJoined", async () => {
+    console.log("🟢 JITSI — videoConferenceJoined (role:", role, ")");
 
-    if (role === "patient") {
-      await update(ref(database, "meetings/" + roomName), {
-        patientJoined: true
-      });
+    try{
+      if (role === "doctor") {
+        console.log("🩺 Doctor joined → mark meeting ongoing");
+        await set(ref(database, "meetings/" + roomName), {
+          status: "ongoing",
+          doctorJoined: true,
+          patientJoined: false,
+          startedAt: new Date().toISOString(),
+          endedAt: null
+        });
+      }
+
+      if (role === "patient") {
+        console.log("👶 Patient joined → mark patientJoined");
+        await update(ref(database, "meetings/" + roomName), {
+          patientJoined: true
+        });
+      }
+    }catch(e){
+      console.error("🔥 Firebase update error after join:", e);
     }
   });
 
+
+  /* ---------------------------
+      LEAVE EVENT
+  ---------------------------- */
   api.addEventListener("participantLeft", async (event) => {
-    console.log("participantLeft:", event);
+    console.log("🔴 participantLeft fired:", event);
 
-    const isDoctorLeaving =
-      event?.participant?.role === "moderator" ||
-      event?.participant?.id === "moderator";
+    if (role !== "doctor") {
+      console.log("⭕ Patient left — NO meeting end trigger");
+      return;
+    }
 
-    if (isDoctorLeaving) {
+    if (alreadyRedirected) {
+      console.log("⚠️ Already redirected, skipping");
+      return;
+    }
 
+    alreadyRedirected = true;
+
+    console.log("🩺 Doctor leaving — ENDING MEETING…");
+
+    try{
       await update(ref(database, "meetings/" + roomName), {
         status: "ended",
         doctorJoined: false,
         patientJoined: false,
         endedAt: new Date().toISOString()
       });
-
-      if (role === "doctor") {
-        window.location.replace("/doctor-dashboard.html");
-      } else {
-        window.location.replace("/dashboard.html");
-      }
+      console.log("📡 Meeting marked ended in Firebase");
+    }catch(e){
+      console.error("🔥 Firebase meeting end error:", e);
     }
+
+    console.log("➡️ Redirect doctor to dashboard");
+    window.location.replace("/doctor-dashboard.html");
   });
 }
 
-/* -------------------- SYNC: AUTO EXIT PATIENT -------------------- */
-async function attachMeetingSync(){
+/* ---------------------------------------------------
+    PATIENT AUTO EXIT ON END
+--------------------------------------------------- */
+function attachMeetingSync(){
+  console.log("🔵 attachMeetingSync");
+
   const meetingRef = ref(database,"meetings/"+roomName);
 
-
   onValue(meetingRef, (snap)=>{
-    if(!snap.exists() || alreadyRedirected) return;
+    if(!snap.exists()) {
+      console.log("⚪ meetingRef empty");
+      return;
+    }
 
     const data = snap.val();
-    const status = data.status;
+    console.log("📡 Firebase meeting update:", data);
 
-    if(role === "patient" && status === "ended"){
+    if(role === "patient" && data.status === "ended" && !alreadyRedirected){
       alreadyRedirected = true;
+
+      console.log("🔴 Patient detected meeting ended");
+
       document.getElementById("meet").innerHTML =
         "<div class='ended-msg'>Meeting ended by doctor. Returning to dashboard…</div>";
 
-      setTimeout(()=>window.location.replace("/dashboard.html"),900);
+      setTimeout(()=>{
+        window.location.replace("/dashboard.html");
+      }, 900);
     }
   });
 }
+
 </script>
 </body>
 </html>
