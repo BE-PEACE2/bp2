@@ -69,6 +69,104 @@ let jitsiApi = null;
 let alreadyRedirected = false;
 let safeOnDisconnectRef = null; // hold onDisconnect handler reference
 
+/* ---------------------------------------------------
+    PREVENT DUPLICATE WINDOWS/TABS
+--------------------------------------------------- */
+const paramsForDupCheck = new URLSearchParams(window.location.search);
+const roomNameForDup = paramsForDupCheck.get("room");
+const roleForDup = (paramsForDupCheck.get("role") || "patient").toLowerCase();
+const sessionKey = roomNameForDup ? `consultation_${roomNameForDup}_${roleForDup}` : null;
+const channelName = roomNameForDup ? `consultation_${roomNameForDup}_${roleForDup}` : null;
+
+// ✅ Check if another instance is already open
+function checkForDuplicateWindow(roomName, role) {
+  if (!roomName || !sessionKey) return false;
+  
+  // Check sessionStorage first
+  const existingInstance = sessionStorage.getItem(sessionKey);
+  if (existingInstance) {
+    const data = JSON.parse(existingInstance);
+    const now = Date.now();
+    // If instance is less than 5 seconds old, it's likely a duplicate
+    if (now - data.timestamp < 5000) {
+      console.warn("⚠️ Duplicate consultation window detected!");
+      showDuplicateMessage(role);
+      return true;
+    }
+  }
+  
+  // Register this instance
+  sessionStorage.setItem(sessionKey, JSON.stringify({
+    timestamp: Date.now(),
+    url: window.location.href
+  }));
+  
+  // Use BroadcastChannel to communicate with other tabs
+  try {
+    const channel = new BroadcastChannel(channelName);
+    
+    // Listen for other instances trying to open
+    channel.onmessage = (event) => {
+      if (event.data.type === 'ping') {
+        // Another tab is checking - respond that we're here
+        channel.postMessage({ type: 'pong', timestamp: Date.now() });
+        // If we're the newer instance, close ourselves
+        if (event.data.timestamp < Date.now() - 2000) {
+          console.warn("⚠️ Another consultation window is already open!");
+          showDuplicateMessage(role);
+        }
+      } else if (event.data.type === 'pong') {
+        // Another instance responded - we're the duplicate
+        console.warn("⚠️ Another consultation window is already open!");
+        showDuplicateMessage(role);
+      }
+    };
+    
+    // Broadcast that we're opening
+    channel.postMessage({ type: 'ping', timestamp: Date.now() });
+    
+    // Clean up on unload
+    window.addEventListener('beforeunload', () => {
+      if (sessionKey) sessionStorage.removeItem(sessionKey);
+      channel.close();
+    });
+    
+    // Store channel reference for cleanup
+    window.consultationChannel = channel;
+  } catch (e) {
+    console.warn("⚠️ BroadcastChannel not supported, using sessionStorage only:", e);
+  }
+  
+  return false;
+}
+
+// ✅ Show message and redirect if duplicate detected
+function showDuplicateMessage(role) {
+  const meetEl = document.getElementById("meet");
+  if (meetEl) {
+    meetEl.innerHTML = `
+      <div class='ended-msg' style='padding:40px; text-align:center;'>
+        <h2 style='color:#fff; margin-bottom:20px;'>⚠️ Consultation Already Open</h2>
+        <p style='color:#fff; font-size:16px; margin-bottom:20px;'>
+          Another consultation window is already open for this meeting.
+        </p>
+        <p style='color:#fff; font-size:14px; margin-bottom:30px;'>
+          Please use the existing window or close it first.
+        </p>
+        <button onclick="window.location.replace('${role === 'doctor' ? '/doctor-dashboard.html' : '/dashboard.html'}')" 
+                style='background:#c71585; color:#fff; padding:12px 24px; border:none; border-radius:8px; cursor:pointer; font-size:16px;'>
+          Return to Dashboard
+        </button>
+      </div>
+    `;
+  }
+  
+  // Auto-redirect after 5 seconds
+  setTimeout(() => {
+    window.location.replace(role === "doctor" ? "/doctor-dashboard.html" : "/dashboard.html");
+  }, 5000);
+}
+
 window.onbeforeunload = async () => {
   console.log("🧹 Cleaning Jitsi instance (beforeunload)…");
   // If doctor and jitsiApi exists, try to mark meeting ended quickly (best-effort)
@@ -80,6 +178,16 @@ window.onbeforeunload = async () => {
   } catch(e){
     console.warn("🧨 Error while disposing jitsi:", e);
   }
+  
+  // ✅ Clean up duplicate detection
+  try {
+    sessionStorage.removeItem(sessionKey);
+    if (window.consultationChannel) {
+      window.consultationChannel.close();
+    }
+  } catch(e) {
+    console.warn("⚠️ Error cleaning up duplicate detection:", e);
+  }
 };
 
 /* ---------------------------------------------------
@@ -89,17 +197,28 @@ import { auth, database } from "/js/firebase-init.js";
 import { ref, get, set, update, onValue, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const params = new URLSearchParams(window.location.search);
-const roomName = params.get("room");
-const role = (params.get("role") || "patient").toLowerCase();
+// Note: roomName and role are already defined in duplicate check above, but we need them here too
+const roomNameForCheck = params.get("room");
+const roleForCheck = (params.get("role") || "patient").toLowerCase();
 const urlPatientName = params.get("patientName") || "";
 let displayName = "Guest";
 
-console.log("🟣 Room:", roomName);
-console.log("🟣 Role:", role);
+console.log("🟣 Room:", roomNameForCheck);
+console.log("🟣 Role:", roleForCheck);
 
-if (!roomName) {
+if (!roomNameForCheck) {
   console.log("❌ No room, redirecting…");
-  window.location.replace(role === "doctor" ? "/doctor-dashboard.html" : "/dashboard.html");
+  window.location.replace(roleForCheck === "doctor" ? "/doctor-dashboard.html" : "/dashboard.html");
+}
+
+// Use the checked values
+const roomName = roomNameForCheck;
+const role = roleForCheck;
+
+// ✅ Check for duplicates immediately (after roomName and role are defined)
+if (roomName && checkForDuplicateWindow(roomName, role)) {
+  // Duplicate detected, stop execution
+  // Don't throw error, just let the showDuplicateMessage handle it
 }
 
 /* ---------------------------------------------------
@@ -157,6 +276,7 @@ function initJitsi(displayName){
 
   const domain = "meet.bepeace.in";
   const defaultButtons = ["microphone","camera","desktop","fullscreen","chat","raisehand","tileview"];
+  // ✅ Only doctor gets hangup button - patient cannot end meeting
   const toolbarButtons = role==="doctor" ? [...defaultButtons,"hangup"] : defaultButtons;
 
   const options = {
@@ -206,14 +326,20 @@ function initJitsi(displayName){
       if (role === "doctor") {
         console.log("🩺 Doctor joined → mark meeting ongoing (set + register onDisconnect)");
 
-        // Mark meeting ongoing right away
+        // ✅ Mark meeting ongoing - allows rejoining if meeting was paused
+        // If meeting was paused, restart it; otherwise start new or continue existing
+        const isRejoining = current.status === "paused";
         await set(meetRef, {
           status: "ongoing",
           doctorJoined: true,
           patientJoined: current.patientJoined || false,
-          startedAt: new Date().toISOString(),
+          startedAt: current.startedAt || new Date().toISOString(), // Preserve original start time if rejoining
+          pausedAt: null, // Clear paused status
           endedAt: null
         });
+        if (isRejoining) {
+          console.log("✅ Meeting restarted (doctor rejoined after pause)");
+        }
 
         // Register an onDisconnect safety so if doctor loses connection or closes tab unexpectedly,
         // Firebase will mark the meeting ended (best-effort, serverTimestamp used).
@@ -222,10 +348,10 @@ function initJitsi(displayName){
           const od = onDisconnect(odRef);
           // Use update with serverTimestamp for endedAt
           od.update({
-            status: "ended",
+            status: "paused", // Changed to paused to allow rejoining
             doctorJoined: false,
             patientJoined: false,
-            endedAt: serverTimestamp()
+            pausedAt: serverTimestamp()
           });
           safeOnDisconnectRef = od; // store to optionally cancel later
           console.log("✅ onDisconnect registered for doctor (safety).");
@@ -237,12 +363,43 @@ function initJitsi(displayName){
       if (role === "patient") {
         console.log("👶 Patient joined → mark patientJoined");
 
-        // If patientJoined not recorded, update it once
+        // ✅ Initialize meeting document if patient joins first OR restart if meeting was paused
         if (!current.patientJoined) {
-          await update(meetRef, { patientJoined: true });
-          console.log("✅ patientJoined updated");
+          // If meeting document doesn't exist or has no status, initialize it
+          if (!snap.exists() || !current.status) {
+            await set(meetRef, {
+              status: "waiting", // Initial status when patient joins first
+              patientJoined: true,
+              doctorJoined: false,
+              startedAt: null,
+              pausedAt: null,
+              endedAt: null
+            });
+            console.log("✅ Meeting document initialized (patient joined first)");
+          } else if (current.status === "paused") {
+            // ✅ Meeting was paused, restart it when patient rejoins
+            await update(meetRef, {
+              status: "ongoing",
+              patientJoined: true,
+              pausedAt: null
+            });
+            console.log("✅ Meeting restarted (patient rejoined after pause)");
+          } else {
+            // Meeting exists, just update patientJoined
+            await update(meetRef, { patientJoined: true });
+            console.log("✅ patientJoined updated");
+          }
         } else {
-          console.log("⚠️ patientJoined already true → NO DB update");
+          // Patient already joined, but if meeting was paused, restart it
+          if (current.status === "paused") {
+            await update(meetRef, {
+              status: "ongoing",
+              pausedAt: null
+            });
+            console.log("✅ Meeting restarted (patient rejoined after pause)");
+          } else {
+            console.log("⚠️ patientJoined already true → NO DB update");
+          }
         }
       }
     } catch (e) {
@@ -270,38 +427,59 @@ function initJitsi(displayName){
   });
 
   /* ---------------------------
-      HANGUP / VIDEO LEFT - doctor explicitly ends meeting
+      HANGUP - Only doctor can end meeting
+      When doctor ends meeting, both doctor and patient will be redirected
   ---------------------------- */
   api.addEventListener("hangup", async () => {
     console.log("🩺 hangup event fired");
 
-    // Hangup may be clicked by doctor or patient. Only doctor should end meeting and redirect to doctor dashboard.
+    // ✅ Only doctor can end the meeting via hangup button
     if (role === "doctor") {
+      if (alreadyRedirected) {
+        console.log("⚠️ Already redirected — skipping hangup handler");
+        return;
+      }
+      alreadyRedirected = true;
       console.log("🩺 Doctor clicked hangup — ending meeting now");
+      
       try {
+        // ✅ Mark meeting as paused (not ended) so both can rejoin if Join button is still active
         await update(ref(database, "meetings/" + roomName), {
-          status: "ended",
+          status: "paused", // Changed from "ended" to allow rejoining
           doctorJoined: false,
           patientJoined: false,
-          endedAt: new Date().toISOString()
+          pausedAt: new Date().toISOString()
         });
-        // Cancel onDisconnect (best-effort) because we ended gracefully
+        // Cancel onDisconnect (best-effort) because we paused gracefully
         try { if (safeOnDisconnectRef && typeof safeOnDisconnectRef.cancel === 'function') safeOnDisconnectRef.cancel(); } catch(e){}
+        console.log("✅ Meeting marked as paused in Firebase (can be rejoined)");
       } catch (e) {
-        console.error("🔥 Error marking meeting ended on hangup:", e);
+        console.error("🔥 Error marking meeting paused on hangup:", e);
       } finally {
-        // Give a tiny moment then navigate
-        setTimeout(()=> {
-          try { api.dispose(); } catch(e){}
-          jitsiApi = null;
-          window.location.replace("/doctor-dashboard.html");
-        }, 150);
+        // Dispose Jitsi and redirect doctor to doctor dashboard
+        try { 
+          if (jitsiApi) {
+            jitsiApi.dispose(); 
+            jitsiApi = null;
+          }
+        } catch(e) {
+          console.warn("⚠️ Error disposing Jitsi:", e);
+        }
+        
+        // Redirect doctor to doctor dashboard
+        setTimeout(() => {
+          try {
+            window.location.replace("/doctor-dashboard.html");
+          } catch(e) {
+            console.error("🔥 Redirect failed, trying href:", e);
+            window.location.href = "/doctor-dashboard.html";
+          }
+        }, 300);
       }
     } else {
-      console.log("⭕ hangup by patient - just disconnect locally");
-      try {
-        api.executeCommand && api.executeCommand("hangup");
-      } catch(e){}
+      // ✅ Patient should not have hangup button, but if event fires, ignore it
+      console.log("⭕ Patient cannot end meeting - hangup event ignored");
+      // Patient will be redirected when doctor ends meeting (via Firebase listener)
     }
   });
 
@@ -321,31 +499,64 @@ function initJitsi(displayName){
       console.log("🩺 Doctor left via videoConferenceLeft — ending meeting");
 
       try{
+        // ✅ Mark as paused (not ended) to allow rejoining
         await update(ref(database, "meetings/" + roomName), {
-          status: "ended",
+          status: "paused",
           doctorJoined: false,
           patientJoined: false,
-          endedAt: new Date().toISOString()
+          pausedAt: new Date().toISOString()
         });
         try { if (safeOnDisconnectRef && typeof safeOnDisconnectRef.cancel === 'function') safeOnDisconnectRef.cancel(); } catch(e){}
       }catch(e){
         console.error("🔥 Firebase error on videoConferenceLeft:", e);
       } finally {
-        try { api.dispose(); } catch(e){}
-        jitsiApi = null;
-        window.location.replace("/doctor-dashboard.html");
+        try { 
+          if (jitsiApi) {
+            jitsiApi.dispose();
+            jitsiApi = null;
+          }
+        } catch(e) {
+          console.warn("⚠️ Error disposing Jitsi:", e);
+        }
+        
+        // Redirect with fallback
+        setTimeout(() => {
+          try {
+            window.location.replace("/doctor-dashboard.html");
+          } catch(e) {
+            console.error("🔥 Redirect failed, trying href:", e);
+            window.location.href = "/doctor-dashboard.html";
+          }
+        }, 300);
       }
     } else {
-      console.log("👶 Patient left the meeting (videoConferenceLeft) — just local disconnect.");
-      try { api.dispose(); } catch(e){}
-      jitsiApi = null;
-      // Optionally redirect patient to dashboard after small delay
-      setTimeout(()=> {
-        if (!alreadyRedirected) {
-          alreadyRedirected = true;
-          window.location.replace("/dashboard.html");
+      // ✅ Patient leaving via videoConferenceLeft - redirect to patient dashboard
+      // (This handles cases where patient closes tab/browser, but doctor ending meeting is handled via Firebase listener)
+      console.log("👶 Patient left the meeting (videoConferenceLeft) — redirecting to dashboard.");
+      if (alreadyRedirected) {
+        console.log("⚠️ Already redirected — skipping videoConferenceLeft handler");
+        return;
+      }
+      alreadyRedirected = true;
+      
+      try { 
+        if (jitsiApi) {
+          jitsiApi.dispose();
+          jitsiApi = null;
         }
-      }, 200);
+      } catch(e) {
+        console.warn("⚠️ Error disposing Jitsi:", e);
+      }
+      
+      // Redirect patient to patient dashboard
+      setTimeout(() => {
+        try {
+          window.location.replace("/dashboard.html");
+        } catch(e) {
+          console.error("🔥 Redirect failed, trying href:", e);
+          window.location.href = "/dashboard.html";
+        }
+      }, 300);
     }
   });
 
@@ -358,15 +569,16 @@ function initJitsi(displayName){
       if (alreadyRedirected) return;
       alreadyRedirected = true;
       try{
+        // ✅ Mark as paused (not ended) to allow rejoining
         await update(ref(database, "meetings/" + roomName), {
-          status: "ended",
+          status: "paused",
           doctorJoined: false,
           patientJoined: false,
-          endedAt: new Date().toISOString()
+          pausedAt: new Date().toISOString()
         });
         try { if (safeOnDisconnectRef && typeof safeOnDisconnectRef.cancel === 'function') safeOnDisconnectRef.cancel(); } catch(e){}
       } catch(e){
-        console.warn("⚠️ pagehide: couldn't update meeting end (might be offline):", e);
+        console.warn("⚠️ pagehide: couldn't update meeting paused (might be offline):", e);
       }
     }, {passive:true});
   }
@@ -391,36 +603,47 @@ function attachMeetingSync(){
 
   onValue(meetingRef, (snap)=>{
     if(!snap.exists()) {
-      console.log("⚪ meetingRef empty");
+      console.log("⚪ meetingRef empty - waiting for meeting to be created");
       return;
     }
 
     const data = snap.val();
     console.log("📡 Firebase meeting update:", data);
 
-    // If meeting ended remotely (doctor ended), patient should be redirected immediately.
-    if (role === "patient" && data.status === "ended" && !alreadyRedirected) {
-    alreadyRedirected = true;
+    // ✅ If meeting paused remotely (doctor clicked hangup), patient should be redirected to patient dashboard
+    // But they can rejoin if Join button is still active (time window allows)
+    // Works regardless of who joined first - patient listener detects status change
+    if (role === "patient" && data.status === "paused" && !alreadyRedirected) {
+      alreadyRedirected = true;
 
-    console.log("🔴 Patient detected meeting ended in DB — disposing Jitsi…");
+      console.log("🔴 Patient detected meeting paused by doctor — disposing Jitsi and redirecting to patient dashboard (can rejoin if Join button active)…");
 
-    // 🔥 Dispose Jitsi iframe so patient leaves immediately
-    try { 
+      // 🔥 Dispose Jitsi iframe so patient leaves immediately
+      try { 
         if (jitsiApi) { 
-            jitsiApi.dispose(); 
-            jitsiApi = null;
+          jitsiApi.dispose(); 
+          jitsiApi = null;
         }
-    } catch (e) { 
+      } catch (e) { 
         console.error("🔥 Error disposing Jitsi:", e);
+      }
+
+      // Show message to user
+      const meetEl = document.getElementById("meet");
+      if (meetEl) {
+        meetEl.innerHTML = "<div class='ended-msg'>Meeting paused by doctor. Returning to your dashboard…<br><small>You can rejoin if the Join button is still active.</small></div>";
+      }
+
+      // ✅ Redirect patient to patient dashboard
+      setTimeout(() => {
+        try {
+          window.location.replace("/dashboard.html");
+        } catch(e) {
+          console.error("🔥 Redirect failed, trying href:", e);
+          window.location.href = "/dashboard.html";
+        }
+      }, 800);
     }
-
-    document.getElementById("meet").innerHTML =
-      "<div class='ended-msg'>Meeting ended by doctor. Returning to dashboard…</div>";
-
-    setTimeout(() => {
-        window.location.replace("/dashboard.html");
-    }, 600);
-}
   });
 }
 </script>
