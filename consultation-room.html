@@ -202,20 +202,22 @@ async function attachMeetingSync(){
   const meetingRef = ref(database,"meetings/"+roomName);
 
   if (role === "patient") {
-    const old = await get(meetingRef);
-    if (old.exists()) {
-      const d = old.val();
-      if (d.status === "ended" && !d.doctorJoined && !d.patientJoined) {
-        await set(meetingRef, {
-          status: "waiting",
-          doctorJoined: false,
-          patientJoined: false,
-          startedAt: null,
-          endedAt: null
-        });
-      }
+  const old = await get(meetingRef);
+  if (old.exists()) {
+    const d = old.val();
+
+    // If last meeting ended, ALWAYS reset room for fresh join
+    if (d.status === "ended") {
+      await set(meetingRef, {
+        status: "waiting",
+        doctorJoined: false,
+        patientJoined: false,
+        startedAt: null,
+        endedAt: null
+      });
     }
   }
+}
 
   onValue(meetingRef, (snap)=>{
     if(!snap.exists() || alreadyRedirected) return;
