@@ -391,26 +391,28 @@ function initJitsi(displayName){
             });
             console.log("✅ Meeting document initialized (patient joined first)");
           } else if (current.status === "paused") {
-            // ✅ Meeting was paused, restart it when patient rejoins
+            // ✅ Meeting was paused (doctor ended it), restart it when patient rejoins
+            // This allows patient to rejoin after being redirected
             await update(meetRef, {
               status: "ongoing",
               patientJoined: true,
               pausedAt: null
             });
-            console.log("✅ Meeting restarted (patient rejoined after pause)");
+            console.log("✅ Meeting restarted (patient rejoined after doctor ended meeting)");
           } else {
             // Meeting exists, just update patientJoined
             await update(meetRef, { patientJoined: true });
             console.log("✅ patientJoined updated");
           }
         } else {
-          // Patient already joined, but if meeting was paused, restart it
+          // Patient already joined before, but if meeting was paused, restart it
           if (current.status === "paused") {
             await update(meetRef, {
               status: "ongoing",
+              patientJoined: true, // Ensure patientJoined is true
               pausedAt: null
             });
-            console.log("✅ Meeting restarted (patient rejoined after pause)");
+            console.log("✅ Meeting restarted (patient rejoined after doctor ended meeting)");
           } else {
             console.log("⚠️ patientJoined already true → NO DB update");
           }
@@ -658,11 +660,26 @@ function attachMeetingSync(){
         console.error("🔥 Error disposing Jitsi:", e);
       }
 
+      // ✅ Clear sessionStorage to allow rejoining
+      try {
+        if (sessionKey) {
+          sessionStorage.removeItem(sessionKey);
+          console.log("✅ Cleared sessionStorage to allow rejoining");
+        }
+        if (window.consultationChannel) {
+          window.consultationChannel.close();
+        }
+      } catch(e) {
+        console.warn("⚠️ Error clearing sessionStorage:", e);
+      }
+
       // ✅ Redirect immediately without any notification or delay
       // Use location.replace() to prevent back button navigation
+      // Patient can rejoin by clicking Join button again if it's still active
       console.log("🔴 Redirecting patient to dashboard immediately...");
       try {
         // Direct redirect - no setTimeout, no message, no confirmation
+        // Patient will see Join button on dashboard if still within time window
         window.location.replace("/dashboard.html");
       } catch(e) {
         console.error("🔥 Redirect failed, trying href:", e);
