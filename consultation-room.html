@@ -643,9 +643,9 @@ function attachMeetingSync(){
     // ✅ If meeting paused remotely (doctor clicked hangup), patient should be redirected to patient dashboard
     // But they can rejoin if Join button is still active (time window allows)
     // Works regardless of who joined first - patient listener detects status change
-     if (
+    if (
   role === "patient" &&
-  (data.status === "paused" || data.status === "ended") &&
+  data.status === "ended" &&
   !alreadyRedirected
 ) {
       console.log("🔴 PATIENT REDIRECT TRIGGERED - Status is paused, alreadyRedirected:", alreadyRedirected);
