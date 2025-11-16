@@ -322,6 +322,24 @@ function initJitsi(displayName){
 
   const api = jitsiApi; // local alias for readability
 
+  /* -------------------------------------------------
+   🚨 HARD FAIL-SAFE FOR PATIENT DISCONNECT
+   This ALWAYS fires when the meeting ends.
+-------------------------------------------------- */
+api.addEventListener("conferenceTerminated", () => {
+  console.log("🚨 conferenceTerminated fired");
+
+  if (role === "patient" && !alreadyRedirected) {
+    console.log("🚨 Patient conferenceTerminated → FORCED redirect");
+
+    alreadyRedirected = true;
+
+    try { if (jitsiApi) jitsiApi.dispose(); } catch(e){}
+
+    window.location.replace("/dashboard.html");
+  }
+});
+
   /* ---------------------------
       JOINED EVENT
   ---------------------------- */
@@ -404,19 +422,6 @@ function initJitsi(displayName){
     console.log("ℹ️ Jitsi API readyToClose event received");
   });
 
-  /* ---------------------------
-    PATIENT FALLBACK REDIRECT ON MEETING END
----------------------------- */
-api.addEventListener("videoConferenceLeft", () => {
-  if (role === "patient" && !alreadyRedirected) {
-    console.log("🔴 Patient videoConferenceLeft detected — redirecting");
-    alreadyRedirected = true;
-
-    try { if (jitsiApi) jitsiApi.dispose(); } catch(e){}
-
-    window.location.replace("/dashboard.html");
-  }
-});
   console.log("✅ Jitsi API initialized and event listeners attached.");
 }
 
