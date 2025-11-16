@@ -422,6 +422,20 @@ api.addEventListener("conferenceTerminated", () => {
     console.log("ℹ️ Jitsi API readyToClose event received");
   });
 
+  api.addEventListener("videoConferenceLeft", () => {
+  console.log("🔴 videoConferenceLeft fired");
+
+  if (!alreadyRedirected) {
+    alreadyRedirected = true;
+
+    if (role === "doctor") {
+      window.location.replace("/doctor-dashboard.html");
+    } else {
+      window.location.replace("/dashboard.html");
+    }
+  }
+});
+
   console.log("✅ Jitsi API initialized and event listeners attached.");
 }
 
