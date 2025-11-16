@@ -325,88 +325,25 @@ function initJitsi(displayName){
   /* ---------------------------
       JOINED EVENT
   ---------------------------- */
-  api.addEventListener("videoConferenceJoined", async () => {
-    console.log("🟢 JITSI — videoConferenceJoined (role:", role, ")");
+  api.addEventListener("videoConferenceLeft", async () => {
+  if (role !== "doctor") return;
 
-    try {
-      const meetRef = ref(database, "meetings/" + roomName);
-      const snap = await get(meetRef);
-      const current = snap.exists() ? snap.val() : {};
+  console.log("🟠 Doctor videoConferenceLeft → updating Firebase");
 
-      if (role === "doctor") {
-        console.log("🩺 Doctor joined → mark meeting ongoing (set + register onDisconnect)");
-
-        // ✅ Mark meeting ongoing - allows rejoining if meeting was paused
-        // If meeting was paused, restart it; otherwise start new or continue existing
-        const isRejoining = current.status === "paused";
-        await set(meetRef, {
-          status: "ongoing",
-          doctorJoined: true,
-          patientJoined: current.patientJoined || false,
-          startedAt: current.startedAt || new Date().toISOString(), // Preserve original start time if rejoining
-          pausedAt: null, // Clear paused status
-          endedAt: null
-        });
-        if (isRejoining) {
-          console.log("✅ Meeting restarted (doctor rejoined after pause)");
-        }
-
-        // Register an onDisconnect safety so if doctor loses connection or closes tab unexpectedly,
-        // Firebase will mark the meeting ended (best-effort, serverTimestamp used).
-        try {
-          const odRef = ref(database, "meetings/" + roomName);
-          const od = onDisconnect(odRef);
-          // Use update with serverTimestamp for endedAt
-          od.update({
-            status: "paused", // Changed to paused to allow rejoining
-            doctorJoined: false,
-            patientJoined: false,
-            pausedAt: serverTimestamp()
-          });
-          safeOnDisconnectRef = od; // store to optionally cancel later
-          console.log("✅ onDisconnect registered for doctor (safety).");
-        } catch (odErr) {
-          console.warn("⚠️ Could not register onDisconnect:", odErr);
-        }
-      }
-
-      if (role === "patient") {
-  console.log("👶 Patient joined → checking meeting status…");
-
-  // If doctor ended/paused the meeting → redirect patient immediately.
-  if (current.status === "paused" || current.status === "ended") {
-    console.log("🔴 Meeting paused/ended → redirect patient");
-
-    try { if (jitsiApi) { jitsiApi.dispose(); jitsiApi = null; } } catch(e){}
-    try { 
-      if (sessionKey) sessionStorage.removeItem(sessionKey);
-      if (window.consultationChannel) window.consultationChannel.close();
-    } catch(e){}
-
-    alreadyRedirected = true;
-    window.location.replace("/dashboard.html");
-    return; // STOP execution
-  }
-
-  // Patient joins first ⇒ create waiting state
-  if (!current.patientJoined) {
-    await set(meetRef, {
-      status: "waiting",
-      patientJoined: true,
+  try {
+    await update(ref(database, "meetings/" + roomName), {
+      status: "paused",
       doctorJoined: false,
-      startedAt: null,
-      pausedAt: null,
-      endedAt: null
+      patientJoined: false,
+      pausedAt: new Date().toISOString()
     });
-    console.log("🟢 Meeting initialized as waiting");
-  } else {
-    console.log("⚠️ patientJoined already true → no update");
+    console.log("✅ Firebase updated (paused) via videoConferenceLeft");
+  } catch (e) {
+    console.error("🔥 Firebase update error:", e);
   }
-}
-    } catch (e) {
-      console.error("🔥 Firebase update error on videoConferenceJoined:", e);
-    }
-  });
+
+  window.location.replace("/doctor-dashboard.html");
+});
 
   /* ---------------------------
       PARTICIPANT LEFT - doctor-side triggers meeting end
@@ -432,134 +369,28 @@ function initJitsi(displayName){
       When doctor ends meeting, both doctor and patient will be redirected
   ---------------------------- */
   api.addEventListener("hangup", async () => {
-    console.log("🩺 hangup event fired");
+  if (role !== "doctor") return;
 
-    // ✅ Only doctor can end the meeting via hangup button
-    if (role === "doctor") {
-      if (alreadyRedirected) {
-        console.log("⚠️ Already redirected — skipping hangup handler");
-        return;
-      }
-      alreadyRedirected = true;
-      console.log("🩺 Doctor clicked hangup — ending meeting now");
-      
-      try {
-        // ✅ Mark meeting as paused (not ended) so both can rejoin if Join button is still active
-        await update(ref(database, "meetings/" + roomName), {
-          status: "paused", // Changed from "ended" to allow rejoining
-          doctorJoined: false,
-          patientJoined: false,
-          pausedAt: new Date().toISOString()
-        });
-        // Cancel onDisconnect (best-effort) because we paused gracefully
-        try { if (safeOnDisconnectRef && typeof safeOnDisconnectRef.cancel === 'function') safeOnDisconnectRef.cancel(); } catch(e){}
-        console.log("✅ Meeting marked as paused in Firebase (can be rejoined)");
-      } catch (e) {
-        console.error("🔥 Error marking meeting paused on hangup:", e);
-      } finally {
-        // Dispose Jitsi and redirect doctor to doctor dashboard
-        try { 
-          if (jitsiApi) {
-            jitsiApi.dispose(); 
-            jitsiApi = null;
-          }
-        } catch(e) {
-          console.warn("⚠️ Error disposing Jitsi:", e);
-        }
-        
-        // Redirect doctor to doctor dashboard
-        setTimeout(() => {
-          try {
-            window.location.replace("/doctor-dashboard.html");
-          } catch(e) {
-            console.error("🔥 Redirect failed, trying href:", e);
-            window.location.href = "/doctor-dashboard.html";
-          }
-        }, 300);
-      }
-    } else {
-      // ✅ Patient should not have hangup button, but if event fires, ignore it
-      console.log("⭕ Patient cannot end meeting - hangup event ignored");
-      // Patient will be redirected when doctor ends meeting (via Firebase listener)
-    }
-  });
+  console.log("🩺 Doctor hangup → updating Firebase to paused");
 
-  /* ---------------------------
-      videoConferenceLeft - fired when current participant leaves
-      We'll use this to mark meeting ended if the doctor explicitly leaves/close
-  ---------------------------- */
-  api.addEventListener("videoConferenceLeft", async () => {
-    console.log("🔴 JITSI — videoConferenceLeft (role:", role, ")");
+  try {
+    await update(ref(database, "meetings/" + roomName), {
+      status: "paused",
+      doctorJoined: false,
+      patientJoined: false,
+      pausedAt: new Date().toISOString()
+    });
+    console.log("✅ Firebase updated (paused)");
+  } catch (e) {
+    console.error("🔥 Firebase update error:", e);
+  }
 
-    if (role === "doctor") {
-      if (alreadyRedirected) {
-        console.log("⚠️ Already redirected/ended — skipping videoConferenceLeft handler");
-        return;
-      }
-      alreadyRedirected = true;
-      console.log("🩺 Doctor left via videoConferenceLeft — ending meeting");
+  try {
+    if (jitsiApi) jitsiApi.dispose();
+  } catch (e) {}
 
-      try{
-        // ✅ Mark as paused (not ended) to allow rejoining
-        await update(ref(database, "meetings/" + roomName), {
-          status: "paused",
-          doctorJoined: false,
-          patientJoined: false,
-          pausedAt: new Date().toISOString()
-        });
-        try { if (safeOnDisconnectRef && typeof safeOnDisconnectRef.cancel === 'function') safeOnDisconnectRef.cancel(); } catch(e){}
-      }catch(e){
-        console.error("🔥 Firebase error on videoConferenceLeft:", e);
-      } finally {
-        try { 
-          if (jitsiApi) {
-            jitsiApi.dispose();
-            jitsiApi = null;
-          }
-        } catch(e) {
-          console.warn("⚠️ Error disposing Jitsi:", e);
-        }
-        
-        // Redirect with fallback
-        setTimeout(() => {
-          try {
-            window.location.replace("/doctor-dashboard.html");
-          } catch(e) {
-            console.error("🔥 Redirect failed, trying href:", e);
-            window.location.href = "/doctor-dashboard.html";
-          }
-        }, 300);
-      }
-    } else {
-      // ✅ Patient leaving via videoConferenceLeft - redirect to patient dashboard
-      // (This handles cases where patient closes tab/browser, but doctor ending meeting is handled via Firebase listener)
-      console.log("👶 Patient left the meeting (videoConferenceLeft) — redirecting to dashboard.");
-      if (alreadyRedirected) {
-        console.log("⚠️ Already redirected — skipping videoConferenceLeft handler");
-        return;
-      }
-      alreadyRedirected = true;
-      
-      try { 
-        if (jitsiApi) {
-          jitsiApi.dispose();
-          jitsiApi = null;
-        }
-      } catch(e) {
-        console.warn("⚠️ Error disposing Jitsi:", e);
-      }
-      
-      // Redirect patient to patient dashboard
-      setTimeout(() => {
-        try {
-          window.location.replace("/dashboard.html");
-        } catch(e) {
-          console.error("🔥 Redirect failed, trying href:", e);
-          window.location.href = "/dashboard.html";
-        }
-      }, 300);
-    }
-  });
+  window.location.replace("/doctor-dashboard.html");
+});
 
   /* ---------------------------
       Ensure doctor's unload also marks meeting ended (best-effort)
