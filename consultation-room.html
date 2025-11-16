@@ -325,25 +325,7 @@ function initJitsi(displayName){
   /* ---------------------------
       JOINED EVENT
   ---------------------------- */
-  api.addEventListener("videoConferenceLeft", async () => {
-  if (role !== "doctor") return;
-
-  console.log("🟠 Doctor videoConferenceLeft → updating Firebase");
-
-  try {
-    await update(ref(database, "meetings/" + roomName), {
-      status: "paused",
-      doctorJoined: false,
-      patientJoined: false,
-      pausedAt: new Date().toISOString()
-    });
-    console.log("✅ Firebase updated (paused) via videoConferenceLeft");
-  } catch (e) {
-    console.error("🔥 Firebase update error:", e);
-  }
-
-  window.location.replace("/doctor-dashboard.html");
-});
+  
 
   /* ---------------------------
       PARTICIPANT LEFT - doctor-side triggers meeting end
@@ -422,6 +404,19 @@ function initJitsi(displayName){
     console.log("ℹ️ Jitsi API readyToClose event received");
   });
 
+  /* ---------------------------
+    PATIENT FALLBACK REDIRECT ON MEETING END
+---------------------------- */
+api.addEventListener("videoConferenceLeft", () => {
+  if (role === "patient" && !alreadyRedirected) {
+    console.log("🔴 Patient videoConferenceLeft detected — redirecting");
+    alreadyRedirected = true;
+
+    try { if (jitsiApi) jitsiApi.dispose(); } catch(e){}
+
+    window.location.replace("/dashboard.html");
+  }
+});
   console.log("✅ Jitsi API initialized and event listeners attached.");
 }
 
