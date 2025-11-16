@@ -255,27 +255,41 @@ auth.onAuthStateChanged(async (user) => {
   let displayName = "Guest";
   if (user) displayName = await getDisplayName(user);
 
-  /* ---------------------------------------------------
-       🔥 MARK DOCTOR JOINED
-  --------------------------------------------------- */
-  if (role === "doctor" && user) {
-    await update(ref(database, "meetings/" + roomName), {
+/* ---------------------------------------------------
+     🔥 MARK DOCTOR JOINED (SAFE + PREVENTS LOOP)
+--------------------------------------------------- */
+if (role === "doctor" && user) {
+  const meetingRef = ref(database, "meetings/" + roomName);
+  const snap = await get(meetingRef);
+  const data = snap.exists() ? snap.val() : {};
+
+  // Only update if needed (prevents infinite Firebase loop)
+  if (data.doctorJoined !== true || data.status !== "active") {
+    console.log("🟣 Doctor join → updating meeting state");
+    await update(meetingRef, {
       doctorJoined: true,
       status: "active"
     });
+  } else {
+    console.log("🟡 Doctor join skipped (already active)");
   }
+}
 
-  
-
-  /* ---------------------------------------------------
-     🔥 MARK PATIENT JOINED (FINAL FIX)
+/* ---------------------------------------------------
+   🔥 MARK PATIENT JOINED (FINAL FIX)
 --------------------------------------------------- */
 if (role === "patient") {
-  await update(ref(database, "meetings/" + roomName), {
+  const meetingRef = ref(database, "meetings/" + roomName);
+  const snap = await get(meetingRef);
+  const data = snap.exists() ? snap.val() : {};
+
+  // Prevent overwriting doctorJoined accidentally
+  await update(meetingRef, {
     patientJoined: true,
-    status: "waiting",
-    doctorJoined: false   // ⭐ important
+    status: "waiting"
   });
+
+  console.log("🟢 Patient marked joined safely");
 }
 
   /* ---------------------------------------------------
