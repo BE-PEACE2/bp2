@@ -83,13 +83,27 @@ if (!roomName) {
 }
 
 /* ---------------------------------------------------
-    SIMPLE DUPLICATE CHECK
+    SAFE DUPLICATE CHECK (FINAL VERSION)
 --------------------------------------------------- */
 const sessionKey = "consult_" + roomName + "_" + role;
-if (sessionStorage.getItem(sessionKey)) {
-  window.location.replace(role === "doctor" ? "/doctor-dashboard.html" : "/dashboard.html");
+
+// First load → mark as open
+if (!sessionStorage.getItem(sessionKey)) {
+    sessionStorage.setItem(sessionKey, "open");
+    console.log("✔ First tab opened");
+} else if (sessionStorage.getItem(sessionKey) === "open") {
+    // Second tab → block
+    console.log("❌ Duplicate tab blocked");
+    window.location.replace(role === "doctor" ? "/doctor-dashboard.html" : "/dashboard.html");
 }
-sessionStorage.setItem(sessionKey, "true");
+
+// On reload → mark active but DO NOT block
+sessionStorage.setItem(sessionKey, "active");
+
+// Remove key on close
+window.addEventListener("beforeunload", () => {
+    sessionStorage.removeItem(sessionKey);
+});
 
 /* ---------------------------------------------------
     NAME BUILDER
@@ -184,13 +198,27 @@ function attachMeetingSync() {
     if (!snap.exists()) return;
 
     const data = snap.val();
-    console.log("📡 Firebase:", data);
+    console.log("📡 Meeting:", data);
 
+    // ⭐ Patient joined first → allow staying, DO NOT redirect
     if (
       role === "patient" &&
-      data.status === "ended" &&
+      (data.status === "ended" || data.status === "paused") &&
+      data.doctorJoined === false
+    ) {
+      console.log("⏳ Patient joined first → ignoring ended status");
+      return;
+    }
+
+    // ⭐ Doctor ended meeting → redirect patient (CASE-2 FIX)
+    if (
+      role === "patient" &&
+      (data.status === "ended" || data.status === "paused") &&
+      data.doctorJoined === true &&
       !alreadyRedirected
     ) {
+      console.log("🔴 Doctor ended meeting → patient redirect");
+
       alreadyRedirected = true;
 
       try {
@@ -225,13 +253,14 @@ auth.onAuthStateChanged(async (user) => {
   }
 
   /* ---------------------------------------------------
-       🔥 MARK PATIENT JOINED
-  --------------------------------------------------- */
-  if (role === "patient") {
-    await update(ref(database, "meetings/" + roomName), {
-      patientJoined: true
-    });
-  }
+     🔥 MARK PATIENT JOINED (FIXED)
+--------------------------------------------------- */
+if (role === "patient") {
+  await update(ref(database, "meetings/" + roomName), {
+    patientJoined: true,
+    status: "waiting"   // ⭐ FIX for Case-2
+  });
+}
 
   initJitsi(displayName);
 });
