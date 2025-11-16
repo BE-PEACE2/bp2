@@ -83,6 +83,28 @@ if (!roomName) {
 }
 
 /* ---------------------------------------------------
+    RESET OLD ENDED MEETING BEFORE ANY LOGIC
+--------------------------------------------------- */
+async function resetIfEnded() {
+  const meetingRef = ref(database, "meetings/" + roomName);
+  const snap = await get(meetingRef);
+
+  if (snap.exists()) {
+    const data = snap.val();
+
+    if (data.status === "ended") {
+      console.log("🔥 Resetting old ended meeting...");
+      await update(meetingRef, {
+        status: "waiting",
+        doctorJoined: false,
+        patientJoined: false
+      });
+    }
+  }
+}
+
+await resetIfEnded();
+/* ---------------------------------------------------
     SAFE DUPLICATE CHECK (FINAL VERSION)
 --------------------------------------------------- */
 const sessionKey = "consult_" + roomName + "_" + role;
@@ -200,15 +222,6 @@ function attachMeetingSync() {
     const data = snap.val();
     console.log("📡 Meeting:", data);
 
-    // ⭐ Patient joined first → allow staying, DO NOT redirect
-    if (
-      role === "patient" &&
-      (data.status === "ended" || data.status === "paused") &&
-      data.doctorJoined === false
-    ) {
-      console.log("⏳ Patient joined first → ignoring ended status");
-      return;
-    }
 
     // ⭐ Doctor ended meeting → redirect patient (CASE-2 FIX)
     if (
