@@ -252,18 +252,24 @@ auth.onAuthStateChanged(async (user) => {
     });
   }
 
+  
+
   /* ---------------------------------------------------
-     🔥 MARK PATIENT JOINED (FIXED)
+     🔥 MARK PATIENT JOINED (FINAL FIX)
 --------------------------------------------------- */
 if (role === "patient") {
   await update(ref(database, "meetings/" + roomName), {
     patientJoined: true,
-    status: "waiting"   // ⭐ FIX for Case-2
+    status: "waiting",
+    doctorJoined: false   // ⭐ important
   });
 }
 
+  /* ---------------------------------------------------
+      INIT JITSI
+  --------------------------------------------------- */
   initJitsi(displayName);
-});
+}); 
 </script>
 </body>
 </html>
