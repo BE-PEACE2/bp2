@@ -371,23 +371,20 @@ api.addEventListener("conferenceTerminated", () => {
   api.addEventListener("hangup", async () => {
   if (role !== "doctor") return;
 
-  console.log("🩺 Doctor hangup → updating Firebase to paused");
+  console.log("🩺 Doctor hangup → setting meeting ENDED");
 
   try {
     await update(ref(database, "meetings/" + roomName), {
-      status: "paused",
+      status: "ended",
       doctorJoined: false,
       patientJoined: false,
-      pausedAt: new Date().toISOString()
+      endedAt: new Date().toISOString()
     });
-    console.log("✅ Firebase updated (paused)");
   } catch (e) {
     console.error("🔥 Firebase update error:", e);
   }
 
-  try {
-    if (jitsiApi) jitsiApi.dispose();
-  } catch (e) {}
+  try { if (jitsiApi) jitsiApi.dispose(); } catch(e){}
 
   window.location.replace("/doctor-dashboard.html");
 });
@@ -396,24 +393,29 @@ api.addEventListener("conferenceTerminated", () => {
       Ensure doctor's unload also marks meeting ended (best-effort)
   ---------------------------- */
   if (role === "doctor") {
-    window.addEventListener("pagehide", async () => {
-      console.log("🟠 pagehide fired (doctor) — attempting graceful end");
-      if (alreadyRedirected) return;
-      alreadyRedirected = true;
-      try{
-        // ✅ Mark as paused (not ended) to allow rejoining
-        await update(ref(database, "meetings/" + roomName), {
-          status: "paused",
-          doctorJoined: false,
-          patientJoined: false,
-          pausedAt: new Date().toISOString()
-        });
-        try { if (safeOnDisconnectRef && typeof safeOnDisconnectRef.cancel === 'function') safeOnDisconnectRef.cancel(); } catch(e){}
-      } catch(e){
-        console.warn("⚠️ pagehide: couldn't update meeting paused (might be offline):", e);
-      }
-    }, {passive:true});
-  }
+  window.addEventListener("pagehide", async () => {
+    console.log("🟠 pagehide fired (doctor) — attempting graceful end");
+    if (alreadyRedirected) return;
+    alreadyRedirected = true;
+    try{
+      await update(ref(database, "meetings/" + roomName), {
+        status: "ended",
+        doctorJoined: false,
+        patientJoined: false,
+        endedAt: new Date().toISOString()   // ✅ CORRECT
+      });
+
+      try { 
+        if (safeOnDisconnectRef && typeof safeOnDisconnectRef.cancel === 'function') {
+          safeOnDisconnectRef.cancel();
+        }
+      } catch(e){}
+      
+    } catch(e){
+      console.warn("⚠️ pagehide: couldn't update meeting ended (might be offline):", e);
+    }
+  }, {passive:true});
+}
 
   /* ---------------------------
       Friendly log to show that the API is ready
@@ -421,20 +423,6 @@ api.addEventListener("conferenceTerminated", () => {
   api.addEventListener("readyToClose", () => {
     console.log("ℹ️ Jitsi API readyToClose event received");
   });
-
-  api.addEventListener("videoConferenceLeft", () => {
-  console.log("🔴 videoConferenceLeft fired");
-
-  if (!alreadyRedirected) {
-    alreadyRedirected = true;
-
-    if (role === "doctor") {
-      window.location.replace("/doctor-dashboard.html");
-    } else {
-      window.location.replace("/dashboard.html");
-    }
-  }
-});
 
   console.log("✅ Jitsi API initialized and event listeners attached.");
 }
@@ -483,16 +471,17 @@ function attachMeetingSync(){
 
       console.log("🔴 Patient detected meeting paused by doctor — disposing Jitsi and redirecting to patient dashboard (can rejoin if Join button active)…");
 
-      // 🔥 Dispose Jitsi iframe silently (no user interaction needed)
-      try { 
-        if (jitsiApi) { 
-          console.log("🔴 Disposing Jitsi API...");
-          jitsiApi.dispose(); 
-          jitsiApi = null;
-        }
-      } catch (e) { 
-        console.error("🔥 Error disposing Jitsi:", e);
-      }
+      // 🔥 Force-close Jitsi so “participant left” never gets stuck
+try { 
+    if (jitsiApi) { 
+        console.log("🔴 Forcing Jitsi hangup + dispose...");
+        jitsiApi.executeCommand("hangup");   // ⭐ NEW IMPORTANT LINE
+        jitsiApi.dispose();
+        jitsiApi = null;
+    }
+} catch (e) { 
+    console.error("🔥 Error forcing Jitsi close:", e);
+}
 
       // ✅ Clear sessionStorage to allow rejoining
       try {
